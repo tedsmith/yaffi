@@ -1,3 +1,9 @@
+YAFFI - Yet Another Free Forensic Imager, by Ted Smith (29th May 2015) 
+A new cross-platform disk imager that will allow imaging using both dd
+and E01 EWF image formats for both Windows and Linux.
+
+As of May 2015, basic structures and GUI taking shape. 
+                    
                     GNU GENERAL PUBLIC LICENSE
                        Version 2, June 1991
 
