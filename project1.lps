@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CONFIG>
+  <ProjectSession>
+    <Version Value="9"/>
+    <BuildModes Active="Default"/>
+    <Units Count="5">
+      <Unit0>
+        <Filename Value="project1.lpr"/>
+        <IsPartOfProject Value="True"/>
+        <CursorPos X="33" Y="10"/>
+        <UsageCount Value="28"/>
+        <Loaded Value="True"/>
+      </Unit0>
+      <Unit1>
+        <Filename Value="UYaffi.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="frmYaffi"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="UYaffi"/>
+        <IsVisibleTab Value="True"/>
+        <EditorIndex Value="1"/>
+        <TopLine Value="258"/>
+        <CursorPos X="32" Y="279"/>
+        <UsageCount Value="25"/>
+        <Loaded Value="True"/>
+        <LoadedDesigner Value="True"/>
+      </Unit1>
+      <Unit2>
+        <Filename Value="UYaffiLinux.pas"/>
+        <ComponentName Value="frmYaffi"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="12"/>
+        <UsageCount Value="22"/>
+      </Unit2>
+      <Unit3>
+        <Filename Value="unit1.pas"/>
+        <ComponentName Value="frmYaffiLinux"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <EditorIndex Value="-1"/>
+        <CursorPos X="17" Y="2"/>
+        <UsageCount Value="21"/>
+      </Unit3>
+      <Unit4>
+        <Filename Value="/lazarus/lcl/include/control.inc"/>
+        <EditorIndex Value="-1"/>
+        <TopLine Value="3640"/>
+        <CursorPos X="21" Y="3655"/>
+        <UsageCount Value="10"/>
+      </Unit4>
+    </Units>
+    <JumpHistory Count="25" HistoryIndex="24">
+      <Position1>
+        <Filename Value="project1.lpr"/>
+      </Position1>
+      <Position2>
+        <Filename Value="project1.lpr"/>
+        <Caret Line="10" Column="15"/>
+      </Position2>
+      <Position3>
+        <Filename Value="project1.lpr"/>
+        <Caret Line="18" Column="57"/>
+      </Position3>
+      <Position4>
+        <Filename Value="project1.lpr"/>
+        <Caret Line="10" Column="47"/>
+      </Position4>
+      <Position5>
+        <Filename Value="project1.lpr"/>
+        <Caret Line="13" Column="12"/>
+      </Position5>
+      <Position6>
+        <Filename Value="UYaffi.pas"/>
+        <Caret Line="4" Column="79"/>
+      </Position6>
+      <Position7>
+        <Filename Value="UYaffi.pas"/>
+        <Caret Column="11"/>
+      </Position7>
+      <Position8>
+        <Filename Value="project1.lpr"/>
+        <Caret Line="14" Column="24"/>
+      </Position8>
+      <Position9>
+        <Filename Value="project1.lpr"/>
+        <Caret Line="22" Column="13"/>
+      </Position9>
+      <Position10>
+        <Filename Value="project1.lpr"/>
+        <Caret Line="7" Column="9"/>
+      </Position10>
+      <Position11>
+        <Filename Value="UYaffi.pas"/>
+        <Caret Line="55" Column="19" TopLine="55"/>
+      </Position11>
+      <Position12>
+        <Filename Value="UYaffi.pas"/>
+        <Caret Line="80" Column="21" TopLine="57"/>
+      </Position12>
+      <Position13>
+        <Filename Value="UYaffi.pas"/>
+        <Caret Line="15" Column="31" TopLine="3"/>
+      </Position13>
+      <Position14>
+        <Filename Value="UYaffi.pas"/>
+        <Caret Line="324" Column="9" TopLine="296"/>
+      </Position14>
+      <Position15>
+        <Filename Value="UYaffi.pas"/>
+        <Caret Line="321" Column="57" TopLine="296"/>
+      </Position15>
+      <Position16>
+        <Filename Value="UYaffi.pas"/>
+        <Caret Line="325" Column="24" TopLine="293"/>
+      </Position16>
+      <Position17>
+        <Filename Value="UYaffi.pas"/>
+        <Caret Line="321" Column="58" TopLine="296"/>
+      </Position17>
+      <Position18>
+        <Filename Value="UYaffi.pas"/>
+        <Caret Line="317" Column="49" TopLine="290"/>
+      </Position18>
+      <Position19>
+        <Filename Value="UYaffi.pas"/>
+        <Caret Line="323" Column="66" TopLine="302"/>
+      </Position19>
+      <Position20>
+        <Filename Value="UYaffi.pas"/>
+        <Caret Line="278" Column="17" TopLine="257"/>
+      </Position20>
+      <Position21>
+        <Filename Value="UYaffi.pas"/>
+        <Caret Line="317" Column="6" TopLine="287"/>
+      </Position21>
+      <Position22>
+        <Filename Value="UYaffi.pas"/>
+        <Caret Line="316" Column="6" TopLine="286"/>
+      </Position22>
+      <Position23>
+        <Filename Value="UYaffi.pas"/>
+        <Caret Line="271" Column="9" TopLine="250"/>
+      </Position23>
+      <Position24>
+        <Filename Value="UYaffi.pas"/>
+        <Caret Line="280" Column="32" TopLine="251"/>
+      </Position24>
+      <Position25>
+        <Filename Value="UYaffi.pas"/>
+        <Caret Line="271" Column="41" TopLine="255"/>
+      </Position25>
+    </JumpHistory>
+  </ProjectSession>
+</CONFIG>
