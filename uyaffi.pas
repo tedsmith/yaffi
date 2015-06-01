@@ -16,7 +16,7 @@ uses
     Windows, ActiveX, ComObj, Variants,
   {$endif}
     Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, StdCtrls,
-    ComCtrls;
+    ComCtrls, ExtCtrls, sha1Customised, md5Customised;
 
 type
 
@@ -24,6 +24,9 @@ type
 
   TfrmYaffi = class(TForm)
     Button1: TButton;
+    btnChooseImageName: TButton;
+    btnStartImaging: TButton;
+    btnAbort: TButton;
     cbdisks: TComboBox;
     ImageList1: TImageList;
     Label1: TLabel;
@@ -31,25 +34,36 @@ type
     Label3: TLabel;
     Label4: TLabel;
     Label5: TLabel;
+    ledtSeizureRef: TLabeledEdit;
+    ledtImageName: TLabeledEdit;
+    ledtSelectedItem: TLabeledEdit;
     lt: TLabel;
     ls: TLabel;
     lm: TLabel;
     lv: TLabel;
+    memNotes: TMemo;
+    SaveImageDialog: TSaveDialog;
     TreeView1: TTreeView;
 
     // Two procedures below contributed by Paweld :
     // http://forum.lazarus.freepascal.org/index.php/topic,28560.0.html
+    procedure btnAbortClick(Sender: TObject);
+    procedure btnStartImagingClick(Sender: TObject);
     procedure Button1Click(Sender: TObject);
+    procedure btnChooseImageNameClick(Sender: TObject);
     procedure cbdisksChange(Sender: TObject);
-
+    procedure TreeView1SelectionChanged(Sender: TObject);
+    function Stop : boolean;
   private
     { private declarations }
   public
+
     { public declarations }
   end;
 
 var
   frmYaffi: TfrmYaffi;
+  PhyDiskNode, PartitionNoNode, DriveLetterNode           : TTreeNode;
 
   {$ifdef Windows}
   // These four functions are needed for traversing the attached disks in Windows.
@@ -60,6 +74,9 @@ var
   function VarStrNull(const V:OleVariant):string;
   function GetWMIObject(const objectName: String): IDispatch;
   function VarArrayToStr(const vArray: variant): string;
+  procedure WindowsImageDisk(DiskHandle : THandle; DiskSize : Int64; hImageName : THandle);
+  function GetDiskLengthInBytes(hSelectedDisk : THandle) : Int64;
+
   {$endif}
 
 implementation
@@ -101,6 +118,62 @@ begin
   slDisklist.Free;
   DisksProcess.Free;
   {$endif}
+end;
+
+procedure TfrmYaffi.btnAbortClick(Sender: TObject);
+begin
+  Stop;
+end;
+
+function Stop : boolean;
+begin
+  result := true;
+end;
+
+procedure TfrmYaffi.btnStartImagingClick(Sender: TObject);
+var
+  strImageName : widestring;
+  SourceDevice : widestring;
+  hSelectedDisk, hImageName : THandle;
+  ExactDiskSize, SectorCount : Int64;
+begin
+  ExactDiskSize := 0;
+  SectorCount   := 0;
+  SourceDevice  := ledtSelectedItem.Text;
+  strImageName  := ledtImageName.Text;
+
+  // Create handle to source disk. Abort if fails
+  hSelectedDisk := CreateFileW(PWideChar(SourceDevice), FILE_READ_DATA,
+                   FILE_SHARE_READ, nil, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, 0);
+
+  if hSelectedDisk = INVALID_HANDLE_VALUE then
+  begin
+    RaiseLastOSError;
+  end
+  else
+    begin
+      // Create handle to image file. Abort if fails
+      hImageName := CreateFileW(PWideChar(strImageName), GENERIC_WRITE,
+                    FILE_SHARE_WRITE, nil, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
+      if hImageName = INVALID_HANDLE_VALUE then
+        begin
+          RaiseLastOSError;
+        end
+      else
+        begin
+        // Source disk and image file handles are OK. So attempt imaging
+        ExactDiskSize := GetDiskLengthInBytes(hSelectedDisk);
+        SectorCount   := ExactDiskSize DIV 512;
+        WindowsImageDisk(hSelectedDisk, ExactDiskSize, hImageName);
+        end;
+    end;
+end;
+
+
+procedure TfrmYaffi.btnChooseImageNameClick(Sender: TObject);
+begin
+  SaveImageDialog.Execute;
+  ledtImageName.Text:= SaveImageDialog.Filename;
 end;
 
 procedure TfrmYaffi.cbdisksChange(Sender: TObject);
@@ -182,6 +255,24 @@ end;
 // These are Windows centric functions. Many call upon the Windows API.
 {$ifdef Windows}
 
+procedure TfrmYaffi.TreeView1SelectionChanged(Sender: TObject);
+begin
+   if Sender is TTreeView then
+   begin
+    if  (TTreeView(Sender).Selected.Text = 'Physical Disk')
+      or (TTreeView(Sender).Selected.Text = 'Partition No')
+        or (TTreeView(Sender).Selected.Text = 'Drive Letter') then
+          ledtSelectedItem.Text := '...'
+    else
+      ledtSelectedItem.Text := TTreeView(Sender).Selected.Text;
+   end;
+  end;
+
+function TfrmYaffi.Stop: boolean;
+begin
+
+end;
+
 function VarArrayToStr(const vArray: variant): string;
 
     function _VarToStr(const V: variant): string;
@@ -260,7 +351,6 @@ var
   iValue         : pULONG;
   DeviceID, Val1, Val2, Val3 : widestring;
   s              : widestring;
-  PhyDiskNode, PartitionNoNode, DriveLetterNode           : TTreeNode;
 
 begin;
   Result:='';
@@ -270,20 +360,18 @@ begin;
 
   frmYAFFI.Treeview1.Images := frmYAFFI.ImageList1;
   PhyDiskNode     := frmYAFFI.TreeView1.Items.Add(nil,'Physical Disk') ;
-  PhyDiskNode.ImageIndex :=0;
+  PhyDiskNode.ImageIndex := 0;
 
- PartitionNoNode := frmYAFFI.TreeView1.Items.Add(nil,'Logical Partition') ;
- PartitionNoNode.ImageIndex :=1;
+  PartitionNoNode := frmYAFFI.TreeView1.Items.Add(nil,'Partition No') ;
+  PartitionNoNode.ImageIndex := 1;
 
- DriveLetterNode := frmYAFFI.TreeView1.Items.Add(nil,'Drive Letter') ;
- DriveLetterNode.ImageIndex :=1;
-
+  DriveLetterNode := frmYAFFI.TreeView1.Items.Add(nil,'Drive Letter') ;
+  DriveLetterNode.ImageIndex := 2;
 
   FSWbemLocator   := CreateOleObject('WbemScripting.SWbemLocator');
   objWMIService   := FSWbemLocator.ConnectServer('localhost', 'root\CIMV2', '', '');
   colDiskDrives   := objWMIService.ExecQuery('SELECT DeviceID FROM Win32_DiskDrive', 'WQL');
   oEnumDiskDrive  := IUnknown(colDiskDrives._NewEnum) as IEnumVariant;
-
 
   while oEnumDiskDrive.Next(1, objdiskDrive, nil) = 0 do
    begin
@@ -328,6 +416,85 @@ begin;
        objdiskDrive:=Unassigned;
    end;
 end;
+
+function GetDiskLengthInBytes(hSelectedDisk : THandle) : Int64;
+const
+  // These are defined at the MSDN.Microsoft.com website for DeviceIOControl
+  IOCTL_DISK_GET_LENGTH_INFO  = $0007405C;
+
+type
+  TDiskLength = packed record
+    Length : Int64;
+  end;
+
+var
+  BytesReturned: DWORD;
+  DLength: TDiskLength;
+  ByteSize: int64;
+
+begin
+  BytesReturned := 0;
+  // Get the length, in bytes, of the physical disk
+  if not DeviceIOControl(hSelectedDisk, IOCTL_DISK_GET_LENGTH_INFO, nil, 0,
+         @DLength, SizeOf(TDiskLength), BytesReturned, nil) then
+           raise Exception.Create('Unable to determine byte capacity of disk.');
+  ByteSize := DLength.Length;
+  result := ByteSize;
+end;
+
+procedure WindowsImageDisk(DiskHandle : THandle; DiskSize : Int64; hImageName : THandle);
+var
+  Buffer                                  : array [0..65535] of Byte;   // 1048576 (1Mb) or 262144 (240Kb) or 131072 (120Kb buffer) or 65536 (64Kb buffer)
+  ctx                                     : TSHA1Context;
+  Digest                                  : TSHA1Digest;
+  BytesRead : integer;
+
+  NewPos, ExactDiskSize, SectorCount,
+  TotalBytesRead, BytesWritten, TotalBytesWritten : Int64;
+
+begin
+  BytesRead           := 0;
+  BytesWritten        := 0;
+  TotalBytesRead      := 0;
+  TotalBytesWritten   := 0;
+
+    try
+    SHA1Init(ctx);
+    FileSeek(DiskHandle, 0, 0);
+    repeat
+    if (DiskSize - TotalBytesRead) < SizeOf(Buffer) then
+      begin
+        // Read 65535 or less bytes
+        BytesRead    := FileRead(DiskHandle, Buffer, (DiskSize - TotalBytesRead));
+        BytesWritten := FileWrite(hImageName, Buffer, BytesRead);
+      end
+    else
+      begin
+        // Read 65536 (64kb) at a time
+        BytesRead     := FileRead(DiskHandle, Buffer, SizeOf(Buffer));
+        BytesWritten  := FileWrite(hImageName, Buffer, BytesRead);
+      end;
+    if BytesRead = -1 then
+      begin
+        ShowMessage('There was a read error encountered. Aborting');
+        exit;
+      end
+    else
+    begin
+    inc(TotalBytesRead, BytesRead);
+    NewPos := NewPos + BytesRead;
+    SHA1Update(ctx, Buffer, BytesRead);
+    end;
+    until (TotalBytesRead = DiskSize) or (frmYAFFI.Stop = true);
+    // Compute the final hash value
+    SHA1Final(ctx, Digest);
+    finally
+      // The handle may have been released by pressing stop. If not, the handle will still be active so lets close it.
+      if not DiskHandle = INVALID_HANDLE_VALUE then CloseHandle(DiskHandle);
+      if not hImageName = INVALID_HANDLE_VALUE then CloseHandle(hImageName);
+    end;
+end;
+
 {$endif}
 end.
 
