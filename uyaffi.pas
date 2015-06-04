@@ -23,19 +23,25 @@ type
   { TfrmYaffi }
 
   TfrmYaffi = class(TForm)
-    Button1: TButton;
     btnChooseImageName: TButton;
+    Button1: TButton;
     btnStartImaging: TButton;
     btnAbort: TButton;
     cbdisks: TComboBox;
+    comboHashChoice: TComboBox;
+    ledtImageHashA: TLabeledEdit;
+    ledtComputedHashB: TEdit;
+    GroupBox1: TGroupBox;
     ImageList1: TImageList;
     Label1: TLabel;
     Label2: TLabel;
     Label3: TLabel;
     Label4: TLabel;
     Label5: TLabel;
-    ledtSeizureRef: TLabeledEdit;
+    ledtComputedHashA: TLabeledEdit;
+    ledtImageHashB: TLabeledEdit;
     ledtImageName: TLabeledEdit;
+    ledtSeizureRef: TLabeledEdit;
     ledtSelectedItem: TLabeledEdit;
     lt: TLabel;
     ls: TLabel;
@@ -54,6 +60,7 @@ type
     procedure cbdisksChange(Sender: TObject);
     procedure TreeView1SelectionChanged(Sender: TObject);
     function Stop : boolean;
+    function InitialiseHashChoice(Sender : TObject) : Integer;
   private
     { private declarations }
   public
@@ -74,7 +81,7 @@ var
   function VarStrNull(const V:OleVariant):string;
   function GetWMIObject(const objectName: String): IDispatch;
   function VarArrayToStr(const vArray: variant): string;
-  procedure WindowsImageDisk(DiskHandle : THandle; DiskSize : Int64; hImageName : THandle);
+  function WindowsImageDisk(DiskHandle : THandle; DiskSize : Int64; HashChoice : Integer; hImageName : THandle) : Int64;
   function GetDiskLengthInBytes(hSelectedDisk : THandle) : Int64;
 
   {$endif}
@@ -95,7 +102,8 @@ var
 begin
   {$ifdef Windows}
   try
-    ListDrives;
+  TreeView1.Items.Clear;
+  ListDrives;
   finally
   end;
   {$endif}
@@ -125,50 +133,10 @@ begin
   Stop;
 end;
 
-function Stop : boolean;
+function TfrmYaffi.Stop : boolean;
 begin
   result := true;
 end;
-
-procedure TfrmYaffi.btnStartImagingClick(Sender: TObject);
-var
-  strImageName : widestring;
-  SourceDevice : widestring;
-  hSelectedDisk, hImageName : THandle;
-  ExactDiskSize, SectorCount : Int64;
-begin
-  ExactDiskSize := 0;
-  SectorCount   := 0;
-  SourceDevice  := ledtSelectedItem.Text;
-  strImageName  := ledtImageName.Text;
-
-  // Create handle to source disk. Abort if fails
-  hSelectedDisk := CreateFileW(PWideChar(SourceDevice), FILE_READ_DATA,
-                   FILE_SHARE_READ, nil, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, 0);
-
-  if hSelectedDisk = INVALID_HANDLE_VALUE then
-  begin
-    RaiseLastOSError;
-  end
-  else
-    begin
-      // Create handle to image file. Abort if fails
-      hImageName := CreateFileW(PWideChar(strImageName), GENERIC_WRITE,
-                    FILE_SHARE_WRITE, nil, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
-      if hImageName = INVALID_HANDLE_VALUE then
-        begin
-          RaiseLastOSError;
-        end
-      else
-        begin
-        // Source disk and image file handles are OK. So attempt imaging
-        ExactDiskSize := GetDiskLengthInBytes(hSelectedDisk);
-        SectorCount   := ExactDiskSize DIV 512;
-        WindowsImageDisk(hSelectedDisk, ExactDiskSize, hImageName);
-        end;
-    end;
-end;
-
 
 procedure TfrmYaffi.btnChooseImageNameClick(Sender: TObject);
 begin
@@ -256,6 +224,9 @@ end;
 {$ifdef Windows}
 
 procedure TfrmYaffi.TreeView1SelectionChanged(Sender: TObject);
+var
+  DriveLetter : string;
+  PosToStartFrom : Integer;
 begin
    if Sender is TTreeView then
    begin
@@ -264,14 +235,19 @@ begin
         or (TTreeView(Sender).Selected.Text = 'Drive Letter') then
           ledtSelectedItem.Text := '...'
     else
-      ledtSelectedItem.Text := TTreeView(Sender).Selected.Text;
+    // If the user Chooses "Drive E:", adjust the selection to "E:" for the Thandle initiation
+    // We just copy the characters following "Drive ".
+    if Pos('Drive', TTreeView(Sender).Selected.Text) > 0 then
+      begin
+       PosToStartFrom := 6;
+       DriveLetter := Copy(TTreeView(Sender).Selected.Text, 6, 3);
+       ledtSelectedItem.Text := DriveLetter;
+      end
+    else
+      ledtSelectedItem.Text := (TTreeView(Sender).Selected.Text);
    end;
   end;
 
-function TfrmYaffi.Stop: boolean;
-begin
-
-end;
 
 function VarArrayToStr(const vArray: variant): string;
 
@@ -442,12 +418,130 @@ begin
   result := ByteSize;
 end;
 
-procedure WindowsImageDisk(DiskHandle : THandle; DiskSize : Int64; hImageName : THandle);
+// Assigns numeric value to hash algorithm choice to make if else statements used later, faster
+function TfrmYaffi.InitialiseHashChoice(Sender : TObject) : Integer;
+begin
+
+  if comboHashChoice.Text = 'MD5' then
+   begin
+     result := 1;
+   end
+  else if comboHashChoice.Text = 'SHA-1' then
+   begin
+    result := 2;
+   end
+  else if comboHashChoice.Text = 'Use Both' then
+   begin
+    result := 3;
+   end
+  else if comboHashChoice.Text = 'Use None' then
+   begin
+    result := 4;
+   end
+  else
+  begin
+    ShowMessage('Choose Hash Algorithm');
+    result := -1;
+    exit;
+  end;
+end;
+
+procedure TfrmYaffi.btnStartImagingClick(Sender: TObject);
 var
-  Buffer                                  : array [0..65535] of Byte;   // 1048576 (1Mb) or 262144 (240Kb) or 131072 (120Kb buffer) or 65536 (64Kb buffer)
-  ctx                                     : TSHA1Context;
-  Digest                                  : TSHA1Digest;
-  BytesRead : integer;
+  strImageName : widestring;
+  SourceDevice : widestring;
+  hSelectedDisk, hImageName : THandle;
+  ExactDiskSize, SectorCount, ImageResult : Int64;
+  HashChoice : integer;
+  slImagingLog : TStringList;
+
+begin
+  ExactDiskSize := 0;
+  SectorCount   := 0;
+  ImageResult   := 0;
+  HashChoice    := -1;
+  SourceDevice  := ledtSelectedItem.Text;
+  strImageName  := ledtImageName.Text;
+  // Determine what hash algorithm to use. MD5 = 1, SHA-1 = 2, Use Both = 3, Use Non = 4. -1 is false
+  HashChoice := frmYaffi.InitialiseHashChoice(nil);
+
+  // Create handle to source disk. Abort if fails
+  hSelectedDisk := CreateFileW(PWideChar(SourceDevice), FILE_READ_DATA,
+                   FILE_SHARE_READ, nil, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, 0);
+
+  if hSelectedDisk = INVALID_HANDLE_VALUE then
+  begin
+    RaiseLastOSError;
+  end
+  else
+    begin
+      // Create handle to image file. Abort if fails
+      hImageName := CreateFileW(PWideChar(strImageName), GENERIC_WRITE,
+                    FILE_SHARE_WRITE, nil, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
+      if hImageName = INVALID_HANDLE_VALUE then
+        begin
+          RaiseLastOSError;
+        end
+      else
+        begin
+        // Source disk and image file handles are OK. So attempt imaging
+        ExactDiskSize := GetDiskLengthInBytes(hSelectedDisk);
+        SectorCount   := ExactDiskSize DIV 512;
+        // Image the chosen device, passing the exact size and hash selection and Image name to create
+        ImageResult   := WindowsImageDisk(hSelectedDisk, ExactDiskSize, HashChoice, hImageName);
+
+        // Log the actions
+        try
+          slImagingLog := TStringList.Create;
+          slImagingLog.Add('Image name : ' + ExtractFileName(strImageName));
+          slImagingLog.Add('Full path: ' + ledtImageName.Text);
+          slImagingLog.Add('Device ID : ' + SourceDevice);
+          slImagingLog.Add('Hashing Algorithm : ' + comboHashChoice.Text);
+          slImagingLog.Add('Hash(es) of source media : ' + ledtComputedHashA.Text + ' ' + ledtComputedHashB.Text);
+          slImagingLog.Add('Hash(es) of image : ' + ledtImageHashA.Text + ' ' + ledtImageHashB.Text);
+          slImagingLog.Add(ledtSeizureRef.Text);
+          slImagingLog.Add(memNotes.Text);
+        finally
+          slImagingLog.SaveToFile(IncludeTrailingPathDelimiter(ExtractFilePath(SaveImageDialog.FileName)) + 'ImageLog.txt');
+          slImagingLog.free;
+        end;
+
+        // Release existing handles to disk and image
+        try
+          if (hSelectedDisk > 0) or (hSelectedDisk = INVALID_HANDLE_VALUE) then
+            CloseHandle(hSelectedDisk);
+          if (hImageName > 0) or (hImageName = INVALID_HANDLE_VALUE) then
+            CloseHandle(hImageName);
+        finally
+        If ImageResult = ExactDiskSize then
+          begin
+           ShowMessage('Imaged OK. ' + IntToStr(ExactDiskSize)+' bytes captured.');
+          end;
+        end;
+        {
+        if not DiskHandle = INVALID_HANDLE_VALUE then CloseHandle(DiskHandle);
+        if not hImageName = INVALID_HANDLE_VALUE then CloseHandle(hImageName);
+        }
+        end;
+    end;
+end;
+
+// Images the disk and returns the number of bytes successfully imaged
+function WindowsImageDisk(DiskHandle : THandle; DiskSize : Int64; HashChoice : Integer; hImageName : THandle) : Int64;
+var
+  Buffer                   : array [0..65535] of Byte;   // 1048576 (1Mb) or 262144 (240Kb) or 131072 (120Kb buffer) or 65536 (64Kb buffer)
+  // Hash digests for disk reading
+  MD5ctxDisk               : TMD5Context;
+  SHA1ctxDisk              : TSHA1Context;
+  MD5Digest                : TMD5Digest;
+  SHA1Digest               : TSHA1Digest;
+  // Hash digests for image reading
+  MD5ctxImage              : TMD5Context;
+  SHA1ctxImage             : TSHA1Context;
+  MD5DigestImage           : TMD5Digest;
+  SHA1DigestImage          : TSHA1Digest;
+
+  BytesRead                : integer;
 
   NewPos, ExactDiskSize, SectorCount,
   TotalBytesRead, BytesWritten, TotalBytesWritten : Int64;
@@ -459,39 +553,123 @@ begin
   TotalBytesWritten   := 0;
 
     try
-    SHA1Init(ctx);
-    FileSeek(DiskHandle, 0, 0);
-    repeat
-    if (DiskSize - TotalBytesRead) < SizeOf(Buffer) then
-      begin
-        // Read 65535 or less bytes
-        BytesRead    := FileRead(DiskHandle, Buffer, (DiskSize - TotalBytesRead));
-        BytesWritten := FileWrite(hImageName, Buffer, BytesRead);
-      end
-    else
-      begin
-        // Read 65536 (64kb) at a time
-        BytesRead     := FileRead(DiskHandle, Buffer, SizeOf(Buffer));
-        BytesWritten  := FileWrite(hImageName, Buffer, BytesRead);
-      end;
-    if BytesRead = -1 then
-      begin
-        ShowMessage('There was a read error encountered. Aborting');
-        exit;
-      end
-    else
-    begin
-    inc(TotalBytesRead, BytesRead);
-    NewPos := NewPos + BytesRead;
-    SHA1Update(ctx, Buffer, BytesRead);
-    end;
-    until (TotalBytesRead = DiskSize) or (frmYAFFI.Stop = true);
-    // Compute the final hash value
-    SHA1Final(ctx, Digest);
+      // Initialise the hash digests in accordance with the users chosen algorithm
+      if HashChoice = 1 then
+        begin
+        MD5Init(MD5ctxDisk);
+        MD5Init(MD5ctxImage);
+        end
+        else if HashChoice = 2 then
+          begin
+          SHA1Init(SHA1ctxDisk);
+          SHA1Init(SHA1ctxImage);
+          end
+            else if HashChoice = 3 then
+              begin
+                MD5Init(MD5ctxDisk);
+                MD5Init(MD5ctxImage);
+                SHA1Init(SHA1ctxDisk);
+                SHA1Init(SHA1ctxImage);
+              end
+              else if HashChoice = 4 then
+                begin
+                 // No hashing initiliased
+                end;
+      // Now to seek to start of device
+      FileSeek(DiskHandle, 0, 0);
+        repeat
+          // Read device in buffered segments. Hash the disk and image portions as we go
+          if (DiskSize - TotalBytesRead) < SizeOf(Buffer) then
+            begin
+              // Read 65535 or less bytes
+              BytesRead    := FileRead(DiskHandle, Buffer, (DiskSize - TotalBytesRead));
+              BytesWritten := FileWrite(hImageName, Buffer, BytesRead);
+            end
+          else
+            begin
+              // Read 65536 (64kb) at a time
+              BytesRead     := FileRead(DiskHandle, Buffer, SizeOf(Buffer));
+              BytesWritten  := FileWrite(hImageName, Buffer, BytesRead);
+            end;
+          if BytesRead = -1 then
+            begin
+              ShowMessage('There was a read error encountered. Aborting');
+              exit;
+            end
+          else
+          begin
+          inc(TotalBytesRead, BytesRead);
+          NewPos := NewPos + BytesRead;
+
+          // Hash the bytes read and\or written using the algorithm required
+          // If the user sel;ected no hashing, break the loop immediately; faster
+          if HashChoice = 4 then
+            begin
+             // No hashing initiliased
+             Break;
+            end
+            else if HashChoice = 1 then
+              begin
+              MD5Update(MD5ctxDisk, Buffer, BytesRead);
+              MD5Update(MD5ctxImage, Buffer, BytesWritten);
+              end
+                else if HashChoice = 2 then
+                  begin
+                  SHA1Update(SHA1ctxDisk, Buffer, BytesRead);
+                  SHA1Update(SHA1ctxImage, Buffer, BytesWritten);
+                  end
+                    else if HashChoice = 3 then
+                      begin
+                        MD5Update(MD5ctxDisk, Buffer, BytesRead);
+                        MD5Update(MD5ctxImage, Buffer, BytesWritten);
+                        SHA1Update(SHA1ctxDisk, Buffer, BytesRead);
+                        SHA1Update(SHA1ctxImage, Buffer, BytesWritten);
+                      end;
+          end;
+          Application.ProcessMessages;
+        until (TotalBytesRead = DiskSize);// or (frmYAFFI.Stop = true);
     finally
-      // The handle may have been released by pressing stop. If not, the handle will still be active so lets close it.
-      if not DiskHandle = INVALID_HANDLE_VALUE then CloseHandle(DiskHandle);
-      if not hImageName = INVALID_HANDLE_VALUE then CloseHandle(hImageName);
+      // Compute the final hash value
+      if HashChoice = 1 then
+        begin
+        MD5Final(MD5ctxDisk, MD5Digest);
+        MD5Final(MD5ctxImage, MD5DigestImage);
+        frmYaffi.ledtComputedHashA.Text := Uppercase(MD5Print(MD5Digest));
+        end
+          else if HashChoice = 2 then
+            begin
+            SHA1Final(SHA1ctxDisk, SHA1Digest);
+            SHA1Final(SHA1ctxImage, SHA1DigestImage);
+            frmYaffi.ledtComputedHashA.Text := Uppercase(SHA1Print(SHA1Digest));
+            end
+              else if HashChoice = 3 then
+                begin
+                 MD5Final(MD5ctxDisk, MD5Digest);
+                 MD5Final(MD5ctxImage, MD5DigestImage);
+                 SHA1Final(SHA1ctxDisk, SHA1Digest);
+                 SHA1Final(SHA1ctxImage, SHA1DigestImage);
+                 frmYaffi.ledtComputedHashA.Text := Uppercase('MD5: ' + MD5Print(MD5Digest));
+                 frmYaffi.ledtComputedHashB.Visible := true;
+                 frmYaffi.ledtComputedHashB.Enabled := true;
+                 frmYaffi.ledtComputedHashB.Text := Uppercase('SHA-1: ' + SHA1Print(SHA1Digest));
+                end
+                else if HashChoice = 4 then
+                  begin
+                   frmYaffi.ledtComputedHashA.Text := Uppercase('No hash computed');
+                  end;
+        // If no hashing or single algorithm hashing is done, this AND comparison will
+        // still be true but only one value will be printed for single algorithm hashing
+        // or both values for multiple, or no hashes for no hashing.
+        if (SHA1Print(SHA1Digest) = SHA1Print(SHA1DigestImage)) and (MD5Print(MD5Digest) = MD5Print(MD5DigestImage)) then
+          begin
+             frmYaffi.ledtImageHashA.Enabled:= true;
+             frmYaffi.ledtImageHashA.Visible:= true;
+             frmYaffi.ledtImageHashA.Text := 'MD5: ' + MD5Print(MD5DigestImage);
+             frmYaffi.ledtImageHashB.Enabled:= true;
+             frmYaffi.ledtImageHashB.Visible:= true;
+             frmYaffi.ledtImageHashB.Text := 'SHA-1 : ' + SHA1Print(SHA1DigestImage);
+          end;
+      result := TotalBytesRead;
     end;
 end;
 
