@@ -240,7 +240,7 @@ begin
     if Pos('Drive', TTreeView(Sender).Selected.Text) > 0 then
       begin
        PosToStartFrom := 6;
-       DriveLetter := Copy(TTreeView(Sender).Selected.Text, 6, 3);
+       DriveLetter := '\\?\'+Trim(Copy(TTreeView(Sender).Selected.Text, 6, 3));
        ledtSelectedItem.Text := DriveLetter;
       end
     else
@@ -396,8 +396,59 @@ end;
 function GetDiskLengthInBytes(hSelectedDisk : THandle) : Int64;
 const
   // These are defined at the MSDN.Microsoft.com website for DeviceIOControl
+  // and https://forum.tuts4you.com/topic/22361-deviceiocontrol-ioctl-codes/
+  {
+  IOCTL_DISK_GET_DRIVE_GEOMETRY      = $0070000
+  IOCTL_DISK_GET_PARTITION_INFO      = $0074004
+  IOCTL_DISK_SET_PARTITION_INFO      = $007C008
+  IOCTL_DISK_GET_DRIVE_LAYOUT        = $007400C
+  IOCTL_DISK_SET_DRIVE_LAYOUT        = $007C010
+  IOCTL_DISK_VERIFY                  = $0070014
+  IOCTL_DISK_FORMAT_TRACKS           = $007C018
+  IOCTL_DISK_REASSIGN_BLOCKS         = $007C01C
+  IOCTL_DISK_PERFORMANCE             = $0070020
+  IOCTL_DISK_IS_WRITABLE             = $0070024
+  IOCTL_DISK_LOGGING                 = $0070028
+  IOCTL_DISK_FORMAT_TRACKS_EX        = $007C02C
+  IOCTL_DISK_HISTOGRAM_STRUCTURE     = $0070030
+  IOCTL_DISK_HISTOGRAM_DATA          = $0070034
+  IOCTL_DISK_HISTOGRAM_RESET         = $0070038
+  IOCTL_DISK_REQUEST_STRUCTURE       = $007003C
+  IOCTL_DISK_REQUEST_DATA            = $0070040
+  IOCTL_DISK_CONTROLLER_NUMBER       = $0070044
+  IOCTL_DISK_GET_PARTITION_INFO_EX   = $0070048
+  IOCTL_DISK_SET_PARTITION_INFO_EX   = $007C04C
+  IOCTL_DISK_GET_DRIVE_LAYOUT_EX     = $0070050
+  IOCTL_DISK_SET_DRIVE_LAYOUT_EX     = $007C054
+  IOCTL_DISK_CREATE_DISK             = $007C058
+  IOCTL_DISK_GET_LENGTH_INFO         = $007405C  // Our constant...
+  SMART_GET_VERSION                  = $0074080
+  SMART_SEND_DRIVE_COMMAND           = $007C084
+  SMART_RCV_DRIVE_DATA               = $007C088
+  IOCTL_DISK_GET_DRIVE_GEOMETRY_EX   = $00700A0
+  IOCTL_DISK_UPDATE_DRIVE_SIZE       = $007C0C8
+  IOCTL_DISK_GROW_PARTITION          = $007C0D0
+  IOCTL_DISK_GET_CACHE_INFORMATION   = $00740D4
+  IOCTL_DISK_SET_CACHE_INFORMATION   = $007C0D8
+  IOCTL_DISK_GET_WRITE_CACHE_STATE   = $00740DC
+  IOCTL_DISK_DELETE_DRIVE_LAYOUT     = $007C100
+  IOCTL_DISK_UPDATE_PROPERTIES       = $0070140
+  IOCTL_DISK_FORMAT_DRIVE            = $007C3CC
+  IOCTL_DISK_SENSE_DEVICE            = $00703E0
+  IOCTL_DISK_INTERNAL_SET_VERIFY     = $0070403
+  IOCTL_DISK_INTERNAL_CLEAR_VERIFY   = $0070407
+  IOCTL_DISK_INTERNAL_SET_NOTIFY     = $0070408
+  IOCTL_DISK_CHECK_VERIFY            = $0074800
+  IOCTL_DISK_MEDIA_REMOVAL           = $0074804
+  IOCTL_DISK_EJECT_MEDIA             = $0074808
+  IOCTL_DISK_LOAD_MEDIA              = $007480C
+  IOCTL_DISK_RESERVE                 = $0074810
+  IOCTL_DISK_RELEASE                 = $0074814
+  IOCTL_DISK_FIND_NEW_DEVICES        = $0074818
+  IOCTL_DISK_GET_MEDIA_TYPES         = $0070C00
+  }
   IOCTL_DISK_GET_LENGTH_INFO  = $0007405C;
-
+  // IOCTL_DISK_GET_PARTITION_INFO_EX = $0070048;
 type
   TDiskLength = packed record
     Length : Int64;
@@ -411,10 +462,14 @@ var
 begin
   BytesReturned := 0;
   // Get the length, in bytes, of the physical disk
-  if not DeviceIOControl(hSelectedDisk, IOCTL_DISK_GET_LENGTH_INFO, nil, 0,
+  if not DeviceIOControl(hSelectedDisk,  IOCTL_DISK_GET_LENGTH_INFO, nil, 0,
          @DLength, SizeOf(TDiskLength), BytesReturned, nil) then
            raise Exception.Create('Unable to determine byte capacity of disk.');
+  {if not DeviceIOControl(hSelectedDisk, FSCTL_ALLOW_EXTENDED_DASD_IO, nil, 0,
+         @DLength, SizeOf(TDiskLength), BytesReturned, nil) then
+           raise Exception.Create('Unable to determine byte capacity of disk.');  }
   ByteSize := DLength.Length;
+  ShowMessage(IntToStr(ByteSize));
   result := ByteSize;
 end;
 
