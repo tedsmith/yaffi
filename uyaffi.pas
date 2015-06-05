@@ -81,7 +81,7 @@ var
   function VarStrNull(const V:OleVariant):string;
   function GetWMIObject(const objectName: String): IDispatch;
   function VarArrayToStr(const vArray: variant): string;
-  function WindowsImageDisk(DiskHandle : THandle; DiskSize : Int64; HashChoice : Integer; hImageName : THandle) : Int64;
+  function WindowsImageDisk(hDiskHandle : THandle; DiskSize : Int64; HashChoice : Integer; hImageName : THandle) : Int64;
   function GetDiskLengthInBytes(hSelectedDisk : THandle) : Int64;
 
   {$endif}
@@ -519,6 +519,7 @@ begin
   strImageName  := ledtImageName.Text;
   // Determine what hash algorithm to use. MD5 = 1, SHA-1 = 2, Use Both = 3, Use Non = 4. -1 is false
   HashChoice := frmYaffi.InitialiseHashChoice(nil);
+  if HashChoice = -1 then abort;
 
   // Create handle to source disk. Abort if fails
   hSelectedDisk := CreateFileW(PWideChar(SourceDevice), FILE_READ_DATA,
@@ -541,6 +542,7 @@ begin
         begin
         // Source disk and image file handles are OK. So attempt imaging
         ExactDiskSize := GetDiskLengthInBytes(hSelectedDisk);
+        if Pos('?', SourceDevice) > 0 then ExactDiskSize := ExactDiskSize -1;
         SectorCount   := ExactDiskSize DIV 512;
         // Image the chosen device, passing the exact size and hash selection and Image name to create
         ImageResult   := WindowsImageDisk(hSelectedDisk, ExactDiskSize, HashChoice, hImageName);
@@ -574,7 +576,7 @@ begin
           end;
         end;
         {
-        if not DiskHandle = INVALID_HANDLE_VALUE then CloseHandle(DiskHandle);
+        if not hDiskHandle = INVALID_HANDLE_VALUE then CloseHandle(hDiskHandle);
         if not hImageName = INVALID_HANDLE_VALUE then CloseHandle(hImageName);
         }
         end;
@@ -582,7 +584,7 @@ begin
 end;
 
 // Images the disk and returns the number of bytes successfully imaged
-function WindowsImageDisk(DiskHandle : THandle; DiskSize : Int64; HashChoice : Integer; hImageName : THandle) : Int64;
+function WindowsImageDisk(hDiskHandle : THandle; DiskSize : Int64; HashChoice : Integer; hImageName : THandle) : Int64;
 var
   Buffer                   : array [0..65535] of Byte;   // 1048576 (1Mb) or 262144 (240Kb) or 131072 (120Kb buffer) or 65536 (64Kb buffer)
   // Hash digests for disk reading
@@ -598,7 +600,7 @@ var
 
   BytesRead                : integer;
 
-  NewPos, ExactDiskSize, SectorCount,
+  NewPos, SectorCount,
   TotalBytesRead, BytesWritten, TotalBytesWritten : Int64;
 
 begin
@@ -631,29 +633,31 @@ begin
                  // No hashing initiliased
                 end;
       // Now to seek to start of device
-      FileSeek(DiskHandle, 0, 0);
+      FileSeek(hDiskHandle, 0, 0);
         repeat
           // Read device in buffered segments. Hash the disk and image portions as we go
           if (DiskSize - TotalBytesRead) < SizeOf(Buffer) then
             begin
               // Read 65535 or less bytes
-              BytesRead    := FileRead(DiskHandle, Buffer, (DiskSize - TotalBytesRead));
+              BytesRead    := FileRead(hDiskHandle, Buffer, (DiskSize - TotalBytesRead));
               BytesWritten := FileWrite(hImageName, Buffer, BytesRead);
             end
           else
             begin
               // Read 65536 (64kb) at a time
-              BytesRead     := FileRead(DiskHandle, Buffer, SizeOf(Buffer));
+              BytesRead     := FileRead(hDiskHandle, Buffer, SizeOf(Buffer));
               BytesWritten  := FileWrite(hImageName, Buffer, BytesRead);
             end;
           if BytesRead = -1 then
             begin
               ShowMessage('There was a read error encountered. Aborting');
+              ShowMessage(IntToStr(DiskSize - TotalBytesRead));
               exit;
             end
           else
           begin
           inc(TotalBytesRead, BytesRead);
+          inc(TotalBytesWritten, BytesWritten);
           NewPos := NewPos + BytesRead;
 
           // Hash the bytes read and\or written using the algorithm required
@@ -661,7 +665,6 @@ begin
           if HashChoice = 4 then
             begin
              // No hashing initiliased
-             Break;
             end
             else if HashChoice = 1 then
               begin
@@ -682,7 +685,7 @@ begin
                       end;
           end;
           Application.ProcessMessages;
-        until (TotalBytesRead = DiskSize);// or (frmYAFFI.Stop = true);
+        until (TotalBytesRead = DiskSize) // or (frmYAFFI.Stop = true);
     finally
       // Compute the final hash value
       if HashChoice = 1 then
