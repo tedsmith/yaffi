@@ -447,29 +447,31 @@ const
   IOCTL_DISK_FIND_NEW_DEVICES        = $0074818
   IOCTL_DISK_GET_MEDIA_TYPES         = $0070C00
   }
+
+  // For physical disk access
   IOCTL_DISK_GET_LENGTH_INFO  = $0007405C;
-  // IOCTL_DISK_GET_PARTITION_INFO_EX = $0070048;
-type
+
+    type
   TDiskLength = packed record
     Length : Int64;
   end;
 
 var
+  ByteSize: int64;
+  SourceDevice : string;
   BytesReturned: DWORD;
   DLength: TDiskLength;
-  ByteSize: int64;
 
 begin
+  ByteSize      := 0;
   BytesReturned := 0;
-  // Get the length, in bytes, of the physical disk
-  if not DeviceIOControl(hSelectedDisk,  IOCTL_DISK_GET_LENGTH_INFO, nil, 0,
+  SourceDevice  := frmYaffi.ledtSelectedItem.Text;
+  if not DeviceIOControl(hSelectedDisk, IOCTL_DISK_GET_LENGTH_INFO, nil, 0,
          @DLength, SizeOf(TDiskLength), BytesReturned, nil) then
-           raise Exception.Create('Unable to determine byte capacity of disk.');
-  {if not DeviceIOControl(hSelectedDisk, FSCTL_ALLOW_EXTENDED_DASD_IO, nil, 0,
-         @DLength, SizeOf(TDiskLength), BytesReturned, nil) then
-           raise Exception.Create('Unable to determine byte capacity of disk.');  }
-  ByteSize := DLength.Length;
-  ShowMessage(IntToStr(ByteSize));
+         raise Exception.Create('Unable to initiate IOCTL_DISK_GET_LENGTH_INFO.');
+
+  if DLength.Length > 0 then ByteSize := DLength.Length;
+  //ShowMessage(IntToStr(ByteSize));
   result := ByteSize;
 end;
 
@@ -502,15 +504,27 @@ begin
 end;
 
 procedure TfrmYaffi.btnStartImagingClick(Sender: TObject);
+const
+  // These values are needed for For FSCTL_ALLOW_EXTENDED_DASD_IO to work properly
+  // on logical volumes. They are sourced from
+  // https://github.com/magicmonty/delphi-code-coverage/blob/master/3rdParty/JCL/jcl-2.3.1.4197/source/windows/JclWin32.pas
+  FILE_DEVICE_FILE_SYSTEM = $00000009;
+  FILE_ANY_ACCESS = 0;
+  METHOD_NEITHER = 3;
+  FSCTL_ALLOW_EXTENDED_DASD_IO = ((FILE_DEVICE_FILE_SYSTEM shl 16)
+                                   or (FILE_ANY_ACCESS shl 14)
+                                   or (32 shl 2) or METHOD_NEITHER);
+
 var
-  strImageName : widestring;
-  SourceDevice : widestring;
-  hSelectedDisk, hImageName : THandle;
+  SourceDevice, strImageName              : widestring;
+  hSelectedDisk, hImageName               : THandle;
   ExactDiskSize, SectorCount, ImageResult : Int64;
-  HashChoice : integer;
-  slImagingLog : TStringList;
+  HashChoice                              : integer;
+  slImagingLog                            : TStringList;
+  BytesReturned                           : DWORD;
 
 begin
+  BytesReturned := 0;
   ExactDiskSize := 0;
   SectorCount   := 0;
   ImageResult   := 0;
@@ -522,29 +536,46 @@ begin
   if HashChoice = -1 then abort;
 
   // Create handle to source disk. Abort if fails
+  // Note that 'FILE_SHARE_READ OR FILE_SHARE_WRITE' doesn't mean "allow writes to disk"
   hSelectedDisk := CreateFileW(PWideChar(SourceDevice), FILE_READ_DATA,
-                   FILE_SHARE_READ, nil, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, 0);
+                   FILE_SHARE_READ OR FILE_SHARE_WRITE, nil, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, 0);
 
+  // Check if handle is valid before doing anything else
   if hSelectedDisk = INVALID_HANDLE_VALUE then
   begin
     RaiseLastOSError;
   end
   else
     begin
-      // Create handle to image file. Abort if fails
-      hImageName := CreateFileW(PWideChar(strImageName), GENERIC_WRITE,
-                    FILE_SHARE_WRITE, nil, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
-      if hImageName = INVALID_HANDLE_VALUE then
-        begin
-          RaiseLastOSError;
-        end
-      else
-        begin
+    // If chosen device is logical volume, initiate FSCTL_ALLOW_EXTENDED_DASD_IO
+    // to ensure all sectors acquired, even those protected by the OS normally.
+    // See:
+    // https://stackoverflow.com/questions/30671387/unable-to-read-final-few-kb-of-logical-drives-on-windows-7-64-bit/30719570#30719570
+    // https://msdn.microsoft.com/en-us/library/windows/desktop/aa363147%28v=vs.85%29.aspx
+    // https://msdn.microsoft.com/en-us/library/windows/desktop/aa364556%28v=vs.85%29.aspx
+    if Pos('?', SourceDevice) > 0 then
+    begin
+      if not DeviceIOControl(hSelectedDisk, FSCTL_ALLOW_EXTENDED_DASD_IO, nil, 0,
+           nil, 0, BytesReturned, nil) then
+             raise Exception.Create('Unable to initiate FSCTL_ALLOW_EXTENDED_DASD_IO.');
+    end;
+    // Now create handle to image file. Abort if fails
+    hImageName := CreateFileW(PWideChar(strImageName), GENERIC_WRITE,
+                  FILE_SHARE_WRITE, nil, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
+
+    // Check if handle to image file is valid before doing anything else
+    if hImageName = INVALID_HANDLE_VALUE then
+      begin
+        RaiseLastOSError;
+      end
+    else
+      begin
         // Source disk and image file handles are OK. So attempt imaging
+        // First, compute the exact disk size of the disk or volume
         ExactDiskSize := GetDiskLengthInBytes(hSelectedDisk);
-        if Pos('?', SourceDevice) > 0 then ExactDiskSize := ExactDiskSize -1;
         SectorCount   := ExactDiskSize DIV 512;
-        // Image the chosen device, passing the exact size and hash selection and Image name to create
+        // Now image the chosen device, passing the exact size and
+        // hash selection and Image name
         ImageResult   := WindowsImageDisk(hSelectedDisk, ExactDiskSize, HashChoice, hImageName);
 
         // Log the actions
@@ -579,7 +610,7 @@ begin
         if not hDiskHandle = INVALID_HANDLE_VALUE then CloseHandle(hDiskHandle);
         if not hImageName = INVALID_HANDLE_VALUE then CloseHandle(hImageName);
         }
-        end;
+      end;
     end;
 end;
 
@@ -608,6 +639,7 @@ begin
   BytesWritten        := 0;
   TotalBytesRead      := 0;
   TotalBytesWritten   := 0;
+  NewPos              := 0;
 
     try
       // Initialise the hash digests in accordance with the users chosen algorithm
@@ -636,29 +668,15 @@ begin
       FileSeek(hDiskHandle, 0, 0);
         repeat
           // Read device in buffered segments. Hash the disk and image portions as we go
-          if (DiskSize - TotalBytesRead) < SizeOf(Buffer) then
-            begin
-              // Read 65535 or less bytes
-              BytesRead    := FileRead(hDiskHandle, Buffer, (DiskSize - TotalBytesRead));
-              BytesWritten := FileWrite(hImageName, Buffer, BytesRead);
-            end
-          else
-            begin
-              // Read 65536 (64kb) at a time
-              BytesRead     := FileRead(hDiskHandle, Buffer, SizeOf(Buffer));
-              BytesWritten  := FileWrite(hImageName, Buffer, BytesRead);
-            end;
+          BytesRead     := FileRead(hDiskHandle, Buffer, SizeOf(Buffer));
+          BytesWritten  := FileWrite(hImageName, Buffer, BytesRead);
           if BytesRead = -1 then
             begin
-              ShowMessage('There was a read error encountered. Aborting');
-              ShowMessage(IntToStr(DiskSize - TotalBytesRead));
+              RaiseLastOSError;
               exit;
-            end
-          else
-          begin
+            end;
           inc(TotalBytesRead, BytesRead);
           inc(TotalBytesWritten, BytesWritten);
-          NewPos := NewPos + BytesRead;
 
           // Hash the bytes read and\or written using the algorithm required
           // If the user sel;ected no hashing, break the loop immediately; faster
@@ -683,9 +701,9 @@ begin
                         SHA1Update(SHA1ctxDisk, Buffer, BytesRead);
                         SHA1Update(SHA1ctxImage, Buffer, BytesWritten);
                       end;
-          end;
-          Application.ProcessMessages;
-        until (TotalBytesRead = DiskSize) // or (frmYAFFI.Stop = true);
+
+        Application.ProcessMessages;
+        until (TotalBytesRead = DiskSize);// or (frmYAFFI.Stop = true);
     finally
       // Compute the final hash value
       if HashChoice = 1 then

@@ -1,10 +1,10 @@
 object frmYaffi: TfrmYaffi
-  Left = 1204
-  Height = 885
-  Top = 133
+  Left = 581
+  Height = 751
+  Top = 46
   Width = 524
   Caption = 'YAFFI (Yet Another Free Forensic Imager) by Ted Smith (c) 2015'
-  ClientHeight = 885
+  ClientHeight = 751
   ClientWidth = 524
   OnShow = Button1Click
   LCLVersion = '1.4.0.4'
@@ -104,27 +104,27 @@ object frmYaffi: TfrmYaffi
     ParentFont = False
   end
   object btnStartImaging: TButton
-    Left = 176
+    Left = 128
     Height = 25
-    Top = 744
+    Top = 608
     Width = 99
     Caption = 'Start Imaging'
     OnClick = btnStartImagingClick
     TabOrder = 2
   end
   object btnAbort: TButton
-    Left = 296
+    Left = 264
     Height = 25
-    Top = 744
+    Top = 608
     Width = 75
     Caption = 'Abort!'
     OnClick = btnAbortClick
     TabOrder = 3
   end
   object GroupBox1: TGroupBox
-    Left = 16
+    Left = 32
     Height = 472
-    Top = 248
+    Top = 112
     Width = 489
     Caption = 'Disk Imaging'
     ClientHeight = 454
@@ -231,17 +231,17 @@ object frmYaffi: TfrmYaffi
     end
   end
   object ledtComputedHashA: TLabeledEdit
-    Left = 24
+    Left = 32
     Height = 21
-    Top = 800
+    Top = 656
     Width = 464
     EditLabel.AnchorSideLeft.Control = ledtComputedHashA
     EditLabel.AnchorSideRight.Control = ledtComputedHashA
     EditLabel.AnchorSideRight.Side = asrBottom
     EditLabel.AnchorSideBottom.Control = ledtComputedHashA
-    EditLabel.Left = 24
+    EditLabel.Left = 32
     EditLabel.Height = 13
-    EditLabel.Top = 784
+    EditLabel.Top = 640
     EditLabel.Width = 464
     EditLabel.Caption = 'Computed Hash of Device:'
     EditLabel.ParentColor = False
