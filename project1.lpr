@@ -5,7 +5,7 @@ program project1;
 uses
 
   Interfaces, // this includes the LCL widgetset
-  Forms, UYaffi;
+  Forms, UYaffi, LibEWFUnit;
 
 {$R *.res}
 
