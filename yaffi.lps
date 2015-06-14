@@ -9,145 +9,145 @@
         <Filename Value="yaffi.lpr"/>
         <IsPartOfProject Value="True"/>
         <EditorIndex Value="1"/>
-        <CursorPos X="16" Y="10"/>
-        <UsageCount Value="22"/>
+        <CursorPos Y="18"/>
+        <UsageCount Value="33"/>
         <Loaded Value="True"/>
       </Unit0>
       <Unit1>
-        <Filename Value="uyaffi.pas"/>
+        <Filename Value="UYaffi.pas"/>
         <IsPartOfProject Value="True"/>
-        <ComponentName Value="frmYAFFI"/>
+        <ComponentName Value="frmYaffi"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
-        <UnitName Value="uYAFFI"/>
+        <UnitName Value="UYaffi"/>
         <IsVisibleTab Value="True"/>
-        <TopLine Value="138"/>
-        <CursorPos X="51" Y="164"/>
-        <UsageCount Value="22"/>
+        <TopLine Value="513"/>
+        <CursorPos X="39" Y="534"/>
+        <UsageCount Value="33"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
       </Unit1>
     </Units>
     <JumpHistory Count="30" HistoryIndex="29">
       <Position1>
-        <Filename Value="uyaffi.pas"/>
-        <Caret Line="25" Column="48" TopLine="22"/>
+        <Filename Value="UYaffi.pas"/>
+        <Caret Line="618" Column="43" TopLine="604"/>
       </Position1>
       <Position2>
-        <Filename Value="uyaffi.pas"/>
-        <Caret Line="55" TopLine="39"/>
+        <Filename Value="UYaffi.pas"/>
+        <Caret Line="67" Column="28" TopLine="47"/>
       </Position2>
       <Position3>
-        <Filename Value="uyaffi.pas"/>
-        <Caret Line="45" TopLine="34"/>
+        <Filename Value="UYaffi.pas"/>
+        <Caret Line="454" Column="22" TopLine="422"/>
       </Position3>
       <Position4>
-        <Filename Value="uyaffi.pas"/>
-        <Caret Line="55" Column="14" TopLine="43"/>
+        <Filename Value="UYaffi.pas"/>
+        <Caret Line="817" Column="52" TopLine="713"/>
       </Position4>
       <Position5>
-        <Filename Value="uyaffi.pas"/>
-        <Caret Line="172" Column="30" TopLine="146"/>
+        <Filename Value="UYaffi.pas"/>
+        <Caret Line="143" Column="57" TopLine="127"/>
       </Position5>
       <Position6>
-        <Filename Value="uyaffi.pas"/>
-        <Caret Line="144" TopLine="131"/>
+        <Filename Value="UYaffi.pas"/>
+        <Caret Line="65" Column="51" TopLine="45"/>
       </Position6>
       <Position7>
-        <Filename Value="uyaffi.pas"/>
-        <Caret Line="153" Column="160" TopLine="140"/>
+        <Filename Value="UYaffi.pas"/>
+        <Caret Line="137" Column="24" TopLine="120"/>
       </Position7>
       <Position8>
-        <Filename Value="uyaffi.pas"/>
-        <Caret Line="150" Column="42" TopLine="128"/>
+        <Filename Value="UYaffi.pas"/>
+        <Caret Line="65" Column="18" TopLine="45"/>
       </Position8>
       <Position9>
-        <Filename Value="uyaffi.pas"/>
-        <Caret Line="154" Column="3" TopLine="133"/>
+        <Filename Value="UYaffi.pas"/>
+        <Caret Line="141" Column="7" TopLine="107"/>
       </Position9>
       <Position10>
-        <Filename Value="uyaffi.pas"/>
-        <Caret Line="192" Column="30" TopLine="189"/>
+        <Filename Value="UYaffi.pas"/>
+        <Caret Line="144" Column="24" TopLine="110"/>
       </Position10>
       <Position11>
-        <Filename Value="uyaffi.pas"/>
-        <Caret Line="210" Column="49" TopLine="184"/>
+        <Filename Value="UYaffi.pas"/>
+        <Caret Line="817" Column="87" TopLine="784"/>
       </Position11>
       <Position12>
-        <Filename Value="uyaffi.pas"/>
-        <Caret Line="188" Column="23" TopLine="184"/>
+        <Filename Value="UYaffi.pas"/>
+        <Caret Line="149" Column="3" TopLine="131"/>
       </Position12>
       <Position13>
-        <Filename Value="uyaffi.pas"/>
-        <Caret Line="203" Column="37" TopLine="184"/>
+        <Filename Value="UYaffi.pas"/>
+        <Caret Line="141" Column="35" TopLine="125"/>
       </Position13>
       <Position14>
-        <Filename Value="uyaffi.pas"/>
-        <Caret Line="205" Column="49" TopLine="184"/>
+        <Filename Value="UYaffi.pas"/>
+        <Caret Line="242" Column="33" TopLine="224"/>
       </Position14>
       <Position15>
-        <Filename Value="uyaffi.pas"/>
-        <Caret Line="193" Column="9" TopLine="190"/>
+        <Filename Value="UYaffi.pas"/>
+        <Caret Line="818" Column="45" TopLine="792"/>
       </Position15>
       <Position16>
-        <Filename Value="uyaffi.pas"/>
-        <Caret Line="201" Column="31" TopLine="190"/>
+        <Filename Value="UYaffi.pas"/>
+        <Caret Line="823" Column="58" TopLine="798"/>
       </Position16>
       <Position17>
-        <Filename Value="uyaffi.pas"/>
-        <Caret Line="212" Column="33" TopLine="190"/>
+        <Filename Value="UYaffi.pas"/>
+        <Caret Line="451" Column="27" TopLine="425"/>
       </Position17>
       <Position18>
-        <Filename Value="uyaffi.pas"/>
-        <Caret Line="167" Column="41" TopLine="167"/>
+        <Filename Value="UYaffi.pas"/>
+        <Caret Line="93" Column="53" TopLine="47"/>
       </Position18>
       <Position19>
-        <Filename Value="uyaffi.pas"/>
-        <Caret Line="46" Column="37" TopLine="24"/>
+        <Filename Value="UYaffi.pas"/>
+        <Caret Line="534" Column="81" TopLine="510"/>
       </Position19>
       <Position20>
-        <Filename Value="uyaffi.pas"/>
-        <Caret Line="45" Column="37" TopLine="23"/>
+        <Filename Value="UYaffi.pas"/>
+        <Caret Line="609" Column="23" TopLine="597"/>
       </Position20>
       <Position21>
-        <Filename Value="uyaffi.pas"/>
-        <Caret Line="44" Column="37" TopLine="22"/>
+        <Filename Value="UYaffi.pas"/>
+        <Caret Line="89" Column="46" TopLine="68"/>
       </Position21>
       <Position22>
-        <Filename Value="uyaffi.pas"/>
-        <Caret Line="38" Column="64" TopLine="129"/>
+        <Filename Value="UYaffi.pas"/>
+        <Caret Line="608" Column="39" TopLine="579"/>
       </Position22>
       <Position23>
-        <Filename Value="uyaffi.pas"/>
-        <Caret Line="46" Column="32" TopLine="41"/>
+        <Filename Value="UYaffi.pas"/>
+        <Caret Line="659" Column="16" TopLine="20"/>
       </Position23>
       <Position24>
-        <Filename Value="uyaffi.pas"/>
-        <Caret Line="142" Column="16" TopLine="126"/>
+        <Filename Value="UYaffi.pas"/>
+        <Caret Line="221" Column="19" TopLine="201"/>
       </Position24>
       <Position25>
-        <Filename Value="uyaffi.pas"/>
-        <Caret Line="143" Column="16" TopLine="127"/>
+        <Filename Value="UYaffi.pas"/>
+        <Caret Line="527" Column="85" TopLine="505"/>
       </Position25>
       <Position26>
-        <Filename Value="uyaffi.pas"/>
-        <Caret Line="142" Column="16" TopLine="126"/>
+        <Filename Value="UYaffi.pas"/>
+        <Caret Line="522" Column="20" TopLine="506"/>
       </Position26>
       <Position27>
-        <Filename Value="uyaffi.pas"/>
-        <Caret Line="33" Column="43" TopLine="33"/>
+        <Filename Value="UYaffi.pas"/>
+        <Caret Line="523" Column="17" TopLine="507"/>
       </Position27>
       <Position28>
-        <Filename Value="uyaffi.pas"/>
-        <Caret Line="145" Column="38" TopLine="129"/>
+        <Filename Value="UYaffi.pas"/>
+        <Caret Line="531" Column="11" TopLine="510"/>
       </Position28>
       <Position29>
-        <Filename Value="uyaffi.pas"/>
-        <Caret Line="148" Column="73" TopLine="129"/>
+        <Filename Value="UYaffi.pas"/>
+        <Caret Line="533" Column="30" TopLine="510"/>
       </Position29>
       <Position30>
-        <Filename Value="uyaffi.pas"/>
-        <Caret Line="140" Column="19" TopLine="123"/>
+        <Filename Value="UYaffi.pas"/>
+        <Caret Line="763" Column="18" TopLine="755"/>
       </Position30>
     </JumpHistory>
   </ProjectSession>

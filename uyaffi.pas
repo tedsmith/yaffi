@@ -13,10 +13,10 @@ uses
   {$endif}
 
   {$ifdef Windows}
-    Windows, ActiveX, ComObj, Variants,
+    Process, Windows, ActiveX, ComObj, Variants,
   {$endif}
     Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, StdCtrls,
-    ComCtrls, ExtCtrls, sha1Customised, md5Customised;
+    ComCtrls, ExtCtrls, Menus, sha1Customised, md5Customised;
 
 type
 
@@ -48,6 +48,8 @@ type
     lm: TLabel;
     lv: TLabel;
     memNotes: TMemo;
+    menShowDiskManager: TMenuItem;
+    PopupMenu1: TPopupMenu;
     SaveImageDialog: TSaveDialog;
     TreeView1: TTreeView;
 
@@ -57,14 +59,16 @@ type
     procedure btnStartImagingClick(Sender: TObject);
     procedure Button1Click(Sender: TObject);
     procedure btnChooseImageNameClick(Sender: TObject);
-    procedure cbdisksChange(Sender: TObject);
+    procedure FormCreate(Sender: TObject);
+    procedure menShowDiskManagerClick(Sender: TObject);
     procedure TreeView1SelectionChanged(Sender: TObject);
-    function Stop : boolean;
     function InitialiseHashChoice(Sender : TObject) : Integer;
+    procedure cbdisksChange(Sender: TObject);
+
   private
     { private declarations }
   public
-
+    Stop : boolean;
     { public declarations }
   end;
 
@@ -83,7 +87,10 @@ var
   function VarArrayToStr(const vArray: variant): string;
   function WindowsImageDisk(hDiskHandle : THandle; DiskSize : Int64; HashChoice : Integer; hImageName : THandle) : Int64;
   function GetDiskLengthInBytes(hSelectedDisk : THandle) : Int64;
-
+  function GetJustDriveLetter(str : widestring) : string;
+  function GetDriveIDFromLetter(str : string) : Byte;
+  function FormatByteSize(const bytes: QWord): string;
+  function GetVolumeName(DriveLetter: Char): string;
   {$endif}
 
 implementation
@@ -92,13 +99,51 @@ implementation
 
 { TfrmYaffi }
 
+
+// Enable or disable elements depending on the OS hosting the application
+procedure TfrmYaffi.FormCreate(Sender: TObject);
+begin
+  Stop := false;
+
+  {$ifdef Windows}
+  // These are the Linux centric elements, so diable them on Windows
+  cbdisks.Enabled := false;
+  cbdisks.Visible := false;
+  Label1.Enabled  := false;
+  Label1.Visible  := false;
+  Label2.Enabled  := false;
+  Label2.Visible  := false;
+  Label3.Enabled  := false;
+  Label3.Visible  := false;
+  Label4.Enabled  := false;
+  Label4.Visible  := false;
+  Label5.Enabled  := false;
+  Label5.Visible  := false;
+  lv.Enabled      := false;
+  lv.Visible      := false;
+  lm.Enabled      := false;
+  lm.Visible      := false;
+  ls.Enabled      := false;
+  ls.Visible      := false;
+  lt.Enabled      := false;
+  lt.Visible      := false;
+  {$endif Windows}
+
+  {$ifdef UNIX}
+  // These are the Windows centric elements, so diable them on Linux
+  GroupBox1.Enabled := false;
+  GroupBox1.Visible := false;
+  {$endif}
+end;
+
 procedure TfrmYaffi.Button1Click(Sender: TObject);
+{$ifdef UNIX}
 var
-   {$ifdef UNIX}
   DisksProcess: TProcess;
-   {$endif UNIX}
   i: Integer;
   slDisklist: TSTringList;
+ {$endif UNIX}
+
 begin
   {$ifdef Windows}
   try
@@ -130,13 +175,17 @@ end;
 
 procedure TfrmYaffi.btnAbortClick(Sender: TObject);
 begin
-  Stop;
+  Stop := TRUE;
+  if Stop = TRUE then
+  begin
+    ledtComputedHashA.Text := 'Process aborted.';
+    ledtComputedHashB.Text := 'Process aborted.';
+    ledtImageHashA.Text    := 'Process aborted.';
+    ledtImageHashB.Text    := 'Process aborted.';
+    Abort;
+  end;
 end;
 
-function TfrmYaffi.Stop : boolean;
-begin
-  result := true;
-end;
 
 procedure TfrmYaffi.btnChooseImageNameClick(Sender: TObject);
 begin
@@ -151,15 +200,14 @@ const
   stype   = 'ID_TYPE=';
   svendor = 'ID_VENDOR=';
 var
-  {$ifdef UNIX}
+
   DiskInfoProcess          : TProcess;
   DiskInfoProcessUDISKS    : TProcess;
-  {$endif}
   diskinfo, diskinfoUDISKS : TStringList;
   i: Integer;
   stmp: String;
 begin
-  {$ifdef UNIX}
+
   if cbdisks.ItemIndex<0 then
   exit;
   lv.Caption:='';
@@ -217,16 +265,30 @@ begin
   diskinfoUDISKS.Free;
   DiskInfoProcess.Free;
   DiskInfoProcessUDISKS.Free;
-  {$endif} // End of Linux compiler check
 end;
+
 
 // These are Windows centric functions. Many call upon the Windows API.
 {$ifdef Windows}
 
+procedure TfrmYaffi.menShowDiskManagerClick(Sender: TObject);
+var
+ProcDiskManager : TProcess;
+begin
+  try
+    ProcDiskManager            := TProcess.Create(nil);
+    ProcDiskManager.Executable := 'mmc.exe';
+    ProcDiskManager.Parameters.Add('C:\Windows\System32\diskmgmt.msc');
+    ProcDiskManager.Options    := [poWaitOnExit, poUsePipes];
+    ProcDiskManager.Execute;
+  finally
+    ProcDiskManager.Free;
+  end;
+end;
+
 procedure TfrmYaffi.TreeView1SelectionChanged(Sender: TObject);
 var
   DriveLetter : string;
-  PosToStartFrom : Integer;
 begin
    if Sender is TTreeView then
    begin
@@ -239,7 +301,6 @@ begin
     // We just copy the characters following "Drive ".
     if Pos('Drive', TTreeView(Sender).Selected.Text) > 0 then
       begin
-       PosToStartFrom := 6;
        DriveLetter := '\\?\'+Trim(Copy(TTreeView(Sender).Selected.Text, 6, 3));
        ledtSelectedItem.Text := DriveLetter;
       end
@@ -325,14 +386,18 @@ var
   oEnumPartition : IEnumvariant;
   oEnumLogical   : IEnumvariant;
   iValue         : pULONG;
-  DeviceID, Val1, Val2, Val3 : widestring;
-  s              : widestring;
+  DeviceID, Val1, Val2, Val3, s : widestring;
+  DriveLetter, strDiskSize, strFreeSpace, strVolumeName    : string;
+  DriveLetterID  : Byte;
+  intDriveSize, intFreeSpace   : Int64;
 
 begin;
   Result:='';
   Val1 := '';
   Val2 := '';
   Val3 := '';
+  intDriveSize := 0;
+  intFreeSpace := 0;
 
   frmYAFFI.Treeview1.Images := frmYAFFI.ImageList1;
   PhyDiskNode     := frmYAFFI.TreeView1.Items.Add(nil,'Physical Disk') ;
@@ -382,7 +447,14 @@ begin;
             Val3 := Format('Drive %s',[string(objLogicalDisk.DeviceID)]);
              if Length(Val3) > 0 then
               begin
-                frmYaffi.TreeView1.Items.AddChild(DriveLetterNode, Val3);
+                DriveLetter    := GetJustDriveLetter(Val3);
+                DriveLetterID  := GetDriveIDFromLetter(DriveLetter);
+                intDriveSize   := DiskSize(DriveLetterID);
+                strDiskSize    := FormatByteSize(intDriveSize);
+                intFreeSpace   := DiskFree(DriveLetterID);
+                strFreeSpace   := FormatByteSize(intFreeSpace);
+                strVolumeName  := GetVolumeName(DriveLetter[1]);
+                frmYaffi.TreeView1.Items.AddChild(DriveLetterNode, Val3 + ' (' + strVolumeName + ', Size: ' + strDiskSize + ', Free Space: ' + strFreeSpace + ')');
               end;
             objLogicalDisk:=Unassigned;
           end;
@@ -393,6 +465,80 @@ begin;
    end;
 end;
 
+// Returns just the drive letter from the treeview, e.g. 'Drive X:' becomes just 'X'
+// which can then be passed to GetDriveIDFromLetter
+function GetJustDriveLetter(str : widestring) : string;
+begin
+  // First make "Drive X:" to "X:"
+  Delete(str, 1, 6);
+  // Now strip out the ':'
+  Delete(str, 2, 1);
+  result := str;
+end;
+
+// Returns the numerical ID stored by Windows of the queried drive letter
+function GetDriveIDFromLetter(str : string) : Byte;
+begin
+  result := (Ord(str[1]))-64;
+end;
+
+// Returns a human readable view of the number of bytes as Mb, Gb Tb, etc
+function FormatByteSize(const bytes: QWord): string;
+var
+  B: byte;
+  KB: word;
+  MB: QWord;
+  GB: QWord;
+  TB: QWord;
+begin
+
+  B  := 1; //byte
+  KB := 1024 * B; //kilobyte
+  MB := 1024 * KB; //megabyte
+  GB := 1024 * MB; //gigabyte
+  TB := 1024 * GB; //terabyte
+
+  if bytes > TB then
+    result := FormatFloat('#.## TiB', bytes / TB)
+  else
+    if bytes > GB then
+      result := FormatFloat('#.## GiB', bytes / GB)
+    else
+      if bytes > MB then
+        result := FormatFloat('#.## MiB', bytes / MB)
+      else
+        if bytes > KB then
+          result := FormatFloat('#.## KiB', bytes / KB)
+        else
+          result := FormatFloat('#.## bytes', bytes) ;
+end;
+
+// Returns the volume name and serial number in Windows of a given mounted drive.
+// Note : NOT the serial number of the hard disk itself! Just the volume name.
+function GetVolumeName(DriveLetter: Char): string;
+var
+  buffer                  : array[0..MAX_PATH] of Char;
+  strVolName, strVolSerNo : string;
+  VolSerNo, dummy         : DWORD;
+  oldmode                 : LongInt;
+
+begin
+  oldmode := SetErrorMode(SEM_FAILCRITICALERRORS);
+  try
+    // After stripping it out for GetDriveIDFromLetter to work,
+    // we now have to stick back the ':\' to the drive letter! (Gggrrggh, MS Windows)
+    GetVolumeInformation(PChar(DriveLetter + ':\'), buffer, SizeOf(buffer), @VolSerNo,
+                         dummy, dummy, nil, 0);
+    strVolSerNo := IntToHex(HiWord(VolSerNo), 4) + '-' + IntToHex(LoWord(VolSerNo), 4);
+    strVolName  := StrPas(buffer);
+    Result      := strVolName + ' ' + strVolSerNo; // StrPas(buffer);
+  finally
+    SetErrorMode(oldmode);
+  end;
+end;
+
+// Returns the exact disk size for BOTH physical disks and logical drives as
+// reported by the Windows API and is used during the imaging stage
 function GetDiskLengthInBytes(hSelectedDisk : THandle) : Int64;
 const
   // These are defined at the MSDN.Microsoft.com website for DeviceIOControl
@@ -458,20 +604,17 @@ const
 
 var
   ByteSize: int64;
-  SourceDevice : string;
   BytesReturned: DWORD;
   DLength: TDiskLength;
 
 begin
   ByteSize      := 0;
   BytesReturned := 0;
-  SourceDevice  := frmYaffi.ledtSelectedItem.Text;
   if not DeviceIOControl(hSelectedDisk, IOCTL_DISK_GET_LENGTH_INFO, nil, 0,
          @DLength, SizeOf(TDiskLength), BytesReturned, nil) then
          raise Exception.Create('Unable to initiate IOCTL_DISK_GET_LENGTH_INFO.');
 
   if DLength.Length > 0 then ByteSize := DLength.Length;
-  //ShowMessage(IntToStr(ByteSize));
   result := ByteSize;
 end;
 
@@ -631,7 +774,6 @@ var
 
   BytesRead                : integer;
 
-  NewPos, SectorCount,
   TotalBytesRead, BytesWritten, TotalBytesWritten : Int64;
 
 begin
@@ -639,114 +781,113 @@ begin
   BytesWritten        := 0;
   TotalBytesRead      := 0;
   TotalBytesWritten   := 0;
-  NewPos              := 0;
 
-    try
-      // Initialise the hash digests in accordance with the users chosen algorithm
-      if HashChoice = 1 then
+  try
+    // Initialise the hash digests in accordance with the users chosen algorithm
+    if HashChoice = 1 then
+      begin
+      MD5Init(MD5ctxDisk);
+      MD5Init(MD5ctxImage);
+      end
+      else if HashChoice = 2 then
         begin
-        MD5Init(MD5ctxDisk);
-        MD5Init(MD5ctxImage);
+        SHA1Init(SHA1ctxDisk);
+        SHA1Init(SHA1ctxImage);
         end
+          else if HashChoice = 3 then
+            begin
+              MD5Init(MD5ctxDisk);
+              MD5Init(MD5ctxImage);
+              SHA1Init(SHA1ctxDisk);
+              SHA1Init(SHA1ctxImage);
+            end
+            else if HashChoice = 4 then
+              begin
+               // No hashing initiliased
+              end;
+    // Now to seek to start of device
+    FileSeek(hDiskHandle, 0, 0);
+      repeat
+        // Read device in buffered segments. Hash the disk and image portions as we go
+        BytesRead     := FileRead(hDiskHandle, Buffer, SizeOf(Buffer));
+        BytesWritten  := FileWrite(hImageName, Buffer, BytesRead);
+        if BytesRead = -1 then
+          begin
+            RaiseLastOSError;
+            exit;
+          end;
+        inc(TotalBytesRead, BytesRead);
+        inc(TotalBytesWritten, BytesWritten);
+
+        // Hash the bytes read and\or written using the algorithm required
+        // If the user sel;ected no hashing, break the loop immediately; faster
+        if HashChoice = 4 then
+          begin
+           // No hashing initiliased
+          end
+          else if HashChoice = 1 then
+            begin
+            MD5Update(MD5ctxDisk, Buffer, BytesRead);
+            MD5Update(MD5ctxImage, Buffer, BytesWritten);
+            end
+              else if HashChoice = 2 then
+                begin
+                SHA1Update(SHA1ctxDisk, Buffer, BytesRead);
+                SHA1Update(SHA1ctxImage, Buffer, BytesWritten);
+                end
+                  else if HashChoice = 3 then
+                    begin
+                      MD5Update(MD5ctxDisk, Buffer, BytesRead);
+                      MD5Update(MD5ctxImage, Buffer, BytesWritten);
+                      SHA1Update(SHA1ctxDisk, Buffer, BytesRead);
+                      SHA1Update(SHA1ctxImage, Buffer, BytesWritten);
+                    end;
+
+      Application.ProcessMessages;
+      until (TotalBytesRead = DiskSize) or (frmYaffi.Stop = true);// or (frmYAFFI.Stop = true);
+  finally
+    // Compute the final hash value
+    if HashChoice = 1 then
+      begin
+      MD5Final(MD5ctxDisk, MD5Digest);
+      MD5Final(MD5ctxImage, MD5DigestImage);
+      frmYaffi.ledtComputedHashA.Text := Uppercase(MD5Print(MD5Digest));
+      end
         else if HashChoice = 2 then
           begin
-          SHA1Init(SHA1ctxDisk);
-          SHA1Init(SHA1ctxImage);
+          SHA1Final(SHA1ctxDisk, SHA1Digest);
+          SHA1Final(SHA1ctxImage, SHA1DigestImage);
+          frmYaffi.ledtComputedHashA.Text := Uppercase(SHA1Print(SHA1Digest));
           end
             else if HashChoice = 3 then
               begin
-                MD5Init(MD5ctxDisk);
-                MD5Init(MD5ctxImage);
-                SHA1Init(SHA1ctxDisk);
-                SHA1Init(SHA1ctxImage);
+               MD5Final(MD5ctxDisk, MD5Digest);
+               MD5Final(MD5ctxImage, MD5DigestImage);
+               SHA1Final(SHA1ctxDisk, SHA1Digest);
+               SHA1Final(SHA1ctxImage, SHA1DigestImage);
+               frmYaffi.ledtComputedHashA.Text := Uppercase('MD5: ' + MD5Print(MD5Digest));
+               frmYaffi.ledtComputedHashB.Visible := true;
+               frmYaffi.ledtComputedHashB.Enabled := true;
+               frmYaffi.ledtComputedHashB.Text := Uppercase('SHA-1: ' + SHA1Print(SHA1Digest));
               end
               else if HashChoice = 4 then
                 begin
-                 // No hashing initiliased
+                 frmYaffi.ledtComputedHashA.Text := Uppercase('No hash computed');
                 end;
-      // Now to seek to start of device
-      FileSeek(hDiskHandle, 0, 0);
-        repeat
-          // Read device in buffered segments. Hash the disk and image portions as we go
-          BytesRead     := FileRead(hDiskHandle, Buffer, SizeOf(Buffer));
-          BytesWritten  := FileWrite(hImageName, Buffer, BytesRead);
-          if BytesRead = -1 then
-            begin
-              RaiseLastOSError;
-              exit;
-            end;
-          inc(TotalBytesRead, BytesRead);
-          inc(TotalBytesWritten, BytesWritten);
-
-          // Hash the bytes read and\or written using the algorithm required
-          // If the user sel;ected no hashing, break the loop immediately; faster
-          if HashChoice = 4 then
-            begin
-             // No hashing initiliased
-            end
-            else if HashChoice = 1 then
-              begin
-              MD5Update(MD5ctxDisk, Buffer, BytesRead);
-              MD5Update(MD5ctxImage, Buffer, BytesWritten);
-              end
-                else if HashChoice = 2 then
-                  begin
-                  SHA1Update(SHA1ctxDisk, Buffer, BytesRead);
-                  SHA1Update(SHA1ctxImage, Buffer, BytesWritten);
-                  end
-                    else if HashChoice = 3 then
-                      begin
-                        MD5Update(MD5ctxDisk, Buffer, BytesRead);
-                        MD5Update(MD5ctxImage, Buffer, BytesWritten);
-                        SHA1Update(SHA1ctxDisk, Buffer, BytesRead);
-                        SHA1Update(SHA1ctxImage, Buffer, BytesWritten);
-                      end;
-
-        Application.ProcessMessages;
-        until (TotalBytesRead = DiskSize);// or (frmYAFFI.Stop = true);
-    finally
-      // Compute the final hash value
-      if HashChoice = 1 then
+      // If no hashing or single algorithm hashing is done, this AND comparison will
+      // still be true but only one value will be printed for single algorithm hashing
+      // or both values for multiple, or no hashes for no hashing.
+      if (SHA1Print(SHA1Digest) = SHA1Print(SHA1DigestImage)) and (MD5Print(MD5Digest) = MD5Print(MD5DigestImage)) then
         begin
-        MD5Final(MD5ctxDisk, MD5Digest);
-        MD5Final(MD5ctxImage, MD5DigestImage);
-        frmYaffi.ledtComputedHashA.Text := Uppercase(MD5Print(MD5Digest));
-        end
-          else if HashChoice = 2 then
-            begin
-            SHA1Final(SHA1ctxDisk, SHA1Digest);
-            SHA1Final(SHA1ctxImage, SHA1DigestImage);
-            frmYaffi.ledtComputedHashA.Text := Uppercase(SHA1Print(SHA1Digest));
-            end
-              else if HashChoice = 3 then
-                begin
-                 MD5Final(MD5ctxDisk, MD5Digest);
-                 MD5Final(MD5ctxImage, MD5DigestImage);
-                 SHA1Final(SHA1ctxDisk, SHA1Digest);
-                 SHA1Final(SHA1ctxImage, SHA1DigestImage);
-                 frmYaffi.ledtComputedHashA.Text := Uppercase('MD5: ' + MD5Print(MD5Digest));
-                 frmYaffi.ledtComputedHashB.Visible := true;
-                 frmYaffi.ledtComputedHashB.Enabled := true;
-                 frmYaffi.ledtComputedHashB.Text := Uppercase('SHA-1: ' + SHA1Print(SHA1Digest));
-                end
-                else if HashChoice = 4 then
-                  begin
-                   frmYaffi.ledtComputedHashA.Text := Uppercase('No hash computed');
-                  end;
-        // If no hashing or single algorithm hashing is done, this AND comparison will
-        // still be true but only one value will be printed for single algorithm hashing
-        // or both values for multiple, or no hashes for no hashing.
-        if (SHA1Print(SHA1Digest) = SHA1Print(SHA1DigestImage)) and (MD5Print(MD5Digest) = MD5Print(MD5DigestImage)) then
-          begin
-             frmYaffi.ledtImageHashA.Enabled:= true;
-             frmYaffi.ledtImageHashA.Visible:= true;
-             frmYaffi.ledtImageHashA.Text := 'MD5: ' + MD5Print(MD5DigestImage);
-             frmYaffi.ledtImageHashB.Enabled:= true;
-             frmYaffi.ledtImageHashB.Visible:= true;
-             frmYaffi.ledtImageHashB.Text := 'SHA-1 : ' + SHA1Print(SHA1DigestImage);
-          end;
-      result := TotalBytesRead;
-    end;
+           frmYaffi.ledtImageHashA.Enabled:= true;
+           frmYaffi.ledtImageHashA.Visible:= true;
+           frmYaffi.ledtImageHashA.Text := 'MD5: ' + Uppercase(MD5Print(MD5DigestImage));
+           frmYaffi.ledtImageHashB.Enabled:= true;
+           frmYaffi.ledtImageHashB.Visible:= true;
+           frmYaffi.ledtImageHashB.Text := 'SHA-1 : ' + Uppercase(SHA1Print(SHA1DigestImage));
+        end;
+    result := TotalBytesRead;
+  end;
 end;
 
 {$endif}
