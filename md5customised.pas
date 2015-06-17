@@ -3,9 +3,7 @@
  Two functions are different. 'MDFile' and 'MD5Transform'.
 
  The new MDFile which forces FPC to use the Windows API 'CreateFile' function differently.
- As a result, the Windows version of QuickHash from v2.3 upwards can now process
- both European ASCII filenames and most Unicode filenames too, whereas only ASCII before.
-
+ 
  The new MD5Transform function is courtesy of EngKin from the FPC Lazarus forums.
  It is a much faster implementation of the necessaries and makes hashing around 3 times quicker
  Thanks, EngKin!!

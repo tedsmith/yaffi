@@ -33,19 +33,24 @@
         <PackageName Value="LCL"/>
       </Item1>
     </RequiredPackages>
-    <Units Count="2">
+    <Units Count="3">
       <Unit0>
         <Filename Value="yaffi.lpr"/>
         <IsPartOfProject Value="True"/>
       </Unit0>
       <Unit1>
-        <Filename Value="UYaffi.pas"/>
+        <Filename Value="uyaffi.pas"/>
         <IsPartOfProject Value="True"/>
         <ComponentName Value="frmYaffi"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="UYaffi"/>
       </Unit1>
+      <Unit2>
+        <Filename Value="ewfacquireForFPCAPI\LibEWFUnit.pas"/>
+        <IsPartOfProject Value="True"/>
+        <UnitName Value="LibEWFUnit"/>
+      </Unit2>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
@@ -56,6 +61,7 @@
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
+      <OtherUnitFiles Value="ewfacquireForFPCAPI"/>
       <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Linking>

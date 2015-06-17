@@ -1,8 +1,30 @@
-YAFFI - Yet Another Free Forensic Imager, by Ted Smith (29th May 2015) 
-A new cross-platform disk imager that will allow imaging using both dd
-and E01 EWF image formats for both Windows and Linux.
+  YAFFI - Yet Another Free Forensic Imager   Copyright (C) <2015>  <Ted Smith>
 
-As of May 2015, basic structures and GUI taking shape. 
+  A free, cross platform, GUI based imager for acquiring images in DD raw and EWF format
+
+  https://github.com/tedsmith/yaffi
+
+  Contributions from Erwan for the provision of a Delphi conversion of libEWF
+  (http://labalec.fr/erwan/?p=1235) are welcomed and acknowledged.
+  Adjusted for use with Freepascal by Ted Smith and supplied as part of this project
+
+  Provision of the libEWF library by Joachim Metz also acknowledged
+  https://github.com/libyal/libewf
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+                      
+
+As of June 2015, basic structures and GUI taking shape. Not released yet. 
                     
                     GNU GENERAL PUBLIC LICENSE
                        Version 2, June 1991

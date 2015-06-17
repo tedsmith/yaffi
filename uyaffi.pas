@@ -1,3 +1,28 @@
+{ YAFFI - Yet Another Free Forensic Imager   Copyright (C) <2015>  <Ted Smith>
+
+  A free, cross platform, GUI based imager for acquiring images in DD raw and EWF format
+
+  https://github.com/tedsmith/yaffi
+
+  Contributions from Erwan for the provision of a Delphi conversion of libEWF
+  (http://labalec.fr/erwan/?p=1235) are welcomed and acknowledged.
+  Adjusted for use with Freepascal by Ted Smith and supplied as part of this project
+
+  Provision of the libEWF library by Joachim Metz also acknowledged and thanked
+  https://github.com/libyal/libewf
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+}
 unit UYaffi;
 
 {$mode objfpc}{$H+}
@@ -754,7 +779,7 @@ begin
         if InitialiseImageType(nil) = 1 then
           begin
             // TODO : For E01 images
-            FreeAndNil(hImageName);
+            //FreeAndNil(hImageName);
             ImageResult := WindowsImageDiskE01(hSelectedDisk, ExactDiskSize, HashChoice);
           end
         else ImageResult := WindowsImageDiskDD(hSelectedDisk, ExactDiskSize, HashChoice, hImageName);
@@ -1000,156 +1025,163 @@ begin
   TotalBytesWritten   := 0;
 
   fLibEWF:=TLibEWF.create;
+  fLibEWF.libewf_SetCompressionValues(1,0);
+  fLibEWF.libewf_SetHeaderValue('acquiry_software_version','YAFFI');
+
   // TODO : THIS DOES NOT WORK. HANDLE IS INVALID
   if fLibEWF.libewf_open(frmYaffi.ledtImageName.Text,LIBEWF_OPEN_WRITE)=0 then
-    begin
-      fLibEWF.libewf_SetCompressionValues(1,0);
-      fLibEWF.libewf_SetHeaderValue('acquiry_software_version','YAFFI');
-    end;
+  begin
 
-  try
-    // Initialise the hash digests in accordance with the users chosen algorithm
-    if HashChoice = 1 then
-      begin
-      MD5Init(MD5ctxDisk);
-      MD5Init(MD5ctxImage);
-      end
-      else if HashChoice = 2 then
+    try
+      // Initialise the hash digests in accordance with the users chosen algorithm
+      if HashChoice = 1 then
         begin
-        SHA1Init(SHA1ctxDisk);
-        SHA1Init(SHA1ctxImage);
+        MD5Init(MD5ctxDisk);
+        MD5Init(MD5ctxImage);
         end
-          else if HashChoice = 3 then
-            begin
-              MD5Init(MD5ctxDisk);
-              MD5Init(MD5ctxImage);
-              SHA1Init(SHA1ctxDisk);
-              SHA1Init(SHA1ctxImage);
-            end
-            else if HashChoice = 4 then
-              begin
-               // No hashing initiliased
-              end;
-    // Now to seek to start of device
-    FileSeek(hDiskHandle, 0, 0);
-      repeat
-        // Read device in buffered segments. Hash the disk and image portions as we go
-        BytesRead     := FileRead(hDiskHandle, Buffer, SizeOf(Buffer));
-        BytesWritten  := fLibEWF.libewf_write_random(@Buffer[0], SizeOf(Buffer), BytesRead);
-        if BytesRead = -1 then
-          begin
-            RaiseLastOSError;
-            exit;
-          end;
-        inc(TotalBytesRead, BytesRead);
-        inc(TotalBytesWritten, BytesWritten);
-
-        // Hash the bytes read and\or written using the algorithm required
-        // If the user sel;ected no hashing, break the loop immediately; faster
-        if HashChoice = 4 then
-          begin
-           // No hashing initiliased
-          end
-          else if HashChoice = 1 then
-            begin
-            MD5Update(MD5ctxDisk, Buffer, BytesRead);
-            MD5Update(MD5ctxImage, Buffer, BytesWritten);
-            end
-              else if HashChoice = 2 then
-                begin
-                SHA1Update(SHA1ctxDisk, Buffer, BytesRead);
-                SHA1Update(SHA1ctxImage, Buffer, BytesWritten);
-                end
-                  else if HashChoice = 3 then
-                    begin
-                      MD5Update(MD5ctxDisk, Buffer, BytesRead);
-                      MD5Update(MD5ctxImage, Buffer, BytesWritten);
-                      SHA1Update(SHA1ctxDisk, Buffer, BytesRead);
-                      SHA1Update(SHA1ctxImage, Buffer, BytesWritten);
-                    end;
-
-      Application.ProcessMessages;
-      until (TotalBytesRead = DiskSize) or (frmYaffi.Stop = true);// or (frmYAFFI.Stop = true);
-  finally
-    // Compute the final hashes of disk and image
-    if HashChoice = 1 then
-      begin
-      MD5Final(MD5ctxDisk, MD5Digest);
-      MD5Final(MD5ctxImage, MD5DigestImage);
-      if MD5Print(MD5Digest) = MD5Print(MD5DigestImage) then
-        begin
-          // Disk hash
-          frmYaffi.ledtComputedHashA.Clear;
-          frmYaffi.ledtComputedHashA.Text := Uppercase('MD5: ' + MD5Print(MD5Digest));
-          // Image hash
-          frmYaffi.ledtImageHashA.Clear;
-          frmYaffi.ledtImageHashB.Clear;
-          frmYaffi.ledtImageHashA.Enabled := true;
-          frmYaffi.ledtImageHashA.Visible := true;
-          frmYaffi.ledtImageHashB.Enabled := false;
-          frmYaffi.ledtImageHashB.Visible := false;
-          frmYaffi.ledtImageHashA.Text    := 'MD5: ' + Uppercase(MD5Print(MD5DigestImage));
-        end;
-      end
         else if HashChoice = 2 then
           begin
-          // SHA-1 hash only
-          SHA1Final(SHA1ctxDisk, SHA1Digest);
-          SHA1Final(SHA1ctxImage, SHA1DigestImage);
-          if SHA1Print(SHA1Digest) = SHA1Print(SHA1DigestImage) then
-            begin
-              // Disk Hash
-              frmYaffi.ledtComputedHashA.Clear;
-              frmYaffi.ledtComputedHashA.Text := Uppercase('SHA-1: ' + SHA1Print(SHA1Digest));
-              // Image Hash
-              frmYaffi.ledtImageHashA.Clear;
-              frmYaffi.ledtImageHashB.Clear;
-              frmYaffi.ledtImageHashA.Enabled := false;
-              frmYaffi.ledtImageHashA.Visible := false;
-              frmYaffi.ledtImageHashB.Enabled := true;
-              frmYaffi.ledtImageHashB.Visible := true;
-              frmYaffi.ledtImageHashB.Text    := 'SHA-1 : ' + Uppercase(SHA1Print(SHA1DigestImage));
-            end;
+          SHA1Init(SHA1ctxDisk);
+          SHA1Init(SHA1ctxImage);
           end
             else if HashChoice = 3 then
               begin
-              // MD5 and SHA-1 together
-               MD5Final(MD5ctxDisk, MD5Digest);
-               MD5Final(MD5ctxImage, MD5DigestImage);
-               SHA1Final(SHA1ctxDisk, SHA1Digest);
-               SHA1Final(SHA1ctxImage, SHA1DigestImage);
-               if (MD5Print(MD5Digest) = MD5Print(MD5DigestImage)) and (SHA1Print(SHA1Digest) = SHA1Print(SHA1DigestImage)) then
-                 begin
-                   // Disk hash
-                   frmYaffi.ledtComputedHashA.Clear;
-                   frmYaffi.ledtComputedHashB.Clear;
-                   frmYaffi.ledtComputedHashA.Text    := Uppercase('MD5: ' + MD5Print(MD5Digest));
-                   frmYaffi.ledtComputedHashB.Visible := true;
-                   frmYaffi.ledtComputedHashB.Enabled := true;
-                   frmYaffi.ledtComputedHashB.Text    := Uppercase('SHA-1: ' + SHA1Print(SHA1Digest));
-                   // Image Hash
-                   frmYaffi.ledtImageHashA.Clear;
-                   frmYaffi.ledtImageHashB.Clear;
-                   frmYaffi.ledtImageHashA.Enabled := true;
-                   frmYaffi.ledtImageHashA.Visible := true;
-                   frmYaffi.ledtImageHashA.Text    := 'MD5: ' + Uppercase(MD5Print(MD5DigestImage));
-                   frmYaffi.ledtImageHashB.Enabled := true;
-                   frmYaffi.ledtImageHashB.Visible := true;
-                   frmYaffi.ledtImageHashB.Text    := 'SHA-1 : ' + Uppercase(SHA1Print(SHA1DigestImage));
-                 end;
+                MD5Init(MD5ctxDisk);
+                MD5Init(MD5ctxImage);
+                SHA1Init(SHA1ctxDisk);
+                SHA1Init(SHA1ctxImage);
               end
               else if HashChoice = 4 then
                 begin
-                 frmYaffi.ledtComputedHashA.Text := Uppercase('No hash computed');
-                 frmYaffi.ledtComputedHashB.Text := Uppercase('No hash computed');
-                 frmYaffi.ledtImageHashA.Enabled := false;
-                 frmYaffi.ledtImageHashA.Visible := false;
-                 frmYaffi.ledtImageHashB.Enabled := false;
-                 frmYaffi.ledtImageHashB.Visible := false;
+                 // No hashing initiliased
                 end;
-        fLibEWF.libewf_close;
-      end;
-    result := TotalBytesRead;
+      // Now to seek to start of device
+      FileSeek(hDiskHandle, 0, 0);
+        repeat
+          // Read device in buffered segments. Hash the disk and image portions as we go
+          BytesRead     := FileRead(hDiskHandle, Buffer, SizeOf(Buffer));
+          BytesWritten  := fLibEWF.libewf_write_random(@Buffer[0], SizeOf(Buffer), BytesRead);
+          if BytesRead = -1 then
+            begin
+              RaiseLastOSError;
+              exit;
+            end
+          else if BytesWritten = -1 then
+            begin
+              fLibEWF.libewf_close;
+              RaiseLastOSError;
+              exit;
+            end;
+          inc(TotalBytesRead, BytesRead);
+          inc(TotalBytesWritten, BytesWritten);
+
+          // Hash the bytes read and\or written using the algorithm required
+          // If the user sel;ected no hashing, break the loop immediately; faster
+          if HashChoice = 4 then
+            begin
+             // No hashing initiliased
+            end
+            else if HashChoice = 1 then
+              begin
+              MD5Update(MD5ctxDisk, Buffer, BytesRead);
+              MD5Update(MD5ctxImage, Buffer, BytesWritten);
+              end
+                else if HashChoice = 2 then
+                  begin
+                  SHA1Update(SHA1ctxDisk, Buffer, BytesRead);
+                  SHA1Update(SHA1ctxImage, Buffer, BytesWritten);
+                  end
+                    else if HashChoice = 3 then
+                      begin
+                        MD5Update(MD5ctxDisk, Buffer, BytesRead);
+                        MD5Update(MD5ctxImage, Buffer, BytesWritten);
+                        SHA1Update(SHA1ctxDisk, Buffer, BytesRead);
+                        SHA1Update(SHA1ctxImage, Buffer, BytesWritten);
+                      end;
+
+        Application.ProcessMessages;
+        until (TotalBytesRead = DiskSize) or (frmYaffi.Stop = true);// or (frmYAFFI.Stop = true);
+    finally
+      // Compute the final hashes of disk and image
+      if HashChoice = 1 then
+        begin
+        MD5Final(MD5ctxDisk, MD5Digest);
+        MD5Final(MD5ctxImage, MD5DigestImage);
+        if MD5Print(MD5Digest) = MD5Print(MD5DigestImage) then
+          begin
+            // Disk hash
+            frmYaffi.ledtComputedHashA.Clear;
+            frmYaffi.ledtComputedHashA.Text := Uppercase('MD5: ' + MD5Print(MD5Digest));
+            // Image hash
+            frmYaffi.ledtImageHashA.Clear;
+            frmYaffi.ledtImageHashB.Clear;
+            frmYaffi.ledtImageHashA.Enabled := true;
+            frmYaffi.ledtImageHashA.Visible := true;
+            frmYaffi.ledtImageHashB.Enabled := false;
+            frmYaffi.ledtImageHashB.Visible := false;
+            frmYaffi.ledtImageHashA.Text    := 'MD5: ' + Uppercase(MD5Print(MD5DigestImage));
+          end;
+        end
+          else if HashChoice = 2 then
+            begin
+            // SHA-1 hash only
+            SHA1Final(SHA1ctxDisk, SHA1Digest);
+            SHA1Final(SHA1ctxImage, SHA1DigestImage);
+            if SHA1Print(SHA1Digest) = SHA1Print(SHA1DigestImage) then
+              begin
+                // Disk Hash
+                frmYaffi.ledtComputedHashA.Clear;
+                frmYaffi.ledtComputedHashA.Text := Uppercase('SHA-1: ' + SHA1Print(SHA1Digest));
+                // Image Hash
+                frmYaffi.ledtImageHashA.Clear;
+                frmYaffi.ledtImageHashB.Clear;
+                frmYaffi.ledtImageHashA.Enabled := false;
+                frmYaffi.ledtImageHashA.Visible := false;
+                frmYaffi.ledtImageHashB.Enabled := true;
+                frmYaffi.ledtImageHashB.Visible := true;
+                frmYaffi.ledtImageHashB.Text    := 'SHA-1 : ' + Uppercase(SHA1Print(SHA1DigestImage));
+              end;
+            end
+              else if HashChoice = 3 then
+                begin
+                // MD5 and SHA-1 together
+                 MD5Final(MD5ctxDisk, MD5Digest);
+                 MD5Final(MD5ctxImage, MD5DigestImage);
+                 SHA1Final(SHA1ctxDisk, SHA1Digest);
+                 SHA1Final(SHA1ctxImage, SHA1DigestImage);
+                 if (MD5Print(MD5Digest) = MD5Print(MD5DigestImage)) and (SHA1Print(SHA1Digest) = SHA1Print(SHA1DigestImage)) then
+                   begin
+                     // Disk hash
+                     frmYaffi.ledtComputedHashA.Clear;
+                     frmYaffi.ledtComputedHashB.Clear;
+                     frmYaffi.ledtComputedHashA.Text    := Uppercase('MD5: ' + MD5Print(MD5Digest));
+                     frmYaffi.ledtComputedHashB.Visible := true;
+                     frmYaffi.ledtComputedHashB.Enabled := true;
+                     frmYaffi.ledtComputedHashB.Text    := Uppercase('SHA-1: ' + SHA1Print(SHA1Digest));
+                     // Image Hash
+                     frmYaffi.ledtImageHashA.Clear;
+                     frmYaffi.ledtImageHashB.Clear;
+                     frmYaffi.ledtImageHashA.Enabled := true;
+                     frmYaffi.ledtImageHashA.Visible := true;
+                     frmYaffi.ledtImageHashA.Text    := 'MD5: ' + Uppercase(MD5Print(MD5DigestImage));
+                     frmYaffi.ledtImageHashB.Enabled := true;
+                     frmYaffi.ledtImageHashB.Visible := true;
+                     frmYaffi.ledtImageHashB.Text    := 'SHA-1 : ' + Uppercase(SHA1Print(SHA1DigestImage));
+                   end;
+                end
+                else if HashChoice = 4 then
+                  begin
+                   frmYaffi.ledtComputedHashA.Text := Uppercase('No hash computed');
+                   frmYaffi.ledtComputedHashB.Text := Uppercase('No hash computed');
+                   frmYaffi.ledtImageHashA.Enabled := false;
+                   frmYaffi.ledtImageHashA.Visible := false;
+                   frmYaffi.ledtImageHashB.Enabled := false;
+                   frmYaffi.ledtImageHashB.Visible := false;
+                  end;
+        end;
+      fLibEWF.libewf_close;
+    end;
+  result := TotalBytesRead;
 end;
 
 {$endif}

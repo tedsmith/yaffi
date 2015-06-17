@@ -3,8 +3,7 @@
  Two functions are different. 'SHA1Transform' and 'SHA1File'.
 
  The new SHA1File which forces FPC to use the Windows API 'CreateFile' function differently.
- As a result, the Windows version of QuickHash from v2.3 upwards can now process
- both European ASCII filenames and most Unicode filenames too, whereas only ASCII before.
+ 
 
  The new SHA1Transform function is courtesy of EngKin from the FPC Lazarus forums.
  http://forum.lazarus.freepascal.org/index.php/topic,25081.msg151774.html#msg151774
