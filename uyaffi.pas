@@ -1028,7 +1028,7 @@ begin
   fLibEWF.libewf_SetCompressionValues(1,0);
   fLibEWF.libewf_SetHeaderValue('acquiry_software_version','YAFFI');
 
-  // TODO : THIS DOES NOT WORK. HANDLE IS INVALID
+  // TODO : THIS DOES NOT WORK. FAILS TO WRITE DATA TO IMAGE FILE
   if fLibEWF.libewf_open(frmYaffi.ledtImageName.Text,LIBEWF_OPEN_WRITE)=0 then
   begin
 
@@ -1060,19 +1060,18 @@ begin
         repeat
           // Read device in buffered segments. Hash the disk and image portions as we go
           BytesRead     := FileRead(hDiskHandle, Buffer, SizeOf(Buffer));
-          BytesWritten  := fLibEWF.libewf_write_random(@Buffer[0], SizeOf(Buffer), BytesRead);
           if BytesRead = -1 then
             begin
               RaiseLastOSError;
               exit;
-            end
-          else if BytesWritten = -1 then
+            end;
+          inc(TotalBytesRead, BytesRead);
+          BytesWritten  := fLibEWF.libewf_write_random(@Buffer, SizeOf(Buffer), TotalBytesRead);
+          if BytesWritten = -1 then
             begin
-              fLibEWF.libewf_close;
               RaiseLastOSError;
               exit;
             end;
-          inc(TotalBytesRead, BytesRead);
           inc(TotalBytesWritten, BytesWritten);
 
           // Hash the bytes read and\or written using the algorithm required
@@ -1178,8 +1177,10 @@ begin
                    frmYaffi.ledtImageHashB.Enabled := false;
                    frmYaffi.ledtImageHashB.Visible := false;
                   end;
+
+          // Regardless of whether libEWF succeeds or fails, it will be closed here in the FINALLY
+          fLibEWF.libewf_close;
         end;
-      fLibEWF.libewf_close;
     end;
   result := TotalBytesRead;
 end;

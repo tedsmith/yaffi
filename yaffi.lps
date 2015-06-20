@@ -10,21 +10,22 @@
         <IsPartOfProject Value="True"/>
         <WindowIndex Value="1"/>
         <CursorPos X="26" Y="25"/>
-        <UsageCount Value="25"/>
+        <UsageCount Value="29"/>
         <Loaded Value="True"/>
       </Unit0>
       <Unit1>
-        <Filename Value="uyaffi.pas"/>
+        <Filename Value="UYaffi.pas"/>
         <IsPartOfProject Value="True"/>
         <ComponentName Value="frmYaffi"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="UYaffi"/>
+        <IsVisibleTab Value="True"/>
         <EditorIndex Value="1"/>
         <WindowIndex Value="1"/>
-        <TopLine Value="1012"/>
-        <CursorPos X="28" Y="1027"/>
-        <UsageCount Value="25"/>
+        <TopLine Value="1050"/>
+        <CursorPos X="42" Y="1074"/>
+        <UsageCount Value="29"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
       </Unit1>
@@ -32,135 +33,134 @@
         <Filename Value="ewfacquireForFPCAPI\LibEWFUnit.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="LibEWFUnit"/>
-        <IsVisibleTab Value="True"/>
         <EditorIndex Value="2"/>
         <WindowIndex Value="1"/>
-        <TopLine Value="409"/>
-        <CursorPos X="14" Y="417"/>
-        <UsageCount Value="23"/>
+        <TopLine Value="268"/>
+        <CursorPos X="69" Y="301"/>
+        <UsageCount Value="27"/>
         <Loaded Value="True"/>
       </Unit2>
     </Units>
     <JumpHistory Count="30" HistoryIndex="29">
       <Position1>
         <Filename Value="ewfacquireForFPCAPI\LibEWFUnit.pas"/>
-        <Caret Line="180" Column="65" TopLine="148"/>
+        <Caret Line="119" Column="29" TopLine="103"/>
       </Position1>
       <Position2>
         <Filename Value="ewfacquireForFPCAPI\LibEWFUnit.pas"/>
-        <Caret Line="302" TopLine="271"/>
+        <Caret Line="132" Column="20" TopLine="102"/>
       </Position2>
       <Position3>
         <Filename Value="ewfacquireForFPCAPI\LibEWFUnit.pas"/>
-        <Caret Line="296" TopLine="271"/>
+        <Caret Line="133" Column="20" TopLine="102"/>
       </Position3>
       <Position4>
         <Filename Value="ewfacquireForFPCAPI\LibEWFUnit.pas"/>
-        <Caret Line="297" TopLine="271"/>
+        <Caret Line="175" Column="77" TopLine="142"/>
       </Position4>
       <Position5>
         <Filename Value="ewfacquireForFPCAPI\LibEWFUnit.pas"/>
-        <Caret Line="298" TopLine="271"/>
+        <Caret Line="216" Column="29" TopLine="203"/>
       </Position5>
       <Position6>
         <Filename Value="ewfacquireForFPCAPI\LibEWFUnit.pas"/>
-        <Caret Line="301" TopLine="271"/>
+        <Caret Line="124" Column="30" TopLine="105"/>
       </Position6>
       <Position7>
         <Filename Value="ewfacquireForFPCAPI\LibEWFUnit.pas"/>
-        <Caret Line="303" TopLine="271"/>
+        <Caret Line="180" Column="79" TopLine="148"/>
       </Position7>
       <Position8>
-        <Filename Value="uyaffi.pas"/>
-        <Caret Line="1039" TopLine="1016"/>
+        <Filename Value="ewfacquireForFPCAPI\LibEWFUnit.pas"/>
+        <Caret Line="190" Column="29" TopLine="157"/>
       </Position8>
       <Position9>
         <Filename Value="uyaffi.pas"/>
-        <Caret Line="1044" TopLine="1016"/>
+        <Caret Line="1045" Column="31" TopLine="1029"/>
       </Position9>
       <Position10>
         <Filename Value="ewfacquireForFPCAPI\LibEWFUnit.pas"/>
-        <Caret Line="295" TopLine="271"/>
+        <Caret Line="119" Column="29" TopLine="97"/>
       </Position10>
       <Position11>
         <Filename Value="ewfacquireForFPCAPI\LibEWFUnit.pas"/>
-        <Caret Line="119" Column="29" TopLine="103"/>
+        <Caret Line="132" Column="20" TopLine="99"/>
       </Position11>
       <Position12>
         <Filename Value="ewfacquireForFPCAPI\LibEWFUnit.pas"/>
-        <Caret Line="132" Column="20" TopLine="102"/>
+        <Caret Line="133" Column="20" TopLine="100"/>
       </Position12>
       <Position13>
         <Filename Value="ewfacquireForFPCAPI\LibEWFUnit.pas"/>
-        <Caret Line="133" Column="20" TopLine="102"/>
+        <Caret Line="175" Column="77" TopLine="142"/>
       </Position13>
       <Position14>
         <Filename Value="ewfacquireForFPCAPI\LibEWFUnit.pas"/>
-        <Caret Line="175" Column="77" TopLine="142"/>
+        <Caret Line="245" Column="29" TopLine="224"/>
       </Position14>
       <Position15>
-        <Filename Value="ewfacquireForFPCAPI\LibEWFUnit.pas"/>
-        <Caret Line="216" Column="29" TopLine="203"/>
+        <Filename Value="uyaffi.pas"/>
+        <Caret Line="294" Column="54" TopLine="277"/>
       </Position15>
       <Position16>
-        <Filename Value="ewfacquireForFPCAPI\LibEWFUnit.pas"/>
-        <Caret Line="124" Column="30" TopLine="105"/>
+        <Filename Value="uyaffi.pas"/>
+        <Caret Line="1008" Column="44" TopLine="990"/>
       </Position16>
       <Position17>
         <Filename Value="ewfacquireForFPCAPI\LibEWFUnit.pas"/>
-        <Caret Line="180" Column="79" TopLine="148"/>
+        <Caret Line="215" Column="71" TopLine="37"/>
       </Position17>
       <Position18>
         <Filename Value="ewfacquireForFPCAPI\LibEWFUnit.pas"/>
-        <Caret Line="190" Column="29" TopLine="157"/>
+        <Caret Line="119" Column="70" TopLine="100"/>
       </Position18>
       <Position19>
         <Filename Value="uyaffi.pas"/>
-        <Caret Line="1045" Column="31" TopLine="1029"/>
+        <Caret Line="1003" Column="65" TopLine="986"/>
       </Position19>
       <Position20>
         <Filename Value="ewfacquireForFPCAPI\LibEWFUnit.pas"/>
-        <Caret Line="119" Column="29" TopLine="97"/>
+        <Caret Line="167" Column="25" TopLine="145"/>
       </Position20>
       <Position21>
-        <Filename Value="ewfacquireForFPCAPI\LibEWFUnit.pas"/>
-        <Caret Line="132" Column="20" TopLine="99"/>
+        <Filename Value="UYaffi.pas"/>
+        <Caret Line="1066" Column="45" TopLine="1042"/>
       </Position21>
       <Position22>
-        <Filename Value="ewfacquireForFPCAPI\LibEWFUnit.pas"/>
-        <Caret Line="133" Column="20" TopLine="100"/>
+        <Filename Value="UYaffi.pas"/>
+        <Caret Line="1062" TopLine="1042"/>
       </Position22>
       <Position23>
-        <Filename Value="ewfacquireForFPCAPI\LibEWFUnit.pas"/>
-        <Caret Line="175" Column="77" TopLine="142"/>
+        <Filename Value="UYaffi.pas"/>
+        <Caret Line="1063" TopLine="1042"/>
       </Position23>
       <Position24>
         <Filename Value="ewfacquireForFPCAPI\LibEWFUnit.pas"/>
-        <Caret Line="245" Column="29" TopLine="224"/>
+        <Caret Line="296" TopLine="275"/>
       </Position24>
       <Position25>
-        <Filename Value="uyaffi.pas"/>
-        <Caret Line="294" Column="54" TopLine="277"/>
+        <Filename Value="ewfacquireForFPCAPI\LibEWFUnit.pas"/>
+        <Caret Line="297" TopLine="275"/>
       </Position25>
       <Position26>
-        <Filename Value="uyaffi.pas"/>
-        <Caret Line="1008" Column="44" TopLine="990"/>
+        <Filename Value="ewfacquireForFPCAPI\LibEWFUnit.pas"/>
+        <Caret Line="298" TopLine="275"/>
       </Position26>
       <Position27>
         <Filename Value="ewfacquireForFPCAPI\LibEWFUnit.pas"/>
-        <Caret Line="215" Column="71" TopLine="37"/>
+        <Caret Line="301" TopLine="275"/>
       </Position27>
       <Position28>
         <Filename Value="ewfacquireForFPCAPI\LibEWFUnit.pas"/>
-        <Caret Line="119" Column="70" TopLine="100"/>
+        <Caret Line="106" Column="33" TopLine="86"/>
       </Position28>
       <Position29>
-        <Filename Value="uyaffi.pas"/>
-        <Caret Line="1003" Column="65" TopLine="986"/>
+        <Filename Value="ewfacquireForFPCAPI\LibEWFUnit.pas"/>
+        <Caret Line="165" Column="50" TopLine="132"/>
       </Position29>
       <Position30>
-        <Filename Value="ewfacquireForFPCAPI\LibEWFUnit.pas"/>
-        <Caret Line="167" Column="25" TopLine="145"/>
+        <Filename Value="UYaffi.pas"/>
+        <Caret Line="1063" Column="63" TopLine="1042"/>
       </Position30>
     </JumpHistory>
   </ProjectSession>
