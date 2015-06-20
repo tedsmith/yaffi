@@ -72,6 +72,8 @@ type
   Tlibewfhandlesetutf8headervalue= function(handle : PLIBEWFHDL;identifier:pansichar;identifier_length:TSIZE;utf8_string:pansichar;utf8_string_length:TSIZE; error:pointer) : integer; cdecl;
   Tlibewfhandlegetutf8headervalue= function(handle : PLIBEWFHDL;identifier:pansichar;identifier_length:TSIZE;utf8_string:pansichar;utf8_string_length:TSIZE; error:pointer) : integer; cdecl;
   Tlibewfhandlegetutf8hashvalue= function(handle : PLIBEWFHDL;identifier:pansichar;identifier_length:TSIZE;utf8_string:pansichar;utf8_string_length:TSIZE; error:pointer) : integer; cdecl;
+  // Added for better fault detection in the event of BytesWrite failure
+  TLibEWFErrorSPrint = function (error: pointer; str: pchar; size: TSIZE) : TINT16; cdecl;
 
   {/*
     * TLibEWF - class providing Delphi bindings to a subset of libewf functions (only those required for reading at present).
@@ -111,6 +113,8 @@ type
         flibewfhandlesetutf8headervalue:Tlibewfhandlesetutf8headervalue;
         flibewfhandlegetutf8headervalue:Tlibewfhandlegetutf8headervalue;
         flibewfhandlegetutf8hashvalue:Tlibewfhandlegetutf8hashvalue;
+
+        fLibEWFErrorSPrint : TLibEWFErrorSPrint;
 
   public
         constructor create();
@@ -178,6 +182,7 @@ begin
                         @fLibEWFGetSize:=GetProcAddress(fLibHandle,'libewf_get_media_size');
                         @fLibEWFParseHdrVals:=GetProcAddress(fLibHandle,'libewf_parse_header_values');
                         @fLibEWFClose:=GetProcAddress(fLibHandle,'libewf_close');
+                        @fLibEWFErrorSPrint:=GetProcAddress(fLibHandle,'libewf_error_sprint');
                  end;
         end
         else showmessage('could not find libewf.dll');
