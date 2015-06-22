@@ -21,9 +21,10 @@ unit LibEWFUnit;
   * along with this software.  If not, see <http://www.gnu.org/licenses/>.
   */}
 
-    {/*
-    * modified by Erwan LABALEC (erwan2212@gmail.com - http://erwan.labalec.fr/
-    */}
+  {/*
+  * modified by Erwan LABALEC (erwan2212@gmail.com - http://erwan.labalec.fr/ for Delphi as v2
+  * modified further by Ted SMITH (2015) for porting into Freepascal 2.6.4+ and Lazarus 1.4.0+
+  */}
 
 interface
 
@@ -39,6 +40,10 @@ type
 
   {/*
     * added by Erwan LABALEC support for libewf v2.0.0.0 (20131210)
+    */}
+
+  {/*
+    * added by Ted Smith support for Freepascal and Lazarus (June 2015)
     */}
 
   TINT16 = short;
@@ -72,7 +77,7 @@ type
   Tlibewfhandlesetutf8headervalue= function(handle : PLIBEWFHDL;identifier:pansichar;identifier_length:TSIZE;utf8_string:pansichar;utf8_string_length:TSIZE; error:pointer) : integer; cdecl;
   Tlibewfhandlegetutf8headervalue= function(handle : PLIBEWFHDL;identifier:pansichar;identifier_length:TSIZE;utf8_string:pansichar;utf8_string_length:TSIZE; error:pointer) : integer; cdecl;
   Tlibewfhandlegetutf8hashvalue= function(handle : PLIBEWFHDL;identifier:pansichar;identifier_length:TSIZE;utf8_string:pansichar;utf8_string_length:TSIZE; error:pointer) : integer; cdecl;
-  // Added for better fault detection in the event of BytesWrite failure
+  // Added by SMITH for better fault detection in the event of BytesWrite failure
   TLibEWFErrorSPrint = function (error: pointer; str: pchar; size: TSIZE) : TINT16; cdecl;
 
   {/*
@@ -113,7 +118,7 @@ type
         flibewfhandlesetutf8headervalue:Tlibewfhandlesetutf8headervalue;
         flibewfhandlegetutf8headervalue:Tlibewfhandlegetutf8headervalue;
         flibewfhandlegetutf8hashvalue:Tlibewfhandlegetutf8hashvalue;
-
+        // Added by SMITH for better fault detection in the event of BytesWrite failure
         fLibEWFErrorSPrint : TLibEWFErrorSPrint;
 
   public
@@ -182,7 +187,9 @@ begin
                         @fLibEWFGetSize:=GetProcAddress(fLibHandle,'libewf_get_media_size');
                         @fLibEWFParseHdrVals:=GetProcAddress(fLibHandle,'libewf_parse_header_values');
                         @fLibEWFClose:=GetProcAddress(fLibHandle,'libewf_close');
-                        @fLibEWFErrorSPrint:=GetProcAddress(fLibHandle,'libewf_error_sprint');
+                        // Added for better fault reporting in the event of write failure to image
+                        // Thanks for Engkin of the Freepascal forums for this tip
+                        @fLibEWFErrorSPrint:=GetProcAddress(fLibHandle,'libewf_error_backtrace_sprint');
                  end;
         end
         else showmessage('could not find libewf.dll');
@@ -227,44 +234,51 @@ var
         err:pointer;
         ret:integer;
 begin
-        err:=nil;
-        Result:=-1;
-        filenames:=TStringList.Create;
-        try
-                if fLibHandle<>0 then
-                begin
-                        filenameRoot:=Copy(filename,1, Length(filename)-4);
-                        curFilename:=filenameRoot+'.E01';
-                        while FileExistsUTF8(curFilename) { *Converted from FileExists* } do
-                        begin
-                                if libewf_check_file_signature(curFilename)=1 then
-                                        filenames.Add(curFilename)
-                                else
-                                        break;
-                                curFilename:=filenameRoot+'.E'+Format('%.2d',[filenames.Count+1]);
-                        end;
-                        if flag=$2 then filenames.Add(filenameRoot);
-                        SetLength(fileNamePChars, filenames.Count);
-                        for fCount:=0 to filenames.Count-1 do
-                                fileNamePChars[fCount]:=pansiChar(ansistring(filenames[fCount]));
-                        fCurEWFHandle:=nil;err:=nil;
-                        if LIBEWF_VERSION='V1'
-                          then fCurEWFHandle:=fLibEWFOpen(fileNamePChars, Length(fileNamePChars), flag); //v2
-                        //fCurEWFHandle:=fLibEWFOpen(fileNamePChars, Length(fileNamePChars), byte('r')); //v1
-                        if LIBEWF_VERSION='V2' then
-                          begin
-                          ret:=flibewfhandleinitialize (@fCurEWFHandle,@err); //pointer to pointer = ** in c
-                          if ret=1
-                          then if flibewfhandleopen (fCurEWFHandle,fileNamePChars, Length(fileNamePChars), flag,@err)<>1
-                            then {raise exception.Create('flibewfhandleopen failed')};
-                          end;
-                        if fCurEWFHandle<>nil then  Result:=0;
+  err       :=nil;
+  Result    :=-1;
+  filenames :=TStringList.Create;
 
+  try
+    if fLibHandle<>0 then
+    begin
+      filenameRoot:=Copy(filename,1, Length(filename)-4);
+      curFilename:=filenameRoot+'.E01';
 
-                end;
-        finally
-                FreeAndNil(filenames);
+      while FileExistsUTF8(curFilename) { *Converted from FileExists* } do
+      begin
+        if libewf_check_file_signature(curFilename)=1 then
+          begin
+            filenames.Add(curFilename)
+          end
+        else break;
+        curFilename:=filenameRoot+'.E'+Format('%.2d',[filenames.Count+1]);
+      end;
+
+      if flag=$2 then filenames.Add(filenameRoot);
+      SetLength(fileNamePChars, filenames.Count);
+
+      for fCount:=0 to filenames.Count-1 do
+        begin
+          fileNamePChars[fCount]:=pansiChar(ansistring(filenames[fCount]));
         end;
+      fCurEWFHandle := nil; err := nil;
+
+    {  if LIBEWF_VERSION='V1'
+        then fCurEWFHandle:=fLibEWFOpen(fileNamePChars, Length(fileNamePChars), flag); //v2
+      //fCurEWFHandle:=fLibEWFOpen(fileNamePChars, Length(fileNamePChars), byte('r')); //v1 }
+      if LIBEWF_VERSION='V2' then
+        begin
+        ret := flibewfhandleinitialize (@fCurEWFHandle,@err); //pointer to pointer = ** in c
+        if ret=1 then
+          if flibewfhandleopen (fCurEWFHandle,fileNamePChars, Length(fileNamePChars), flag,@err)<>1 then
+            raise exception.Create('flibewfhandleopen failed');
+        end;
+
+      if fCurEWFHandle<>nil then  Result:=0;
+    end;
+  finally
+    FreeAndNil(filenames);
+  end;
 end;
 
 {/*
