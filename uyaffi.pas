@@ -1068,12 +1068,10 @@ begin
               exit;
             end;
           inc(TotalBytesRead, BytesRead);
+          // Write read data to E01 image file
           BytesWritten  := fLibEWF.libewf_write_random(@Buffer, SizeOf(Buffer), TotalBytesRead);
           if BytesWritten = -1 then
             begin
-              SetLength(strError, 512);
-              flibEWF.fLibEWFErrorSPrint(error, @strError[1], Length(strError));  // TODO : This is not found?
-              ShowMessage(strError);
               RaiseLastOSError;
               exit;
             end;

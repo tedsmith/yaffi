@@ -297,6 +297,7 @@ end;
 function TLibEWF.libewf_write_random(buffer : pointer; size : longword; offset : int64) : integer;
 var
 err:pointer;
+strError : string;
 begin
         err:=nil;
         Result:=-1;
@@ -305,6 +306,16 @@ begin
         if LIBEWF_VERSION='V1' then Result:=fLibEWFWriteRand(fCurEWFHandle, buffer, size, offset);
         if LIBEWF_VERSION='V2' then Result:=flibewfhandlewriterandom(fCurEWFHandle, buffer, size, offset,@err);
         end;
+
+        // This will throw are more specific error than generic system messages
+        // Thanks to Engkin at the FPC forums for helping me with it.
+        if result = -1 then
+        begin
+          SetLength(strError, 512);
+          fLibEWFErrorSPrint(err, @strError[1], Length(strError));
+          ShowMessage(strError);
+        end;
+
 end;
 
 {/*
