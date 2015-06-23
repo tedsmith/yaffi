@@ -85,6 +85,7 @@ type
     procedure btnStartImagingClick(Sender: TObject);
     procedure Button1Click(Sender: TObject);
     procedure btnChooseImageNameClick(Sender: TObject);
+    procedure ComboImageTypeSelect(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure menShowDiskManagerClick(Sender: TObject);
     procedure TreeView1SelectionChanged(Sender: TObject);
@@ -219,6 +220,14 @@ procedure TfrmYaffi.btnChooseImageNameClick(Sender: TObject);
 begin
   SaveImageDialog.Execute;
   ledtImageName.Text:= SaveImageDialog.Filename;
+end;
+
+procedure TfrmYaffi.ComboImageTypeSelect(Sender: TObject);
+begin
+  if frmYaffi.InitialiseImageType(nil) = 1 then
+  ledtImageName.Text := ChangeFileExt(ledtImageName.Text, '.E01');
+  if frmYaffi.InitialiseImageType(nil) = 2 then
+    ledtImageName.Text := ChangeFileExt(ledtImageName.Text, '.dd');
 end;
 
 procedure TfrmYaffi.cbdisksChange(Sender: TObject);
@@ -713,7 +722,6 @@ var
   HashChoice, ImageTypeChoice             : integer;
   slImagingLog                            : TStringList;
   BytesReturned                           : DWORD;
-  EWFAcquireInstance : TLibEWF;
 
 begin
   BytesReturned   := 0;
@@ -728,6 +736,7 @@ begin
   // Determine what hash algorithm to use. MD5 = 1, SHA-1 = 2, Use Both = 3, Use Non = 4. -1 is false
   HashChoice := frmYaffi.InitialiseHashChoice(nil);
   if HashChoice = -1 then abort;
+
   // Deterime whether to image as DD or E01
   ImageTypeChoice := frmYaffi.InitialiseImageType(nil);
   if ImageTypeChoice = -1 then abort;
@@ -744,80 +753,81 @@ begin
   end
   else
     begin
-    // If chosen device is logical volume, initiate FSCTL_ALLOW_EXTENDED_DASD_IO
-    // to ensure all sectors acquired, even those protected by the OS normally.
-    // See:
-    // https://stackoverflow.com/questions/30671387/unable-to-read-final-few-kb-of-logical-drives-on-windows-7-64-bit/30719570#30719570
-    // https://msdn.microsoft.com/en-us/library/windows/desktop/aa363147%28v=vs.85%29.aspx
-    // https://msdn.microsoft.com/en-us/library/windows/desktop/aa364556%28v=vs.85%29.aspx
-    if Pos('?', SourceDevice) > 0 then
-    begin
-      if not DeviceIOControl(hSelectedDisk, FSCTL_ALLOW_EXTENDED_DASD_IO, nil, 0,
-           nil, 0, BytesReturned, nil) then
-             raise Exception.Create('Unable to initiate FSCTL_ALLOW_EXTENDED_DASD_IO.');
-    end;
+      // If chosen device is logical volume, initiate FSCTL_ALLOW_EXTENDED_DASD_IO
+      // to ensure all sectors acquired, even those protected by the OS normally.
+      // See:
+      // https://stackoverflow.com/questions/30671387/unable-to-read-final-few-kb-of-logical-drives-on-windows-7-64-bit/30719570#30719570
+      // https://msdn.microsoft.com/en-us/library/windows/desktop/aa363147%28v=vs.85%29.aspx
+      // https://msdn.microsoft.com/en-us/library/windows/desktop/aa364556%28v=vs.85%29.aspx
 
-    // Assign handle to image file
-    hImageName := CreateFileW(PWideChar(strImageName), GENERIC_WRITE,
-                  FILE_SHARE_WRITE, nil, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
-
-    // Check if handle to image file is valid before doing anything else
-    if hImageName = INVALID_HANDLE_VALUE then
-      begin
-        RaiseLastOSError;
-      end
-    else
-      begin
-        // Source disk and image file handles are OK. So attempt imaging
-        // First, compute the exact disk size of the disk or volume
-        ExactDiskSize := GetDiskLengthInBytes(hSelectedDisk);
-        SectorCount   := ExactDiskSize DIV 512;
-
-        // Now image the chosen device, passing the exact size and
-        // hash selection and Image name.
-        // If InitialiseImageType returns 1, we use E01. Otherwise, DD.
-        if InitialiseImageType(nil) = 1 then
-          begin
-            // TODO : For E01 images
-            //FreeAndNil(hImageName);
-            ImageResult := WindowsImageDiskE01(hSelectedDisk, ExactDiskSize, HashChoice);
-          end
-        else ImageResult := WindowsImageDiskDD(hSelectedDisk, ExactDiskSize, HashChoice, hImageName);
-
-        // Log the actions
-        try
-          slImagingLog := TStringList.Create;
-          slImagingLog.Add('Image name : ' + ExtractFileName(strImageName));
-          slImagingLog.Add('Full path: ' + ledtImageName.Text);
-          slImagingLog.Add('Device ID : ' + SourceDevice);
-          slImagingLog.Add('Hashing Algorithm : ' + comboHashChoice.Text);
-          slImagingLog.Add('Hash(es) of source media : ' + ledtComputedHashA.Text + ' ' + ledtComputedHashB.Text);
-          slImagingLog.Add('Hash(es) of image : ' + ledtImageHashA.Text + ' ' + ledtImageHashB.Text);
-          slImagingLog.Add(ledtSeizureRef.Text);
-          slImagingLog.Add(memNotes.Text);
-        finally
-          slImagingLog.SaveToFile(IncludeTrailingPathDelimiter(ExtractFilePath(SaveImageDialog.FileName)) + 'ImageLog.txt');
-          slImagingLog.free;
+      if Pos('?', SourceDevice) > 0 then
+        begin
+          if not DeviceIOControl(hSelectedDisk, FSCTL_ALLOW_EXTENDED_DASD_IO, nil, 0,
+               nil, 0, BytesReturned, nil) then
+                 raise Exception.Create('Unable to initiate FSCTL_ALLOW_EXTENDED_DASD_IO.');
         end;
 
-        // Release existing handles to disk and image
-        try
-          if (hSelectedDisk > 0) or (hSelectedDisk = INVALID_HANDLE_VALUE) then
-            CloseHandle(hSelectedDisk);
-          if (hImageName > 0) or (hImageName = INVALID_HANDLE_VALUE) then
-            CloseHandle(hImageName);
-        finally
-        If ImageResult = ExactDiskSize then
+      // Source disk handle are OK. So attempt imaging
+      // First, compute the exact disk size of the disk or volume
+      ExactDiskSize := GetDiskLengthInBytes(hSelectedDisk);
+      SectorCount   := ExactDiskSize DIV 512;
+
+      // Now image the chosen device, passing the exact size and
+      // hash selection and Image name.
+      // If InitialiseImageType returns 1, we use E01 and libEWF C library. Otherwise, DD.
+      if InitialiseImageType(nil) = 1 then
+        begin
+         // libEWF takes care of assigning handles to image etc
+          ImageResult := WindowsImageDiskE01(hSelectedDisk, ExactDiskSize, HashChoice);
+        end
+      else if InitialiseImageType(nil) = 2 then
+      begin
+        // Assign handle to DD image file
+        hImageName := CreateFileW(PWideChar(strImageName), GENERIC_WRITE,
+                     FILE_SHARE_WRITE, nil, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
+
+        // Check if handle to DD image file is valid before doing anything else
+        if hImageName = INVALID_HANDLE_VALUE then
           begin
-           ShowMessage('Imaged OK. ' + IntToStr(ExactDiskSize)+' bytes captured.');
+            RaiseLastOSError;
           end;
-        end;
-        {
-        if not hDiskHandle = INVALID_HANDLE_VALUE then CloseHandle(hDiskHandle);
-        if not hImageName = INVALID_HANDLE_VALUE then CloseHandle(hImageName);
-        }
+        ImageResult := WindowsImageDiskDD(hSelectedDisk, ExactDiskSize, HashChoice, hImageName);
       end;
-    end;
+
+      // Log the actions
+      try
+        slImagingLog := TStringList.Create;
+        slImagingLog.Add('Image name : ' + ExtractFileName(strImageName));
+        slImagingLog.Add('Full path: ' + ledtImageName.Text);
+        slImagingLog.Add('Device ID : ' + SourceDevice);
+        slImagingLog.Add('Hashing Algorithm : ' + comboHashChoice.Text);
+        slImagingLog.Add('Hash(es) of source media : ' + ledtComputedHashA.Text + ' ' + ledtComputedHashB.Text);
+        slImagingLog.Add('Hash(es) of image : ' + ledtImageHashA.Text + ' ' + ledtImageHashB.Text);
+        slImagingLog.Add(ledtSeizureRef.Text);
+        slImagingLog.Add(memNotes.Text);
+      finally
+        slImagingLog.SaveToFile(IncludeTrailingPathDelimiter(ExtractFilePath(SaveImageDialog.FileName)) + 'ImageLog.txt');
+        slImagingLog.free;
+      end;
+
+      // Release existing handles to disk and image
+      try
+        if (hSelectedDisk > 0) or (hSelectedDisk = INVALID_HANDLE_VALUE) then
+          CloseHandle(hSelectedDisk);
+        if (hImageName > 0) or (hImageName = INVALID_HANDLE_VALUE) then
+          CloseHandle(hImageName);
+      finally
+        If ImageResult = ExactDiskSize then
+        begin
+         ShowMessage('Imaged OK. ' + IntToStr(ExactDiskSize)+' bytes captured.');
+        end;
+      end;
+      {
+      if not hDiskHandle = INVALID_HANDLE_VALUE then CloseHandle(hDiskHandle);
+      if not hImageName = INVALID_HANDLE_VALUE then CloseHandle(hImageName);
+      }
+
+  end;
 end;
 
 // DD images the disk and returns the number of bytes successfully imaged
@@ -876,13 +886,19 @@ begin
       repeat
         // Read device in buffered segments. Hash the disk and image portions as we go
         BytesRead     := FileRead(hDiskHandle, Buffer, SizeOf(Buffer));
-        BytesWritten  := FileWrite(hImageName, Buffer, BytesRead);
         if BytesRead = -1 then
           begin
             RaiseLastOSError;
             exit;
           end;
         inc(TotalBytesRead, BytesRead);
+
+        BytesWritten  := FileWrite(hImageName, Buffer, BytesRead);
+        if BytesWritten = -1 then
+          begin
+            RaiseLastOSError;
+            exit;
+          end;
         inc(TotalBytesWritten, BytesWritten);
 
         // Hash the bytes read and\or written using the algorithm required
@@ -1026,13 +1042,18 @@ begin
   TotalBytesRead      := 0;
   TotalBytesWritten   := 0;
 
+  // Create the libEWF instance and ensure the DLL is found
   fLibEWF:=TLibEWF.create;
-  fLibEWF.libewf_SetCompressionValues(1,0);
-  fLibEWF.libewf_SetHeaderValue('acquiry_software_version','YAFFI');
-
-  // TODO : THIS DOES NOT WORK. FAILS TO WRITE DATA TO IMAGE FILE
-  if fLibEWF.libewf_open(frmYaffi.ledtImageName.Text,LIBEWF_OPEN_WRITE)=0 then
+  // Now open the E01 image file with write access
+  if fLibEWF.libewf_open(frmYaffi.ledtImageName.Text,LIBEWF_OPEN_WRITE) = 0 then
   begin
+   // Now set compression and header data
+   fLibEWF.libewf_SetCompressionValues(1,0);
+   fLibEWF.libewf_SetHeaderValue('acquiry_software_version','YAFFI - Yet Another Free Forensic Imager');
+   // TODO : Lookup host OS Name...
+   fLibEWF.libewf_SetHeaderValue('acquiry_operating_system', '');
+   //TODO : Lookup the proper value for the notes section. This currently fails.
+   fLibEWF.libewf_SetHeaderValue('notes_header_value', frmYaffi.memNotes.Text);
 
     try
       // Initialise the hash digests in accordance with the users chosen algorithm
@@ -1069,7 +1090,7 @@ begin
             end;
           inc(TotalBytesRead, BytesRead);
           // Write read data to E01 image file
-          BytesWritten  := fLibEWF.libewf_write_random(@Buffer, SizeOf(Buffer), TotalBytesRead);
+          BytesWritten  := fLibEWF.libewf_handle_write_buffer(@Buffer, BytesRead);
           if BytesWritten = -1 then
             begin
               RaiseLastOSError;

@@ -4,13 +4,6 @@
 
   https://github.com/tedsmith/yaffi
 
-  Contributions from Erwan for the provision of a Delphi conversion of libEWF
-  (http://labalec.fr/erwan/?p=1235) are welcomed and acknowledged.
-  Adjusted for use with Freepascal by Ted Smith and supplied as part of this project
-
-  Provision of the libEWF library by Joachim Metz also acknowledged
-  https://github.com/libyal/libewf
-
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation, either version 3 of the License, or any later version.

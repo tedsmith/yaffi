@@ -227,6 +227,7 @@ object frmYaffi: TfrmYaffi
         'E01'
         'DD'
       )
+      OnSelect = ComboImageTypeSelect
       TabOrder = 7
       Text = 'Choose Image Type'
     end

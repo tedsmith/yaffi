@@ -79,6 +79,8 @@ type
   Tlibewfhandlegetutf8hashvalue= function(handle : PLIBEWFHDL;identifier:pansichar;identifier_length:TSIZE;utf8_string:pansichar;utf8_string_length:TSIZE; error:pointer) : integer; cdecl;
   // Added by SMITH for better fault detection in the event of BytesWrite failure
   TLibEWFErrorSPrint = function (error: pointer; str: pchar; size: TSIZE) : TINT16; cdecl;
+  // Added by SMITH for creating new, valid, EWF E01 file with libewf_handle_write_buffer.
+  Tlibewfhandlewritebuffer = function(handle : PLIBEWFHDL; buffer : pointer; size : TSIZE; error:pointer) : integer; cdecl;
 
   {/*
     * TLibEWF - class providing Delphi bindings to a subset of libewf functions (only those required for reading at present).
@@ -94,16 +96,16 @@ type
     */}
   TLibEWF = class(TObject)
   private
-        fLibHandle : THandle;
-        fCurEWFHandle : PLIBEWFHDL;
+        fLibHandle          : THandle;
+        fCurEWFHandle       : PLIBEWFHDL;
 
-        fLibEWFCheckSig : TLibEWFCheckSig;
-        fLibEWFOpen : TLibEWFOpen;
-        fLibEWFReadRand : TLibEWFReadRand;
-        fLibEWFWriteRand : TLibEWFReadRand;
-        fLibEWFGetSize : TLibEWFGetMediaSize;
+        fLibEWFCheckSig     : TLibEWFCheckSig;
+        fLibEWFOpen         : TLibEWFOpen;
+        fLibEWFReadRand     : TLibEWFReadRand;
+        fLibEWFWriteRand    : TLibEWFReadRand;
+        fLibEWFGetSize      : TLibEWFGetMediaSize;
         fLibEWFParseHdrVals : TLibEWFParseHdrVals;
-        fLibEWFClose : TLibEWFClose;
+        fLibEWFClose        : TLibEWFClose;
         //v2
         flibewfhandleopen:Tlibewfhandleopen ;
         flibewfhandleclose:Tlibewfhandleclose ;
@@ -120,6 +122,8 @@ type
         flibewfhandlegetutf8hashvalue:Tlibewfhandlegetutf8hashvalue;
         // Added by SMITH for better fault detection in the event of BytesWrite failure
         fLibEWFErrorSPrint : TLibEWFErrorSPrint;
+        // Added by SMITH 2015 for full compliant write to EWF E01 file
+        flibewfhandlewritebuffer : Tlibewfhandlewritebuffer;
 
   public
         constructor create();
@@ -135,6 +139,9 @@ type
         function libewf_SetHeaderValue(identifier,value:ansistring) : integer;
         function libewf_GetHeaderValue(identifier:ansistring;var value:ansistring) : integer;
         function libewf_GetHashValue(identifier:ansistring;var value:ansistring) : integer;
+        // libewf_handle_write_buffer added by SMITH 2015
+        function libewf_handle_write_buffer(Buffer : Pointer; size : longword) : integer;
+var
   end;
 
 const
@@ -187,9 +194,11 @@ begin
                         @fLibEWFGetSize:=GetProcAddress(fLibHandle,'libewf_get_media_size');
                         @fLibEWFParseHdrVals:=GetProcAddress(fLibHandle,'libewf_parse_header_values');
                         @fLibEWFClose:=GetProcAddress(fLibHandle,'libewf_close');
-                        // Added for better fault reporting in the event of write failure to image
+                        // Added by Smith 2015 for better fault reporting in the event of write failure to image
                         // Thanks for Engkin of the Freepascal forums for this tip
                         @fLibEWFErrorSPrint:=GetProcAddress(fLibHandle,'libewf_error_backtrace_sprint');
+                        // Added by Smith 2015
+                        @flibEWFhandlewritebuffer:=GetProcAddress(fLibHandle, 'libewf_handle_write_buffer');
                  end;
         end
         else showmessage('could not find libewf.dll');
@@ -332,6 +341,38 @@ begin
 
 end;
 
+{/* Added by SMITH 2015
+  * write the buffer to a new EWF file.
+  * @param handle : libEWF File Handle to write to
+  * @param buffer : pointer - pointer to a preallocated buffer (byte array) to write from.
+  * @param size - The number of bytes to write
+  * @param offset - The position within the EWF file.
+  * @return The number of bytes successfully written, -1 if unsuccessful.
+  */}
+function TLibEWF.libewf_handle_write_buffer(Buffer : Pointer; size : longword) : integer;
+var
+err:pointer;
+strError : string;
+begin
+        err:=nil;
+        Result:=-1;
+        if fLibHandle<>0 then
+        begin
+        if LIBEWF_VERSION='V2' then Result:=flibEWFhandlewritebuffer(fCurEWFHandle, buffer, size, @err);
+        end;
+
+        // This will throw a more specific error than generic system messages
+        // Thanks to Engkin at the FPC forums for helping with it.
+        if result = -1 then
+        begin
+          SetLength(strError, 512);
+          fLibEWFErrorSPrint(err, @strError[1], Length(strError));
+          ShowMessage(strError);
+        end;
+
+end;
+
+
 {/*
   * set compression.
   * @param level : level 1=low,2=high,0=none.
@@ -341,14 +382,22 @@ end;
 function TLibEWF.libewf_SetCompressionValues(level,flags:byte) : integer;
 var
 err:pointer;
+strError : string;
 begin
-        err:=nil;
-        Result:=-1;
-        if fLibHandle<>0 then
-        begin
-        //if LIBEWF_VERSION='V1' then ...;
-        if LIBEWF_VERSION='V2' then Result:=flibewfhandlesetcompressionvalues (fCurEWFHandle, level, flags,@err);
-        end;
+  err     := nil;
+  Result  := -1;
+  if fLibHandle<>0 then
+  begin
+    if LIBEWF_VERSION='V2' then Result:=flibewfhandlesetcompressionvalues (fCurEWFHandle, level, flags,@err);
+  end;
+
+  // This will throw a more specific error about why the compression setting fails than generic system messages
+  if result = -1 then
+  begin
+    SetLength(strError, 512);
+    fLibEWFErrorSPrint(err, @strError[1], Length(strError));
+    ShowMessage(strError);
+  end;
 end;
 
 {/*
