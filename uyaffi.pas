@@ -1143,6 +1143,8 @@ begin
             frmYaffi.ledtImageHashB.Enabled := false;
             frmYaffi.ledtImageHashB.Visible := false;
             frmYaffi.ledtImageHashA.Text    := 'MD5: ' + Uppercase(MD5Print(MD5DigestImage));
+            // TODO : Fix so that the actual hash get put into the E01 - currently some rogue value gets inserted
+            // fLibEWF.libewf_handle_set_md5_hash(Pointer(MD5Print(MD5DigestImage)), Length(MD5Print(MD5DigestImage)));
           end;
         end
           else if HashChoice = 2 then

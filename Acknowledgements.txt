@@ -97,4 +97,7 @@ Additional credits go to:
 Icon graphics are courtesy of :
 
 Icon Archive www.iconarchive.com, in particular the named artists "Treetog Artwork" 
-and "Thvg". 
+and "Thvg".
+
+MSVCR100.dll is needed for use with Windows XP (where the DLL may not be present by default) 
+and is part of the Microsoft Windows DLL libraries. 

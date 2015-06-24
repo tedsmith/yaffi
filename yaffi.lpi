@@ -47,7 +47,7 @@
         <UnitName Value="UYaffi"/>
       </Unit1>
       <Unit2>
-        <Filename Value="ewfacquireForFPCAPI\LibEWFUnit.pas"/>
+        <Filename Value="libEWF-FPC\LibEWFUnit.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="LibEWFUnit"/>
       </Unit2>
@@ -61,7 +61,7 @@
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
-      <OtherUnitFiles Value="ewfacquireForFPCAPI"/>
+      <OtherUnitFiles Value="libEWF-FPC"/>
       <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Linking>
