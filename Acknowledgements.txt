@@ -101,3 +101,8 @@ and "Thvg".
 
 MSVCR100.dll is needed for use with Windows XP (where the DLL may not be present by default) 
 and is part of the Microsoft Windows DLL libraries. 
+
+LibEWF.dll sourced from http://www.isobuster.com/tips/build_libewf_dll_for_isobuster 
+and built using Borland compiler for use with Delphi and Freepascal, dated 8th June 2014.
+
+ 

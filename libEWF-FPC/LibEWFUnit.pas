@@ -84,9 +84,11 @@ type
   TLibEWFErrorSPrint             = function (error: pointer; str: pchar; size: TSIZE) : TINT16; cdecl;
   // Added by SMITH for creating new, valid, EWF E01 file with libewf_handle_write_buffer.
   Tlibewfhandlewritebuffer       = function(handle : PLIBEWFHDL; buffer : pointer; size : TSIZE; error:pointer) : integer; cdecl;
-  TflibewfhandlesetMD5hash       = function(handle : PLIBEWFHDL; md5_hash : Pointer; size : TSIZE; error:pointer) : integer; cdecl;
+  TlibewfhandlesetMD5hash        = function(handle : PLIBEWFHDL; md5_hash : Pointer; size : TSIZE; error:pointer) : integer; cdecl;
+  TlibewfhandlesetSHA1hash       = function(handle : PLIBEWFHDL; sha1_hash : Pointer; size : TSIZE; error:pointer) : integer; cdecl;
   Tlibewfhandlepreparewritechunk = function(handle : PLIBEWFHDL; buffer : pointer; buffer_size : TSIZE; compressed_buffer:pointer;compressed_size:tsize;is_compressed:tuint8;checksum:integer;write_checksum:tuint8; error:pointer) : integer; cdecl;
   Tlibewfhandlewritechunk        = function(handle : PLIBEWFHDL; buffer : pointer; buffer_size : TSIZE; data_size : TSIZE; is_compressed:tuint8; checksum_buffer:pointer; chunk_checksum:integer; chunk_io_flags:tuint8; error:pointer) : integer; cdecl;
+  Tlibewfhandlesetmaximumsegmentsize= function(handle : PLIBEWFHDL; size : TSIZE64; error:pointer) : integer;  cdecl;
 
   {/*
     * TLibEWF - class providing Delphi bindings to a subset of libewf functions (only those required for reading at present).
@@ -135,9 +137,11 @@ type
     fLibEWFErrorSPrint : TLibEWFErrorSPrint;
     // Added by SMITH 2015 for full compliant write to EWF E01 file
     flibewfhandlewritebuffer : Tlibewfhandlewritebuffer;
-    flibewfhandlesetMD5hash :  TflibewfhandlesetMD5hash;
+    flibewfhandlesetMD5hash :  TlibewfhandlesetMD5hash;
     flibewfhandlepreparewritechunk : Tlibewfhandlepreparewritechunk;
     flibewfhandlewritechunk : Tlibewfhandlewritechunk;
+    flibewfhandlesetsha1hash : Tlibewfhandlesetsha1hash;
+    flibewfhandlesetmaximumsegmentsize : Tlibewfhandlesetmaximumsegmentsize;
 
   public
     constructor create();
@@ -155,9 +159,11 @@ type
     function libewf_GetHashValue(identifier:ansistring;var value:ansistring) : integer;
     // Added by SMITH 2015
     function libewf_handle_write_buffer(Buffer : Pointer; size : longword) : integer;
-    function libewf_handle_set_md5_hash(md5_hash : Pointer; size : Longword) : integer;
+    function libewf_handle_set_md5_hash(md5_hash : Pointer; size : TSIZE) : integer;
     function libewf_handle_prepare_write_chunk(ChunkBuffer : Pointer; ChunkBufferSize, CompressedChunkBufferSize : integer; size : Longword) : integer;
     function libewf_handle_write_chunk(Chunkbuffer : Pointer; ChunkBufferSize, CompressedChunkBufferSize : integer) : integer; cdecl;
+    function libewf_handle_set_SHA1_hash(sha1_hash : Pointer; size : TSIZE) : integer;
+    function libewf_handle_set_maximum_segment_size(size : TSIZE64) : integer;
   end;
 
 const
@@ -167,6 +173,8 @@ const
   LIBEWF_DATE_FORMAT_MONTHDAY = $02;
   LIBEWF_DATE_FORMAT_ISO8601  = $03;
   LIBEWF_DATE_FORMAT_CTIME    = $04;
+  LIBEWF_FORMAT_V2_ENCASE7    = $37;
+  LIBEWF_DEFAULT_SEGMENT_FILE_SIZE = 2147483648;
 
   LIBEWF_VERSION              = 'V2';
 
@@ -189,35 +197,37 @@ begin
     if fLibHandle<>0 then
     begin
       //v2
-      @flibewfhandleinitialize          :=GetProcAddress(fLibHandle,'libewf_handle_initialize');
-      @flibewfhandlefree                :=GetProcAddress(fLibHandle,'libewf_handle_free');
-      @flibewfhandleopen                :=GetProcAddress(fLibHandle,'libewf_handle_open');
-      @flibewfhandleclose               :=GetProcAddress(fLibHandle,'libewf_handle_close');
-      @flibewfhandlereadrandom          :=GetProcAddress(fLibHandle,'libewf_handle_read_random');
-      @flibewfhandlewriterandom         :=GetProcAddress(fLibHandle,'libewf_handle_write_random');
-      @flibewfhandlegetmediasize        :=GetProcAddress(fLibHandle,'libewf_handle_get_media_size');
+      @flibewfhandleinitialize          :=GetProcAddress(fLibHandle,'_libewf_handle_initialize');
+      @flibewfhandlefree                :=GetProcAddress(fLibHandle,'_libewf_handle_free');
+      @flibewfhandleopen                :=GetProcAddress(fLibHandle,'_libewf_handle_open');
+      @flibewfhandleclose               :=GetProcAddress(fLibHandle,'_libewf_handle_close');
+      @flibewfhandlereadrandom          :=GetProcAddress(fLibHandle,'_libewf_handle_read_random');
+      @flibewfhandlewriterandom         :=GetProcAddress(fLibHandle,'_libewf_handle_write_random');
+      @flibewfhandlegetmediasize        :=GetProcAddress(fLibHandle,'_libewf_handle_get_media_size');
 
-      @flibewfhandlesetcompressionvalues:=GetProcAddress(fLibHandle,'libewf_handle_set_compression_values');
-      @flibewfhandlesetutf8headervalue  :=GetProcAddress(fLibHandle,'libewf_handle_set_utf8_header_value');
-      @flibewfhandlegetutf8headervalue  :=GetProcAddress(fLibHandle,'libewf_handle_get_utf8_header_value');
-      @flibewfhandlegetutf8hashvalue    :=GetProcAddress(fLibHandle,'libewf_handle_get_utf8_hash_value');
+      @flibewfhandlesetcompressionvalues:=GetProcAddress(fLibHandle,'_libewf_handle_set_compression_values');
+      @flibewfhandlesetutf8headervalue  :=GetProcAddress(fLibHandle,'_libewf_handle_set_utf8_header_value');
+      @flibewfhandlegetutf8headervalue  :=GetProcAddress(fLibHandle,'_libewf_handle_get_utf8_header_value');
+      @flibewfhandlegetutf8hashvalue    :=GetProcAddress(fLibHandle,'_libewf_handle_get_utf8_hash_value');
       //
-      @fLibEWFCheckSig                  :=GetProcAddress(fLibHandle,'libewf_check_file_signature');
-      @fLibEWFOpen                      :=GetProcAddress(fLibHandle,'libewf_open');
-      @fLibEWFReadRand                  :=GetProcAddress(fLibHandle,'libewf_read_random');
-      @fLibEWFWriteRand                 :=GetProcAddress(fLibHandle,'libewf_write_random');
-      @fLibEWFGetSize                   :=GetProcAddress(fLibHandle,'libewf_get_media_size');
-      @fLibEWFParseHdrVals              :=GetProcAddress(fLibHandle,'libewf_parse_header_values');
-      @fLibEWFClose                     :=GetProcAddress(fLibHandle,'libewf_close');
+      @fLibEWFCheckSig                  :=GetProcAddress(fLibHandle,'_libewf_check_file_signature');
+      @fLibEWFOpen                      :=GetProcAddress(fLibHandle,'_libewf_open');
+      @fLibEWFReadRand                  :=GetProcAddress(fLibHandle,'_libewf_read_random');
+      @fLibEWFWriteRand                 :=GetProcAddress(fLibHandle,'_libewf_write_random');
+      @fLibEWFGetSize                   :=GetProcAddress(fLibHandle,'_libewf_get_media_size');
+      @fLibEWFParseHdrVals              :=GetProcAddress(fLibHandle,'_libewf_parse_header_values');
+      @fLibEWFClose                     :=GetProcAddress(fLibHandle,'_libewf_close');
 
       // Added by Smith 2015 for better fault reporting in the event of write failure to image
-      @fLibEWFErrorSPrint  :=GetProcAddress(fLibHandle,'libewf_error_backtrace_sprint');
+      @fLibEWFErrorSPrint               :=GetProcAddress(fLibHandle,'_libewf_error_backtrace_sprint');
       // Added by Smith 2015
-      @flibEWFhandlewritebuffer         :=GetProcAddress(fLibHandle, 'libewf_handle_write_buffer');
-      @flibewfhandlesetMD5hash          :=GetProcAddress(fLibHandle, 'libewf_handle_set_md5_hash');
-      @flibewfhandlepreparewritechunk   :=GetProcAddress(fLibHandle, 'libewf_handle_prepare_write_chunk');
-      @flibewfhandlewritechunk          :=GetProcAddress(fLibHandle, 'libewf_handle_write_chunk');
-     end;
+      @flibEWFhandlewritebuffer         :=GetProcAddress(fLibHandle, '_libewf_handle_write_buffer');
+      @flibewfhandlesetSHA1hash         :=GetProcAddress(fLibHandle, '_libewf_handle_set_sha1_hash');
+      @flibewfhandlesetMD5hash          :=GetProcAddress(fLibHandle, '_libewf_handle_set_md5_hash');
+      @flibewfhandlepreparewritechunk   :=GetProcAddress(fLibHandle, '_libewf_handle_prepare_write_chunk');
+      @flibewfhandlewritechunk          :=GetProcAddress(fLibHandle, '_libewf_handle_write_chunk');
+      @flibewfhandlesetmaximumsegmentsize:=GetProcAddress(fLibHandle, '_libewf_handle_set_maximum_segment_size');
+    end;
   end
   else showmessage('could not find libewf.dll');
 end;
@@ -411,13 +421,12 @@ begin
 
 end;
 
-// TODO : This is returning and embedding inside the E01 something other than the computed MD5 hash
 { Added by Smith 2015
-  @param md5_hash is a pointer the string holding the computed MD5 hash
+  @param md5_hash is a pointer the computed MD5 hash digest
   @param Size is the size of the hash string itself
   Returns 1 if successful. 0 if empty. -1 if error.
 }
-function TLibEWF.libewf_handle_set_md5_hash(md5_hash : Pointer; size : Longword) : integer;
+function TLibEWF.libewf_handle_set_md5_hash(md5_hash : Pointer; size : TSIZE) : integer;
 var
   err:pointer;
   strError : string;
@@ -435,7 +444,6 @@ begin
   end;
 
   // This will throw a more specific error than generic system messages
-  // Thanks to Engkin at the FPC forums for helping with it.
   if result = -1 then
   begin
     SetLength(strError, 512);
@@ -445,36 +453,71 @@ begin
 
 end;
 
-{
-/* Prepares a chunk of (media) data before writing according to the handle settings
- * This function should be used before libewf_handle_write_chunk
- * The chunk_buffer_size should contain the actual chunk size
- * The function sets the is_compressed, chunk_checksum and chunk_io_flags values
- * The LIBEWF_CHUNK_IO_FLAG_CHECKSUM_SET chunk_io_flags is set if the checksum was set in checksum_buffer
- * and needs to be written separately from the chunk data, in case of an uncompressed chunk
- * Returns the resulting chunk size or -1 on error
- */
-LIBEWF_EXTERN \
-ssize_t libewf_handle_prepare_write_chunk(
-         libewf_handle_t *handle,
-         void *buffer,
-         size_t buffer_size,
-         void *compressed_chunk_buffer,
-         size_t *compressed_chunk_buffer_size,
-         int8_t *is_compressed,
-         uint32_t *chunk_checksum,
-         int8_t *chunk_io_flags,
-         libewf_error_t **error );
+{ Added by Smith 2015
+  @param sha1_hash is a pointer the computed SHA-1 hash digest
+  @param Size is the size of the hash itself
+  Returns 1 if successful. 0 if empty. -1 if error.
 }
+function TLibEWF.libewf_handle_set_SHA1_hash(sha1_hash : Pointer; size : TSIZE) : integer;
+var
+  err:pointer;
+  strError : string;
+begin
+  err:=nil;
+  Result:=-1;
+
+  if fLibHandle<>0 then
+  begin
+    if LIBEWF_VERSION='V2' then
+    Result:=flibewfhandlesetsha1hash(fCurEWFHandle,
+                                    sha1_hash,
+                                    size,
+                                    @err);
+  end;
+
+  // This will throw a more specific error than generic system messages
+  if result = -1 then
+  begin
+    SetLength(strError, 512);
+    fLibEWFErrorSPrint(err, @strError[1], Length(strError));
+    ShowMessage(strError);
+  end;
+end;
+
+function TLibEWF.libewf_handle_set_maximum_segment_size(Size : TSIZE64) : integer;
+// https://github.com/libyal/libewf/blob/54b0eada69defd015c49e4e1e1e4e26a27409ba3/include/libewf.h.in#L631
+var
+  err:pointer;
+  strError : string;
+begin
+  err:=nil;
+  Result:=-1;
+
+  if fLibHandle<>0 then
+  begin
+    if LIBEWF_VERSION='V2' then
+    Result:=flibewfhandlesetmaximumsegmentsize(fCurEWFHandle,
+                                               size,
+                                               @err);
+  end;
+
+  // This will throw a more specific error than generic system messages
+  if result = -1 then
+  begin
+    SetLength(strError, 512);
+    fLibEWFErrorSPrint(err, @strError[1], Length(strError));
+    ShowMessage(strError);
+  end;
+end;
+
 
 function TLibEWF.libewf_handle_prepare_write_chunk(ChunkBuffer : Pointer;
                                                    ChunkBufferSize,
                                                    CompressedChunkBufferSize : integer;
-                                                   size : Longword) : integer;
+                                                   size : TSIZE) : integer;
 var
   err:pointer;
   strError : string;
-  // The 'sectors_per_chunk' value in the other function will need to be 64 (512b * 64s = 32768)
   CompressedChunkBuff : array [0..32767] of byte;
   IsCompressed, ChunkChecksum, Chunk_io_flags : integer;
 begin
@@ -499,7 +542,6 @@ begin
   end;
 
   // This will throw a more specific error than generic system messages
-  // Thanks to Engkin at the FPC forums for helping with it.
   if result = -1 then
   begin
     SetLength(strError, 512);
@@ -560,7 +602,6 @@ begin
   end;
 
   // This will throw a more specific error than generic system messages
-  // Thanks to Engkin at the FPC forums for helping with it.
   if result = -1 then
   begin
     SetLength(strError, 512);

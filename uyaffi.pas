@@ -53,6 +53,7 @@ type
     btnStartImaging: TButton;
     Button1: TButton;
     cbdisks: TComboBox;
+    ComboSegmentSize: TComboBox;
     ComboImageType: TComboBox;
     comboHashChoice: TComboBox;
     ledtImageHashA: TLabeledEdit;
@@ -86,11 +87,13 @@ type
     procedure Button1Click(Sender: TObject);
     procedure btnChooseImageNameClick(Sender: TObject);
     procedure ComboImageTypeSelect(Sender: TObject);
+    procedure ComboSegmentSizeSelect(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure menShowDiskManagerClick(Sender: TObject);
     procedure TreeView1SelectionChanged(Sender: TObject);
     function InitialiseHashChoice(Sender : TObject) : Integer;
     function InitialiseImageType(Sender : TObject) : Integer;
+    function InitialiseSegmentSize(Sender : TObject) : Int64;
     procedure cbdisksChange(Sender: TObject);
 
   private
@@ -114,7 +117,7 @@ var
   function GetWMIObject(const objectName: String): IDispatch;
   function VarArrayToStr(const vArray: variant): string;
   function WindowsImageDiskDD(hDiskHandle : THandle; DiskSize : Int64; HashChoice : Integer; hImageName : THandle) : Int64;
-  function WindowsImageDiskE01(hDiskHandle : THandle; DiskSize : Int64; HashChoice : Integer) : Int64;
+  function WindowsImageDiskE01(hDiskHandle : THandle; SegmentSize : Int64; DiskSize : Int64; HashChoice : Integer) : Int64;
   function GetDiskLengthInBytes(hSelectedDisk : THandle) : Int64;
   function GetJustDriveLetter(str : widestring) : string;
   function GetDriveIDFromLetter(str : string) : Byte;
@@ -228,6 +231,11 @@ begin
   ledtImageName.Text := ChangeFileExt(ledtImageName.Text, '.E01');
   if frmYaffi.InitialiseImageType(nil) = 2 then
     ledtImageName.Text := ChangeFileExt(ledtImageName.Text, '.dd');
+end;
+
+procedure TfrmYaffi.ComboSegmentSizeSelect(Sender: TObject);
+begin
+
 end;
 
 procedure TfrmYaffi.cbdisksChange(Sender: TObject);
@@ -703,6 +711,32 @@ begin
   end;
 end;
 
+// Assigns an integer for the chosen segment size of the image - either 640Mb, 2048Mb or 4096Mb.
+// Default is 2048Mb.
+// -1 if none chosen
+function TfrmYaffi.InitialiseSegmentSize(Sender : TObject) : Int64;
+begin
+  result := -1;
+  if (ComboSegmentSize.Text = '2,048 Mb Segments') or (ComboSegmentSize.Text = '2,048Mb') then
+   begin
+     result := 2147483648;
+   end
+  else if ComboSegmentSize.Text = '640Mb' then
+   begin
+    result := 671088640;
+   end
+  else if ComboSegmentSize.Text =  '4,096Mb' then
+   begin
+    result := 4294967296;
+   end
+  else
+  begin
+    ShowMessage('Choose Segment Size');
+    result := -1;
+    exit;
+  end;
+end;
+
 procedure TfrmYaffi.btnStartImagingClick(Sender: TObject);
 const
   // These values are needed for For FSCTL_ALLOW_EXTENDED_DASD_IO to work properly
@@ -718,7 +752,8 @@ const
 var
   SourceDevice, strImageName              : widestring;
   hSelectedDisk, hImageName               : THandle;
-  ExactDiskSize, SectorCount, ImageResult : Int64;
+  ExactDiskSize, SectorCount, ImageResult,
+    SegmentSize : Int64;
   HashChoice, ImageTypeChoice             : integer;
   slImagingLog                            : TStringList;
   BytesReturned                           : DWORD;
@@ -730,9 +765,13 @@ begin
   ImageResult     := 0;
   HashChoice      := -1;
   ImageTypeChoice := -1;
+  SegmentSize     := 0;
+  SegmentSize     := InitialiseSegmentSize(nil);
   SourceDevice    := ledtSelectedItem.Text;
   strImageName    := ledtImageName.Text;
-
+  ComboImageType.Enabled   := false;
+  comboHashChoice.Enabled  := false;
+  ComboSegmentSize.Enabled := false;
   // Determine what hash algorithm to use. MD5 = 1, SHA-1 = 2, Use Both = 3, Use Non = 4. -1 is false
   HashChoice := frmYaffi.InitialiseHashChoice(nil);
   if HashChoice = -1 then abort;
@@ -778,7 +817,7 @@ begin
       if InitialiseImageType(nil) = 1 then
         begin
          // libEWF takes care of assigning handles to image etc
-          ImageResult := WindowsImageDiskE01(hSelectedDisk, ExactDiskSize, HashChoice);
+          ImageResult := WindowsImageDiskE01(hSelectedDisk, SegmentSize, ExactDiskSize, HashChoice);
         end
       else if InitialiseImageType(nil) = 2 then
       begin
@@ -822,6 +861,10 @@ begin
          ShowMessage('Imaged OK. ' + IntToStr(ExactDiskSize)+' bytes captured.');
         end;
       end;
+
+      ComboImageType.Enabled   := true;
+      comboHashChoice.Enabled  := true;
+      ComboSegmentSize.Enabled := true;
       {
       if not hDiskHandle = INVALID_HANDLE_VALUE then CloseHandle(hDiskHandle);
       if not hImageName = INVALID_HANDLE_VALUE then CloseHandle(hImageName);
@@ -1012,7 +1055,7 @@ end;
 
 // Uses EWF Acquire API to image the disk and returns the number of bytes successfully
 // imaged. Windows centric function
-function WindowsImageDiskE01(hDiskHandle : THandle; DiskSize : Int64; HashChoice : Integer) : Int64;
+function WindowsImageDiskE01(hDiskHandle : THandle; SegmentSize : Int64; DiskSize : Int64; HashChoice : Integer) : Int64;
 var
   // 64kB Buffers sometimes seem to cause read errors in final few sectors. Not sure why?
   // 32Kb ones seem not to though
@@ -1050,6 +1093,8 @@ begin
    // Now set compression and header data
    fLibEWF.libewf_SetCompressionValues(1,0);
    fLibEWF.libewf_SetHeaderValue('acquiry_software_version','YAFFI - Yet Another Free Forensic Imager');
+   // Set image segment size in bytes. 2Gb is default but 640Mb and 4Gb are options.
+   fLibEWF.libewf_handle_set_maximum_segment_size(SegmentSize);
    // TODO : Lookup host OS Name...
    fLibEWF.libewf_SetHeaderValue('acquiry_operating_system', '');
    //TODO : Lookup the proper value for the notes section. This currently fails.
@@ -1143,8 +1188,8 @@ begin
             frmYaffi.ledtImageHashB.Enabled := false;
             frmYaffi.ledtImageHashB.Visible := false;
             frmYaffi.ledtImageHashA.Text    := 'MD5: ' + Uppercase(MD5Print(MD5DigestImage));
-            // TODO : Fix so that the actual hash get put into the E01 - currently some rogue value gets inserted
-            // fLibEWF.libewf_handle_set_md5_hash(Pointer(MD5Print(MD5DigestImage)), Length(MD5Print(MD5DigestImage)));
+            // Store the MD5 hash inside the E01
+            fLibEWF.libewf_handle_set_md5_hash(@MD5DigestImage, SizeOF(MD5DigestImage));
           end;
         end
           else if HashChoice = 2 then
@@ -1165,6 +1210,7 @@ begin
                 frmYaffi.ledtImageHashB.Enabled := true;
                 frmYaffi.ledtImageHashB.Visible := true;
                 frmYaffi.ledtImageHashB.Text    := 'SHA-1 : ' + Uppercase(SHA1Print(SHA1DigestImage));
+                fLibEWF.libewf_handle_set_sha1_hash(@SHA1DigestImage, SizeOf(SHA1DigestImage));
               end;
             end
               else if HashChoice = 3 then
@@ -1192,6 +1238,12 @@ begin
                      frmYaffi.ledtImageHashB.Enabled := true;
                      frmYaffi.ledtImageHashB.Visible := true;
                      frmYaffi.ledtImageHashB.Text    := 'SHA-1 : ' + Uppercase(SHA1Print(SHA1DigestImage));
+                     // Store both hashes inside the E01
+                     // TODO : E01 can only store one or the other. Decide how to omplement
+                     {
+                     fLibEWF.libewf_handle_set_md5_hash(@MD5DigestImage, SizeOF(MD5DigestImage));
+                     fLibEWF.libewf_handle_set_SHA1_hash(@SHA1DigestImage, SizeOf(SHA1DigestImage));
+                     }
                    end;
                 end
                 else if HashChoice = 4 then
