@@ -1,7 +1,7 @@
 object frmYaffi: TfrmYaffi
-  Left = 708
+  Left = 530
   Height = 773
-  Top = 31
+  Top = 11
   Width = 524
   Caption = 'YAFFI (Yet Another Free Forensic Imager) by Ted Smith (c) 2015'
   ClientHeight = 773
@@ -107,7 +107,7 @@ object frmYaffi: TfrmYaffi
   object GroupBox1: TGroupBox
     Left = 16
     Height = 504
-    Top = 64
+    Top = 56
     Width = 489
     Anchors = [akTop, akLeft, akRight]
     Caption = 'Disk Imaging'
@@ -164,33 +164,33 @@ object frmYaffi: TfrmYaffi
       TabOrder = 2
       Text = '...'
     end
-    object ledtSeizureRef: TLabeledEdit
-      Left = 8
+    object ledtExhibitRef: TLabeledEdit
+      Left = 175
       Height = 21
       Top = 328
-      Width = 457
+      Width = 137
       Anchors = [akTop, akLeft, akRight]
-      EditLabel.AnchorSideLeft.Control = ledtSeizureRef
-      EditLabel.AnchorSideRight.Control = ledtSeizureRef
+      EditLabel.AnchorSideLeft.Control = ledtExhibitRef
+      EditLabel.AnchorSideRight.Control = ledtExhibitRef
       EditLabel.AnchorSideRight.Side = asrBottom
-      EditLabel.AnchorSideBottom.Control = ledtSeizureRef
-      EditLabel.Left = 8
+      EditLabel.AnchorSideBottom.Control = ledtExhibitRef
+      EditLabel.Left = 175
       EditLabel.Height = 13
       EditLabel.Top = 312
-      EditLabel.Width = 457
-      EditLabel.Caption = 'Seizure Reference:'
+      EditLabel.Width = 137
+      EditLabel.Caption = 'Exhibit Reference'
       EditLabel.ParentColor = False
       TabOrder = 3
       Text = '...'
     end
     object memNotes: TMemo
       Left = 8
-      Height = 72
+      Height = 24
       Top = 368
       Width = 457
       Anchors = [akTop, akLeft, akRight]
       Lines.Strings = (
-        'Enter additional notes here...'
+        'Unique Exhibit Notes...'
       )
       TabOrder = 4
     end
@@ -233,16 +233,16 @@ object frmYaffi: TfrmYaffi
       Text = 'Choose Image Type'
     end
     object btnStartImaging: TButton
-      Left = 104
+      Left = 368
       Height = 25
-      Top = 448
+      Top = 408
       Width = 99
       Caption = 'Start Imaging'
       OnClick = btnStartImagingClick
       TabOrder = 8
     end
     object btnAbort: TButton
-      Left = 296
+      Left = 376
       Height = 25
       Top = 448
       Width = 75
@@ -254,16 +254,62 @@ object frmYaffi: TfrmYaffi
       Left = 176
       Height = 21
       Top = 272
-      Width = 128
+      Width = 104
       ItemHeight = 13
       Items.Strings = (
         '640Mb'
-        '2,048Mb'
-        '4,096Mb'
+        '1.5Gb'
+        '2.0Gb'
       )
       OnSelect = ComboSegmentSizeSelect
       TabOrder = 10
-      Text = '2,048 Mb Segments'
+      Text = '2Gb Segments'
+    end
+    object ledtCaseName: TLabeledEdit
+      Left = 8
+      Height = 21
+      Top = 328
+      Width = 136
+      EditLabel.AnchorSideLeft.Control = ledtCaseName
+      EditLabel.AnchorSideRight.Control = ledtCaseName
+      EditLabel.AnchorSideRight.Side = asrBottom
+      EditLabel.AnchorSideBottom.Control = ledtCaseName
+      EditLabel.Left = 8
+      EditLabel.Height = 13
+      EditLabel.Top = 312
+      EditLabel.Width = 136
+      EditLabel.Caption = 'Case Name'
+      EditLabel.ParentColor = False
+      TabOrder = 11
+      Text = '...'
+    end
+    object ledtExaminersName: TLabeledEdit
+      Left = 341
+      Height = 21
+      Top = 328
+      Width = 80
+      EditLabel.AnchorSideLeft.Control = ledtExaminersName
+      EditLabel.AnchorSideRight.Control = ledtExaminersName
+      EditLabel.AnchorSideRight.Side = asrBottom
+      EditLabel.AnchorSideBottom.Control = ledtExaminersName
+      EditLabel.Left = 341
+      EditLabel.Height = 13
+      EditLabel.Top = 312
+      EditLabel.Width = 80
+      EditLabel.Caption = 'Examiners Name'
+      EditLabel.ParentColor = False
+      TabOrder = 12
+      Text = '...'
+    end
+    object memGeneralCaseNotes: TMemo
+      Left = 8
+      Height = 65
+      Top = 408
+      Width = 345
+      Lines.Strings = (
+        'General Case Notes...'
+      )
+      TabOrder = 13
     end
   end
   object ledtComputedHashA: TLabeledEdit

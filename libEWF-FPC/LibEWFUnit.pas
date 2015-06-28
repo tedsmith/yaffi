@@ -89,7 +89,7 @@ type
   Tlibewfhandlepreparewritechunk = function(handle : PLIBEWFHDL; buffer : pointer; buffer_size : TSIZE; compressed_buffer:pointer;compressed_size:tsize;is_compressed:tuint8;checksum:integer;write_checksum:tuint8; error:pointer) : integer; cdecl;
   Tlibewfhandlewritechunk        = function(handle : PLIBEWFHDL; buffer : pointer; buffer_size : TSIZE; data_size : TSIZE; is_compressed:tuint8; checksum_buffer:pointer; chunk_checksum:integer; chunk_io_flags:tuint8; error:pointer) : integer; cdecl;
   Tlibewfhandlesetmaximumsegmentsize= function(handle : PLIBEWFHDL; size : TSIZE64; error:pointer) : integer;  cdecl;
-
+  Tlibewfhandlesetformat         = function(handle : PLIBEWFHDL; Format : TUINT8; error:pointer) : integer; cdecl;
   {/*
     * TLibEWF - class providing Delphi bindings to a subset of libewf functions (only those required for reading at present).
     */}
@@ -142,7 +142,7 @@ type
     flibewfhandlewritechunk : Tlibewfhandlewritechunk;
     flibewfhandlesetsha1hash : Tlibewfhandlesetsha1hash;
     flibewfhandlesetmaximumsegmentsize : Tlibewfhandlesetmaximumsegmentsize;
-
+    flibewfhandlesetformat : Tlibewfhandlesetformat;
   public
     constructor create();
     destructor destroy(); override;
@@ -164,6 +164,7 @@ type
     function libewf_handle_write_chunk(Chunkbuffer : Pointer; ChunkBufferSize, CompressedChunkBufferSize : integer) : integer; cdecl;
     function libewf_handle_set_SHA1_hash(sha1_hash : Pointer; size : TSIZE) : integer;
     function libewf_handle_set_maximum_segment_size(size : TSIZE64) : integer;
+    function libewf_handle_set_format(Format : TUINT8) : integer;
   end;
 
 const
@@ -173,8 +174,8 @@ const
   LIBEWF_DATE_FORMAT_MONTHDAY = $02;
   LIBEWF_DATE_FORMAT_ISO8601  = $03;
   LIBEWF_DATE_FORMAT_CTIME    = $04;
-  LIBEWF_FORMAT_V2_ENCASE7    = $37;
-  LIBEWF_DEFAULT_SEGMENT_FILE_SIZE = 2147483648;
+
+  LIBEWF_DEFAULT_SEGMENT_FILE_SIZE = 2086666240; // 1,990Mb
 
   LIBEWF_VERSION              = 'V2';
 
@@ -227,6 +228,7 @@ begin
       @flibewfhandlepreparewritechunk   :=GetProcAddress(fLibHandle, '_libewf_handle_prepare_write_chunk');
       @flibewfhandlewritechunk          :=GetProcAddress(fLibHandle, '_libewf_handle_write_chunk');
       @flibewfhandlesetmaximumsegmentsize:=GetProcAddress(fLibHandle, '_libewf_handle_set_maximum_segment_size');
+      @flibewfhandlesetformat           :=GetProcAddress(fLibHandle, '_libewf_handle_set_format');
     end;
   end
   else showmessage('could not find libewf.dll');
@@ -510,6 +512,32 @@ begin
   end;
 end;
 
+{ Sets the output format
+  Returns 1 if successful or -1 on error
+}
+function TLibEWF.libewf_handle_set_format(Format : TUINT8) : integer;
+// https://github.com/libyal/libewf/blob/54b0eada69defd015c49e4e1e1e4e26a27409ba3/libewf/libewf_metadata.h#L153
+var
+  err:pointer;
+  strError : string;
+begin
+  err:=nil;
+  Result:=-1;
+
+  if fLibHandle<>0 then
+  begin
+    if LIBEWF_VERSION='V2' then
+    Result:=flibewfhandlesetformat(fCurEWFHandle, Format, @err);
+  end;
+
+  // This will throw a more specific error than generic system messages
+  if result = -1 then
+  begin
+    SetLength(strError, 512);
+    fLibEWFErrorSPrint(err, @strError[1], Length(strError));
+    ShowMessage(strError);
+  end;
+end;
 
 function TLibEWF.libewf_handle_prepare_write_chunk(ChunkBuffer : Pointer;
                                                    ChunkBufferSize,
@@ -650,6 +678,7 @@ end;
 function TLibEWF.libewf_SetHeaderValue(identifier,value:ansistring) : integer;
 var
   err:pointer;
+  strError : string;
 begin
   err:=nil;
   Result:=-1;
@@ -663,6 +692,15 @@ begin
                                             pansichar(value),
                                             length(value),
                                             @err);
+
+    // This will throw a more specific error about why the compression setting fails than generic system messages
+    if result = -1 then
+    begin
+      SetLength(strError, 512);
+      fLibEWFErrorSPrint(err, @strError[1], Length(strError));
+      ShowMessage(strError);
+    end;
+
   end;
 end;
 

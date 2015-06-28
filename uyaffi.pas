@@ -39,8 +39,9 @@ uses
 
   {$ifdef Windows}
     Process, Windows, ActiveX, ComObj, Variants,
+    win32proc, // for the OS name detection : http://free-pascal-lazarus.989080.n3.nabble.com/Lazarus-WindowsVersion-td4032307.html
   {$endif}
-    LibEWFUnit, Classes, SysUtils, FileUtil, Forms, Controls, Graphics,
+    LibEWFUnit, Classes, SysUtils, FileUtil, Forms, Controls, Graphics, LazUTF8,
     Dialogs, StdCtrls, ComCtrls, ExtCtrls, Menus, sha1Customised, md5Customised;
 
 type
@@ -56,6 +57,8 @@ type
     ComboSegmentSize: TComboBox;
     ComboImageType: TComboBox;
     comboHashChoice: TComboBox;
+    ledtExaminersName: TLabeledEdit;
+    ledtCaseName: TLabeledEdit;
     ledtImageHashA: TLabeledEdit;
     ledtComputedHashB: TEdit;
     GroupBox1: TGroupBox;
@@ -68,13 +71,14 @@ type
     ledtComputedHashA: TLabeledEdit;
     ledtImageHashB: TLabeledEdit;
     ledtImageName: TLabeledEdit;
-    ledtSeizureRef: TLabeledEdit;
+    ledtExhibitRef: TLabeledEdit;
     ledtSelectedItem: TLabeledEdit;
     lt: TLabel;
     ls: TLabel;
     lm: TLabel;
     lv: TLabel;
     memNotes: TMemo;
+    memGeneralCaseNotes: TMemo;
     menShowDiskManager: TMenuItem;
     PopupMenu1: TPopupMenu;
     SaveImageDialog: TSaveDialog;
@@ -123,6 +127,7 @@ var
   function GetDriveIDFromLetter(str : string) : Byte;
   function FormatByteSize(const bytes: QWord): string;
   function GetVolumeName(DriveLetter: Char): string;
+  function GetOSName() : string;
   {$endif}
 
 implementation
@@ -711,23 +716,23 @@ begin
   end;
 end;
 
-// Assigns an integer for the chosen segment size of the image - either 640Mb, 2048Mb or 4096Mb.
-// Default is 2048Mb.
+// Assigns an integer for the chosen segment size of the E01 image - either 640Mb, 1.5Gb or 2Gb.
+// Default is 2Gb.
 // -1 if none chosen
 function TfrmYaffi.InitialiseSegmentSize(Sender : TObject) : Int64;
 begin
   result := -1;
-  if (ComboSegmentSize.Text = '2,048 Mb Segments') or (ComboSegmentSize.Text = '2,048Mb') then
+  if (ComboSegmentSize.Text = '2Gb Segments') or (ComboSegmentSize.Text = '2.0Gb') then
    begin
-     result := 2147483648;
+     result := 2086666240; // 1,990Mb
    end
   else if ComboSegmentSize.Text = '640Mb' then
    begin
     result := 671088640;
    end
-  else if ComboSegmentSize.Text =  '4,096Mb' then
+  else if ComboSegmentSize.Text =  '1.5Gb' then
    begin
-    result := 4294967296;
+    result := 1572864000;
    end
   else
   begin
@@ -842,7 +847,7 @@ begin
         slImagingLog.Add('Hashing Algorithm : ' + comboHashChoice.Text);
         slImagingLog.Add('Hash(es) of source media : ' + ledtComputedHashA.Text + ' ' + ledtComputedHashB.Text);
         slImagingLog.Add('Hash(es) of image : ' + ledtImageHashA.Text + ' ' + ledtImageHashB.Text);
-        slImagingLog.Add(ledtSeizureRef.Text);
+        slImagingLog.Add(ledtExhibitRef.Text);
         slImagingLog.Add(memNotes.Text);
       finally
         slImagingLog.SaveToFile(IncludeTrailingPathDelimiter(ExtractFilePath(SaveImageDialog.FileName)) + 'ImageLog.txt');
@@ -1056,6 +1061,9 @@ end;
 // Uses EWF Acquire API to image the disk and returns the number of bytes successfully
 // imaged. Windows centric function
 function WindowsImageDiskE01(hDiskHandle : THandle; SegmentSize : Int64; DiskSize : Int64; HashChoice : Integer) : Int64;
+const
+  LIBEWF_FORMAT_ENCASE6       = $06;
+
 var
   // 64kB Buffers sometimes seem to cause read errors in final few sectors. Not sure why?
   // 32Kb ones seem not to though
@@ -1076,7 +1084,7 @@ var
   strError                 : string;
 
   TotalBytesRead, BytesWritten, TotalBytesWritten : Int64;
-
+  SystemDateNow : TDateTime;
   fLibEWF: TLibEWF;
 
 begin
@@ -1095,10 +1103,15 @@ begin
    fLibEWF.libewf_SetHeaderValue('acquiry_software_version','YAFFI - Yet Another Free Forensic Imager');
    // Set image segment size in bytes. 2Gb is default but 640Mb and 4Gb are options.
    fLibEWF.libewf_handle_set_maximum_segment_size(SegmentSize);
-   // TODO : Lookup host OS Name...
-   fLibEWF.libewf_SetHeaderValue('acquiry_operating_system', '');
-   //TODO : Lookup the proper value for the notes section. This currently fails.
-   fLibEWF.libewf_SetHeaderValue('notes_header_value', frmYaffi.memNotes.Text);
+   // Set the E01 image format to v6.
+   fLibEWF.libewf_handle_set_format(LIBEWF_FORMAT_ENCASE6);
+   // The rest is self explanatory:
+   fLibEWF.libewf_SetHeaderValue('examiner_name', frmYaffi.ledtExaminersName.Text);
+   fLibEWF.libewf_SetHeaderValue('evidence_number', frmYaffi.ledtExhibitRef.Text);
+   fLibEWF.libewf_SetHeaderValue('case_number', frmYaffi.ledtCaseName.Text);
+   fLibEWF.libewf_SetHeaderValue('description', Trim(frmYaffi.memNotes.Text));
+   fLibEWF.libewf_SetHeaderValue('notes', Trim(frmYaffi.memGeneralCaseNotes.Text));
+   fLibEWF.libewf_SetHeaderValue('acquiry_operating_system', GetOSName);
 
     try
       // Initialise the hash digests in accordance with the users chosen algorithm
@@ -1239,11 +1252,8 @@ begin
                      frmYaffi.ledtImageHashB.Visible := true;
                      frmYaffi.ledtImageHashB.Text    := 'SHA-1 : ' + Uppercase(SHA1Print(SHA1DigestImage));
                      // Store both hashes inside the E01
-                     // TODO : E01 can only store one or the other. Decide how to omplement
-                     {
                      fLibEWF.libewf_handle_set_md5_hash(@MD5DigestImage, SizeOF(MD5DigestImage));
                      fLibEWF.libewf_handle_set_SHA1_hash(@SHA1DigestImage, SizeOf(SHA1DigestImage));
-                     }
                    end;
                 end
                 else if HashChoice = 4 then
@@ -1261,6 +1271,23 @@ begin
         end;
     end;
   result := TotalBytesRead;
+end;
+
+function GetOSName() : string;
+var
+  OSVersion : string;
+begin
+  if WindowsVersion = wv95 then OSVersion := 'Windows 95 '
+   else if WindowsVersion = wvNT4 then OSVersion := 'Windows NT v.4 '
+   else if WindowsVersion = wv98 then OSVersion := 'Windows 98 '
+   else if WindowsVersion = wvMe then OSVersion := 'Windows ME '
+   else if WindowsVersion = wv2000 then OSVersion := 'Windows 2000 '
+   else if WindowsVersion = wvXP then OSVersion := 'Windows XP '
+   else if WindowsVersion = wvServer2003 then OSVersion := 'Windows Server 2003 '
+   else if WindowsVersion = wvVista then OSVersion := 'Windows Vista '
+   else if WindowsVersion = wv7 then OSVersion := 'Windows 7 '
+   else OSVersion:= 'MS Windows ';
+  result := OSVersion;
 end;
 
 {$endif}
