@@ -640,7 +640,14 @@ end;
 
 {/*
   * set compression.
-  * @param level : level 1=low,2=high,0=none.
+  * https://github.com/libyal/libewf/blob/54b0eada69defd015c49e4e1e1e4e26a27409ba3/libewf/libewf_definitions.h.in#L107
+  * @param level : level 1=low using DEFLATE, 2=high using BZIP2, 0=none.
+  * https://github.com/libyal/libewf/blob/54b0eada69defd015c49e4e1e1e4e26a27409ba3/libewf/libewf_definitions.h.in#L125
+  * @param flags :
+    * bit 1 set to 1 for empty block compression; detects empty blocks and
+      stored them compressed, the compression is only done once
+    * bit 2 set to 1 for pattern fill compression; this implies empty
+      block compression using the pattern fill method. Bit 3-8 not used
   * @param flag - 0 tested ok
   * @return 1 success, -1 if unsuccessful.
   */}

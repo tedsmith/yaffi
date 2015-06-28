@@ -204,10 +204,10 @@ object frmYaffi: TfrmYaffi
       TabOrder = 5
     end
     object comboHashChoice: TComboBox
-      Left = 341
+      Left = 373
       Height = 21
       Top = 272
-      Width = 124
+      Width = 92
       ItemHeight = 13
       Items.Strings = (
         'MD5'
@@ -251,7 +251,7 @@ object frmYaffi: TfrmYaffi
       TabOrder = 9
     end
     object ComboSegmentSize: TComboBox
-      Left = 176
+      Left = 144
       Height = 21
       Top = 272
       Width = 104
@@ -310,6 +310,21 @@ object frmYaffi: TfrmYaffi
         'General Case Notes...'
       )
       TabOrder = 13
+    end
+    object ComboCompression: TComboBox
+      Left = 264
+      Height = 21
+      Top = 272
+      Width = 100
+      ItemHeight = 13
+      Items.Strings = (
+        'Low (Fast)'
+        'High (Slower)'
+        'None'
+      )
+      OnSelect = ComboCompressionSelect
+      TabOrder = 14
+      Text = 'Compression..'
     end
   end
   object ledtComputedHashA: TLabeledEdit

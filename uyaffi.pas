@@ -54,6 +54,7 @@ type
     btnStartImaging: TButton;
     Button1: TButton;
     cbdisks: TComboBox;
+    ComboCompression: TComboBox;
     ComboSegmentSize: TComboBox;
     ComboImageType: TComboBox;
     comboHashChoice: TComboBox;
@@ -90,6 +91,7 @@ type
     procedure btnStartImagingClick(Sender: TObject);
     procedure Button1Click(Sender: TObject);
     procedure btnChooseImageNameClick(Sender: TObject);
+    procedure ComboCompressionSelect(Sender: TObject);
     procedure ComboImageTypeSelect(Sender: TObject);
     procedure ComboSegmentSizeSelect(Sender: TObject);
     procedure FormCreate(Sender: TObject);
@@ -98,6 +100,7 @@ type
     function InitialiseHashChoice(Sender : TObject) : Integer;
     function InitialiseImageType(Sender : TObject) : Integer;
     function InitialiseSegmentSize(Sender : TObject) : Int64;
+    function InitialiseCompressionChoice(Sender : TObject) : Integer;
     procedure cbdisksChange(Sender: TObject);
 
   private
@@ -240,7 +243,12 @@ end;
 
 procedure TfrmYaffi.ComboSegmentSizeSelect(Sender: TObject);
 begin
+  frmYaffi.InitialiseSegmentSize(nil);
+end;
 
+procedure TfrmYaffi.ComboCompressionSelect(Sender: TObject);
+begin
+  frmYaffi.InitialiseCompressionChoice(nil);
 end;
 
 procedure TfrmYaffi.cbdisksChange(Sender: TObject);
@@ -742,6 +750,37 @@ begin
   end;
 end;
 
+// Returns 1 for low but fast (empty block compression)
+// Returns 2 for high but slower (pattern fill compression) or
+// Returns 3 for no compression or -1 on error
+function TfrmYaffi.InitialiseCompressionChoice(Sender : TObject) : Integer;
+{ Options :
+Low (Fast)    : result 1
+High (Slower) : result 2
+None          : result 0
+}
+begin
+result := -1;
+if ComboCompression.Text = 'Low (Fast)' then
+ begin
+  result := 1;
+ end
+else if ComboCompression.Text = 'High (Slower)' then
+ begin
+  result := 2;
+ end
+else if ComboCompression.Text = 'None' then
+ begin
+  result := 0;
+ end
+else
+  begin
+    ShowMessage('Choose compression level.');
+    result := -1;
+  end;
+end;
+
+
 procedure TfrmYaffi.btnStartImagingClick(Sender: TObject);
 const
   // These values are needed for For FSCTL_ALLOW_EXTENDED_DASD_IO to work properly
@@ -1079,7 +1118,7 @@ var
   MD5DigestImage           : TMD5Digest;
   SHA1DigestImage          : TSHA1Digest;
 
-  BytesRead                : integer;
+  BytesRead, CompressionChoice : integer;
 
   strError                 : string;
 
@@ -1092,14 +1131,29 @@ begin
   BytesWritten        := 0;
   TotalBytesRead      := 0;
   TotalBytesWritten   := 0;
+  CompressionChoice   := -1;
 
   // Create the libEWF instance and ensure the DLL is found
   fLibEWF:=TLibEWF.create;
   // Now open the E01 image file with write access
   if fLibEWF.libewf_open(frmYaffi.ledtImageName.Text,LIBEWF_OPEN_WRITE) = 0 then
   begin
-   // Now set compression and header data
-   fLibEWF.libewf_SetCompressionValues(1,0);
+   // Now enable the users choice of compression
+   // TODO : there seems to be little\no difference between 1 and 2 levels.
+   // TODO : also experiment with the flags for empty-block and pattern compression
+   CompressionChoice := frmYaffi.InitialiseCompressionChoice(nil);
+   if CompressionChoice <> -1 then
+   begin
+     fLibEWF.libewf_SetCompressionValues(CompressionChoice,0);
+   end
+   else
+   begin
+     // Just set it a sensible option
+     fLibEWF.libewf_SetCompressionValues(1,0);
+   end;
+
+   // Metadata population
+   // https://github.com/libyal/libewf/blob/54b0eada69defd015c49e4e1e1e4e26a27409ba3/libewf/libewf_case_data.c
    fLibEWF.libewf_SetHeaderValue('acquiry_software_version','YAFFI - Yet Another Free Forensic Imager');
    // Set image segment size in bytes. 2Gb is default but 640Mb and 4Gb are options.
    fLibEWF.libewf_handle_set_maximum_segment_size(SegmentSize);

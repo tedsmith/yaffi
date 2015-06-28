@@ -36,7 +36,7 @@ Copyright (c) 2006-2014, Joachim Metz <joachim.metz@gmail.com>
    
     Zlib for the implementation of the Zlib compression and optimized
  Adler32 
-    function 
+    function. http://www.zlib.net/ 
    
     OpenSSL for the implementation of the MD5 and SHA1 hash algorithm
 
