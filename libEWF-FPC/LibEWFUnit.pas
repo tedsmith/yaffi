@@ -90,6 +90,7 @@ type
   Tlibewfhandlewritechunk        = function(handle : PLIBEWFHDL; buffer : pointer; buffer_size : TSIZE; data_size : TSIZE; is_compressed:tuint8; checksum_buffer:pointer; chunk_checksum:integer; chunk_io_flags:tuint8; error:pointer) : integer; cdecl;
   Tlibewfhandlesetmaximumsegmentsize= function(handle : PLIBEWFHDL; size : TSIZE64; error:pointer) : integer;  cdecl;
   Tlibewfhandlesetformat         = function(handle : PLIBEWFHDL; Format : TUINT8; error:pointer) : integer; cdecl;
+  Tlibewfhandlesetmediaflags     = function(handle : PLIBEWFHDL; volume_type : TUINT8; error:pointer) : integer; cdecl;
   {/*
     * TLibEWF - class providing Delphi bindings to a subset of libewf functions (only those required for reading at present).
     */}
@@ -143,6 +144,7 @@ type
     flibewfhandlesetsha1hash : Tlibewfhandlesetsha1hash;
     flibewfhandlesetmaximumsegmentsize : Tlibewfhandlesetmaximumsegmentsize;
     flibewfhandlesetformat : Tlibewfhandlesetformat;
+    flibewfhandlesetmediaflags : Tlibewfhandlesetmediaflags;
   public
     constructor create();
     destructor destroy(); override;
@@ -161,10 +163,11 @@ type
     function libewf_handle_write_buffer(Buffer : Pointer; size : longword) : integer;
     function libewf_handle_set_md5_hash(md5_hash : Pointer; size : TSIZE) : integer;
     function libewf_handle_prepare_write_chunk(ChunkBuffer : Pointer; ChunkBufferSize, CompressedChunkBufferSize : integer; size : Longword) : integer;
-    function libewf_handle_write_chunk(Chunkbuffer : Pointer; ChunkBufferSize, CompressedChunkBufferSize : integer) : integer; cdecl;
+    function libewf_handle_write_chunk(Chunkbuffer : Pointer; ChunkBufferSize, CompressedChunkBufferSize : integer) : integer;
     function libewf_handle_set_SHA1_hash(sha1_hash : Pointer; size : TSIZE) : integer;
     function libewf_handle_set_maximum_segment_size(size : TSIZE64) : integer;
     function libewf_handle_set_format(Format : TUINT8) : integer;
+    function libewf_handle_set_media_flags(volume_type : TUINT8) : integer;
   end;
 
 const
@@ -229,6 +232,7 @@ begin
       @flibewfhandlewritechunk          :=GetProcAddress(fLibHandle, '_libewf_handle_write_chunk');
       @flibewfhandlesetmaximumsegmentsize:=GetProcAddress(fLibHandle, '_libewf_handle_set_maximum_segment_size');
       @flibewfhandlesetformat           :=GetProcAddress(fLibHandle, '_libewf_handle_set_format');
+      @flibewfhandlesetmediaflags       :=GetProcAddress(fLibHandle, '_libewf_handle_set_media_flags');
     end;
   end
   else showmessage('could not find libewf.dll');
@@ -512,7 +516,7 @@ begin
   end;
 end;
 
-{ Sets the output format
+{ Sets the output format of the image, i.e. EnCase v6, v5 and so on
   Returns 1 if successful or -1 on error
 }
 function TLibEWF.libewf_handle_set_format(Format : TUINT8) : integer;
@@ -528,6 +532,35 @@ begin
   begin
     if LIBEWF_VERSION='V2' then
     Result:=flibewfhandlesetformat(fCurEWFHandle, Format, @err);
+  end;
+
+  // This will throw a more specific error than generic system messages
+  if result = -1 then
+  begin
+    SetLength(strError, 512);
+    fLibEWFErrorSPrint(err, @strError[1], Length(strError));
+    ShowMessage(strError);
+  end;
+end;
+
+// Sets the media flag to either physical or logical volume based on
+// LIBEWF_MEDIA_FLAG_PHYSICAL flag
+function TLibEWF.libewf_handle_set_media_flags(volume_type : TUINT8) : integer;
+// https://github.com/libyal/libewf/blob/54b0eada69defd015c49e4e1e1e4e26a27409ba3/libewf/libewf_metadata.h#L141
+// https://github.com/libyal/libewf/blob/54b0eada69defd015c49e4e1e1e4e26a27409ba3/libewf/libewf_definitions.h.in#L154
+var
+  err:pointer;
+  strError : string;
+begin
+  err:=nil;
+  Result:=-1;
+
+  if fLibHandle<>0 then
+  begin
+    if LIBEWF_VERSION='V2' then
+    Result:=flibewfhandlesetmediaflags(fCurEWFHandle,
+                                       volume_type,
+                                       @err);
   end;
 
   // This will throw a more specific error than generic system messages

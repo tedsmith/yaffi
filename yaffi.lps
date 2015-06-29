@@ -10,7 +10,7 @@
         <IsPartOfProject Value="True"/>
         <WindowIndex Value="1"/>
         <CursorPos X="26" Y="25"/>
-        <UsageCount Value="81"/>
+        <UsageCount Value="85"/>
         <Loaded Value="True"/>
       </Unit0>
       <Unit1>
@@ -20,13 +20,11 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="UYaffi"/>
-        <IsVisibleTab Value="True"/>
         <EditorIndex Value="1"/>
         <WindowIndex Value="1"/>
-        <TopLine Value="1134"/>
-        <CursorPos X="49" Y="1146"/>
-        <FoldState Value=" T0*B83234!"/>
-        <UsageCount Value="81"/>
+        <TopLine Value="1137"/>
+        <CursorPos X="72" Y="1164"/>
+        <UsageCount Value="85"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
       </Unit1>
@@ -34,11 +32,12 @@
         <Filename Value="libEWF-FPC\LibEWFUnit.pas"/>
         <IsPartOfProject Value="True"/>
         <UnitName Value="LibEWFUnit"/>
+        <IsVisibleTab Value="True"/>
         <EditorIndex Value="5"/>
         <WindowIndex Value="1"/>
-        <TopLine Value="180"/>
-        <CursorPos X="36" Y="202"/>
-        <UsageCount Value="55"/>
+        <TopLine Value="544"/>
+        <CursorPos X="38" Y="554"/>
+        <UsageCount Value="59"/>
         <Loaded Value="True"/>
       </Unit2>
       <Unit3>
@@ -56,7 +55,7 @@
         <WindowIndex Value="1"/>
         <TopLine Value="627"/>
         <CursorPos Y="653"/>
-        <UsageCount Value="27"/>
+        <UsageCount Value="29"/>
         <Loaded Value="True"/>
       </Unit4>
       <Unit5>
@@ -66,7 +65,7 @@
         <WindowIndex Value="1"/>
         <TopLine Value="341"/>
         <CursorPos Y="363"/>
-        <UsageCount Value="21"/>
+        <UsageCount Value="23"/>
         <Loaded Value="True"/>
       </Unit5>
       <Unit6>
@@ -75,7 +74,7 @@
         <WindowIndex Value="1"/>
         <TopLine Value="50"/>
         <CursorPos X="10" Y="68"/>
-        <UsageCount Value="17"/>
+        <UsageCount Value="19"/>
         <Loaded Value="True"/>
       </Unit6>
       <Unit7>
@@ -84,7 +83,7 @@
         <WindowIndex Value="1"/>
         <TopLine Value="51"/>
         <CursorPos X="10" Y="69"/>
-        <UsageCount Value="17"/>
+        <UsageCount Value="19"/>
         <Loaded Value="True"/>
       </Unit7>
       <Unit8>
@@ -93,7 +92,7 @@
         <WindowIndex Value="1"/>
         <TopLine Value="107"/>
         <CursorPos X="10" Y="125"/>
-        <UsageCount Value="13"/>
+        <UsageCount Value="15"/>
         <Loaded Value="True"/>
       </Unit8>
       <Unit9>
@@ -103,123 +102,127 @@
         <UsageCount Value="10"/>
       </Unit9>
     </Units>
-    <JumpHistory Count="29" HistoryIndex="28">
+    <JumpHistory Count="30" HistoryIndex="29">
       <Position1>
         <Filename Value="libEWF-FPC\LibEWFUnit.pas"/>
-        <Caret Line="156" Column="14" TopLine="139"/>
+        <Caret Line="281" TopLine="261"/>
       </Position1>
       <Position2>
         <Filename Value="libEWF-FPC\LibEWFUnit.pas"/>
-        <Caret Line="209" Column="8" TopLine="196"/>
+        <Caret Line="282" TopLine="261"/>
       </Position2>
       <Position3>
         <Filename Value="libEWF-FPC\LibEWFUnit.pas"/>
-        <Caret Line="132" Column="38" TopLine="116"/>
+        <Caret Line="284" TopLine="261"/>
       </Position3>
       <Position4>
         <Filename Value="libEWF-FPC\LibEWFUnit.pas"/>
-        <Caret Line="209" Column="41" TopLine="180"/>
+        <Caret Line="285" TopLine="261"/>
       </Position4>
       <Position5>
-        <Filename Value="UYaffi.pas"/>
-        <Caret Line="1104" Column="30" TopLine="1094"/>
+        <Filename Value="libEWF-FPC\LibEWFUnit.pas"/>
+        <Caret Line="287" TopLine="261"/>
       </Position5>
       <Position6>
-        <Filename Value="UYaffi.pas"/>
-        <Caret Line="1116" Column="64" TopLine="1101"/>
+        <Filename Value="libEWF-FPC\LibEWFUnit.pas"/>
+        <Caret Line="288" TopLine="261"/>
       </Position6>
       <Position7>
-        <Filename Value="UYaffi.pas"/>
-        <Caret Line="250" Column="3" TopLine="219"/>
+        <Filename Value="libEWF-FPC\LibEWFUnit.pas"/>
+        <Caret Line="290" TopLine="261"/>
       </Position7>
       <Position8>
-        <Filename Value="UYaffi.pas"/>
-        <Caret Line="102" Column="35" TopLine="85"/>
+        <Filename Value="libEWF-FPC\LibEWFUnit.pas"/>
+        <Caret Line="300" TopLine="283"/>
       </Position8>
       <Position9>
-        <Filename Value="UYaffi.pas"/>
-        <Caret Line="1119" Column="31" TopLine="1106"/>
+        <Filename Value="libEWF-FPC\LibEWFUnit.pas"/>
+        <Caret Line="301" TopLine="283"/>
       </Position9>
       <Position10>
-        <Filename Value="UYaffi.pas"/>
-        <Caret Line="103" Column="70" TopLine="79"/>
+        <Filename Value="libEWF-FPC\LibEWFUnit.pas"/>
+        <Caret Line="303" TopLine="283"/>
       </Position10>
       <Position11>
-        <Filename Value="UYaffi.pas"/>
-        <Caret Line="1143" Column="28" TopLine="1124"/>
+        <Filename Value="libEWF-FPC\LibEWFUnit.pas"/>
+        <Caret Line="305" TopLine="283"/>
       </Position11>
       <Position12>
-        <Filename Value="UYaffi.pas"/>
-        <Caret Line="1145" Column="66" TopLine="1124"/>
+        <Filename Value="libEWF-FPC\LibEWFUnit.pas"/>
+        <Caret Line="303" TopLine="283"/>
       </Position12>
       <Position13>
-        <Filename Value="UYaffi.pas"/>
-        <Caret Line="103" Column="35" TopLine="86"/>
+        <Filename Value="libEWF-FPC\LibEWFUnit.pas"/>
+        <Caret Line="307" TopLine="283"/>
       </Position13>
       <Position14>
-        <Filename Value="UYaffi.pas"/>
-        <Caret Line="755" Column="41" TopLine="726"/>
+        <Filename Value="libEWF-FPC\LibEWFUnit.pas"/>
+        <Caret Line="314" Column="20" TopLine="288"/>
       </Position14>
       <Position15>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="1141" Column="55" TopLine="1113"/>
+        <Caret Line="1166" Column="9" TopLine="1132"/>
       </Position15>
       <Position16>
-        <Filename Value="UYaffi.pas"/>
-        <Caret Line="57" Column="15" TopLine="39"/>
+        <Filename Value="libEWF-FPC\LibEWFUnit.pas"/>
+        <Caret Line="558" TopLine="538"/>
       </Position16>
       <Position17>
-        <Filename Value="UYaffi.pas"/>
-        <Caret Line="94" Column="25" TopLine="66"/>
+        <Filename Value="libEWF-FPC\LibEWFUnit.pas"/>
+        <Caret Line="563" TopLine="538"/>
       </Position17>
       <Position18>
-        <Filename Value="UYaffi.pas"/>
-        <Caret Line="251" Column="39" TopLine="220"/>
+        <Filename Value="libEWF-FPC\LibEWFUnit.pas"/>
+        <Caret Line="561" TopLine="538"/>
       </Position18>
       <Position19>
-        <Filename Value="UYaffi.pas"/>
-        <Caret Line="103" Column="41" TopLine="86"/>
+        <Filename Value="libEWF-FPC\LibEWFUnit.pas"/>
+        <Caret Line="560" TopLine="538"/>
       </Position19>
       <Position20>
-        <Filename Value="UYaffi.pas"/>
-        <Caret Line="251" Column="39" TopLine="222"/>
+        <Filename Value="libEWF-FPC\LibEWFUnit.pas"/>
+        <Caret Line="567" TopLine="538"/>
       </Position20>
       <Position21>
-        <Filename Value="UYaffi.pas"/>
-        <Caret Line="747" Column="45" TopLine="747"/>
+        <Filename Value="libEWF-FPC\LibEWFUnit.pas"/>
+        <Caret Line="573" TopLine="544"/>
       </Position21>
       <Position22>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="762" TopLine="746"/>
+        <Caret Line="1158" TopLine="1142"/>
       </Position22>
       <Position23>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="763" TopLine="746"/>
+        <Caret Line="1160" TopLine="1142"/>
       </Position23>
       <Position24>
-        <Filename Value="UYaffi.pas"/>
-        <Caret Line="764" TopLine="746"/>
+        <Filename Value="libEWF-FPC\LibEWFUnit.pas"/>
+        <Caret Line="554" TopLine="544"/>
       </Position24>
       <Position25>
-        <Filename Value="UYaffi.pas"/>
-        <Caret Line="766" TopLine="746"/>
+        <Filename Value="libEWF-FPC\LibEWFUnit.pas"/>
+        <Caret Line="555" TopLine="544"/>
       </Position25>
       <Position26>
-        <Filename Value="UYaffi.pas"/>
-        <Caret Line="781" TopLine="752"/>
+        <Filename Value="libEWF-FPC\LibEWFUnit.pas"/>
+        <Caret Line="556" TopLine="544"/>
       </Position26>
       <Position27>
         <Filename Value="libEWF-FPC\LibEWFUnit.pas"/>
-        <Caret Line="659" Column="42" TopLine="638"/>
+        <Caret Line="558" TopLine="544"/>
       </Position27>
       <Position28>
         <Filename Value="libEWF-FPC\LibEWFUnit.pas"/>
-        <Caret Line="664" Column="15" TopLine="638"/>
+        <Caret Line="563" TopLine="544"/>
       </Position28>
       <Position29>
         <Filename Value="libEWF-FPC\LibEWFUnit.pas"/>
-        <Caret Line="132" Column="38" TopLine="116"/>
+        <Caret Line="561" TopLine="544"/>
       </Position29>
+      <Position30>
+        <Filename Value="libEWF-FPC\LibEWFUnit.pas"/>
+        <Caret Line="560" TopLine="544"/>
+      </Position30>
     </JumpHistory>
   </ProjectSession>
   <Debugging>

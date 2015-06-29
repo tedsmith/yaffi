@@ -1102,6 +1102,8 @@ end;
 function WindowsImageDiskE01(hDiskHandle : THandle; SegmentSize : Int64; DiskSize : Int64; HashChoice : Integer) : Int64;
 const
   LIBEWF_FORMAT_ENCASE6       = $06;
+  LIBEWF_MEDIA_FLAG_PHYSICAL  = $02;
+  LIBEWF_VOLUME_TYPE_LOGICAL  = $01;
 
 var
   // 64kB Buffers sometimes seem to cause read errors in final few sectors. Not sure why?
@@ -1151,6 +1153,17 @@ begin
      // Just set it a sensible option
      fLibEWF.libewf_SetCompressionValues(1,0);
    end;
+
+   // Set the volume type : physical or logical?
+    if Pos('\\.\PHYSICAL', frmYaffi.ledtSelectedItem.Text) > -1 then
+    begin
+      fLibEWF.libewf_handle_set_media_flags(LIBEWF_MEDIA_FLAG_PHYSICAL);
+    end
+    else
+    begin
+      // TODO : Check this actually works with a logical drive letter!
+      fLibEWF.libewf_handle_set_media_flags(LIBEWF_VOLUME_TYPE_LOGICAL)
+    end;
 
    // Metadata population
    // https://github.com/libyal/libewf/blob/54b0eada69defd015c49e4e1e1e4e26a27409ba3/libewf/libewf_case_data.c
