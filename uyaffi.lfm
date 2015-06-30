@@ -326,6 +326,20 @@ object frmYaffi: TfrmYaffi
       TabOrder = 14
       Text = 'Compression..'
     end
+    object cbVerify: TCheckBox
+      Left = 424
+      Height = 17
+      Hint = 'Tick to have the image verified after writing. '#13#10'Arguably totally pointless; a process that dates '#13#10'back to a time when we wrote images to tape. '#13#10'But people still seem to bang on about it.'
+      Top = 328
+      Width = 53
+      Alignment = taLeftJustify
+      Caption = 'Verify?'
+      Checked = True
+      ParentShowHint = False
+      ShowHint = True
+      State = cbChecked
+      TabOrder = 15
+    end
   end
   object ledtComputedHashA: TLabeledEdit
     Left = 32
@@ -340,20 +354,10 @@ object frmYaffi: TfrmYaffi
     EditLabel.Height = 13
     EditLabel.Top = 584
     EditLabel.Width = 464
-    EditLabel.Caption = 'Computed Hash of Device:'
+    EditLabel.Caption = 'Device Hash MD5'
     EditLabel.ParentColor = False
     TabOrder = 3
     Text = '...'
-  end
-  object ledtComputedHashB: TEdit
-    Left = 32
-    Height = 21
-    Top = 632
-    Width = 464
-    Enabled = False
-    TabOrder = 4
-    Text = '...'
-    Visible = False
   end
   object ledtImageHashA: TLabeledEdit
     Left = 32
@@ -371,7 +375,7 @@ object frmYaffi: TfrmYaffi
     EditLabel.Caption = 'Image Hash MD5'
     EditLabel.ParentColor = False
     Enabled = False
-    TabOrder = 5
+    TabOrder = 4
     Text = '...'
     Visible = False
   end
@@ -391,9 +395,27 @@ object frmYaffi: TfrmYaffi
     EditLabel.Caption = 'Image Hash SHA-1'
     EditLabel.ParentColor = False
     Enabled = False
-    TabOrder = 6
+    TabOrder = 5
     Text = '...'
     Visible = False
+  end
+  object ledtComputedHashB: TLabeledEdit
+    Left = 32
+    Height = 21
+    Top = 640
+    Width = 464
+    EditLabel.AnchorSideLeft.Control = ledtComputedHashB
+    EditLabel.AnchorSideRight.Control = ledtComputedHashB
+    EditLabel.AnchorSideRight.Side = asrBottom
+    EditLabel.AnchorSideBottom.Control = ledtComputedHashB
+    EditLabel.Left = 32
+    EditLabel.Height = 13
+    EditLabel.Top = 624
+    EditLabel.Width = 464
+    EditLabel.Caption = 'Device Hash SHA-1'
+    EditLabel.ParentColor = False
+    TabOrder = 6
+    Text = '...'
   end
   object ImageList1: TImageList
     Height = 32
