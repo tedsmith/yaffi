@@ -1,10 +1,10 @@
 object frmYaffi: TfrmYaffi
   Left = 530
-  Height = 773
+  Height = 817
   Top = 11
   Width = 524
   Caption = 'YAFFI (Yet Another Free Forensic Imager) by Ted Smith (c) 2015'
-  ClientHeight = 773
+  ClientHeight = 817
   ClientWidth = 524
   OnCreate = FormCreate
   OnShow = Button1Click
@@ -106,12 +106,12 @@ object frmYaffi: TfrmYaffi
   end
   object GroupBox1: TGroupBox
     Left = 16
-    Height = 504
+    Height = 696
     Top = 56
     Width = 489
     Anchors = [akTop, akLeft, akRight]
     Caption = 'Disk Imaging'
-    ClientHeight = 486
+    ClientHeight = 678
     ClientWidth = 485
     TabOrder = 2
     object TreeView1: TTreeView
@@ -147,67 +147,68 @@ object frmYaffi: TfrmYaffi
       Text = '...'
     end
     object ledtImageName: TLabeledEdit
-      Left = 8
+      Left = 144
       Height = 21
-      Top = 232
-      Width = 336
+      Top = 220
+      Width = 192
+      Color = clGradientInactiveCaption
       EditLabel.AnchorSideLeft.Control = ledtImageName
       EditLabel.AnchorSideRight.Control = ledtImageName
       EditLabel.AnchorSideRight.Side = asrBottom
       EditLabel.AnchorSideBottom.Control = ledtImageName
-      EditLabel.Left = 8
+      EditLabel.Left = 144
       EditLabel.Height = 13
-      EditLabel.Top = 216
-      EditLabel.Width = 336
+      EditLabel.Top = 204
+      EditLabel.Width = 192
       EditLabel.Caption = 'Image Name and Path'
       EditLabel.ParentColor = False
-      TabOrder = 2
+      TabOrder = 3
       Text = '...'
     end
     object ledtExhibitRef: TLabeledEdit
-      Left = 175
+      Left = 248
       Height = 21
-      Top = 328
-      Width = 137
+      Top = 272
+      Width = 224
       Anchors = [akTop, akLeft, akRight]
       EditLabel.AnchorSideLeft.Control = ledtExhibitRef
       EditLabel.AnchorSideRight.Control = ledtExhibitRef
       EditLabel.AnchorSideRight.Side = asrBottom
       EditLabel.AnchorSideBottom.Control = ledtExhibitRef
-      EditLabel.Left = 175
+      EditLabel.Left = 248
       EditLabel.Height = 13
-      EditLabel.Top = 312
-      EditLabel.Width = 137
+      EditLabel.Top = 256
+      EditLabel.Width = 224
       EditLabel.Caption = 'Exhibit Reference'
       EditLabel.ParentColor = False
-      TabOrder = 3
+      TabOrder = 7
       Text = '...'
     end
     object memNotes: TMemo
       Left = 8
       Height = 24
-      Top = 368
-      Width = 457
+      Top = 344
+      Width = 224
       Anchors = [akTop, akLeft, akRight]
       Lines.Strings = (
         'Unique Exhibit Notes...'
       )
-      TabOrder = 4
+      TabOrder = 12
     end
     object btnChooseImageName: TButton
-      Left = 361
+      Left = 8
       Height = 25
-      Top = 228
-      Width = 104
+      Top = 216
+      Width = 120
       Caption = 'Choose Location'
       OnClick = btnChooseImageNameClick
-      TabOrder = 5
+      TabOrder = 2
     end
     object comboHashChoice: TComboBox
-      Left = 373
+      Left = 248
       Height = 21
-      Top = 272
-      Width = 92
+      Top = 312
+      Width = 96
       ItemHeight = 13
       Items.Strings = (
         'MD5'
@@ -215,46 +216,46 @@ object frmYaffi: TfrmYaffi
         'Use Both'
         'Use None'
       )
-      TabOrder = 6
+      TabOrder = 9
       Text = 'Choose Hash'
     end
     object ComboImageType: TComboBox
-      Left = 8
+      Left = 352
       Height = 21
-      Top = 272
-      Width = 121
+      Top = 216
+      Width = 120
       ItemHeight = 13
       Items.Strings = (
         'E01'
         'DD'
       )
       OnSelect = ComboImageTypeSelect
-      TabOrder = 7
+      TabOrder = 4
       Text = 'Choose Image Type'
     end
     object btnStartImaging: TButton
-      Left = 368
+      Left = 376
       Height = 25
-      Top = 408
-      Width = 99
+      Top = 384
+      Width = 96
       Caption = 'Start Imaging'
       OnClick = btnStartImagingClick
-      TabOrder = 8
+      TabOrder = 14
     end
     object btnAbort: TButton
       Left = 376
       Height = 25
-      Top = 448
-      Width = 75
+      Top = 447
+      Width = 96
       Caption = 'Abort!'
       OnClick = btnAbortClick
-      TabOrder = 9
+      TabOrder = 15
     end
     object ComboSegmentSize: TComboBox
-      Left = 144
+      Left = 360
       Height = 21
-      Top = 272
-      Width = 104
+      Top = 312
+      Width = 96
       ItemHeight = 13
       Items.Strings = (
         '640Mb'
@@ -268,54 +269,54 @@ object frmYaffi: TfrmYaffi
     object ledtCaseName: TLabeledEdit
       Left = 8
       Height = 21
-      Top = 328
-      Width = 136
+      Top = 272
+      Width = 224
       EditLabel.AnchorSideLeft.Control = ledtCaseName
       EditLabel.AnchorSideRight.Control = ledtCaseName
       EditLabel.AnchorSideRight.Side = asrBottom
       EditLabel.AnchorSideBottom.Control = ledtCaseName
       EditLabel.Left = 8
       EditLabel.Height = 13
-      EditLabel.Top = 312
-      EditLabel.Width = 136
+      EditLabel.Top = 256
+      EditLabel.Width = 224
       EditLabel.Caption = 'Case Name'
       EditLabel.ParentColor = False
-      TabOrder = 11
+      TabOrder = 6
       Text = '...'
     end
     object ledtExaminersName: TLabeledEdit
-      Left = 341
+      Left = 8
       Height = 21
-      Top = 328
-      Width = 80
+      Top = 312
+      Width = 224
       EditLabel.AnchorSideLeft.Control = ledtExaminersName
       EditLabel.AnchorSideRight.Control = ledtExaminersName
       EditLabel.AnchorSideRight.Side = asrBottom
       EditLabel.AnchorSideBottom.Control = ledtExaminersName
-      EditLabel.Left = 341
+      EditLabel.Left = 8
       EditLabel.Height = 13
-      EditLabel.Top = 312
-      EditLabel.Width = 80
+      EditLabel.Top = 296
+      EditLabel.Width = 224
       EditLabel.Caption = 'Examiners Name'
       EditLabel.ParentColor = False
-      TabOrder = 12
+      TabOrder = 8
       Text = '...'
     end
     object memGeneralCaseNotes: TMemo
       Left = 8
-      Height = 65
-      Top = 408
-      Width = 345
+      Height = 88
+      Top = 384
+      Width = 361
       Lines.Strings = (
         'General Case Notes...'
       )
       TabOrder = 13
     end
     object ComboCompression: TComboBox
-      Left = 264
+      Left = 248
       Height = 21
-      Top = 272
-      Width = 100
+      Top = 344
+      Width = 96
       ItemHeight = 13
       Items.Strings = (
         'Low (Fast)'
@@ -323,14 +324,14 @@ object frmYaffi: TfrmYaffi
         'None'
       )
       OnSelect = ComboCompressionSelect
-      TabOrder = 14
+      TabOrder = 11
       Text = 'Compression..'
     end
     object cbVerify: TCheckBox
-      Left = 424
+      Left = 352
       Height = 17
       Hint = 'Tick to have the image verified after writing. '#13#10'Arguably totally pointless; a process that dates '#13#10'back to a time when we wrote images to tape. '#13#10'But people still seem to bang on about it.'
-      Top = 328
+      Top = 240
       Width = 53
       Alignment = taLeftJustify
       Caption = 'Verify?'
@@ -338,84 +339,127 @@ object frmYaffi: TfrmYaffi
       ParentShowHint = False
       ShowHint = True
       State = cbChecked
-      TabOrder = 15
+      TabOrder = 5
+    end
+    object ledtComputedHashA: TLabeledEdit
+      Left = 8
+      Height = 21
+      Top = 496
+      Width = 464
+      EditLabel.AnchorSideLeft.Control = ledtComputedHashA
+      EditLabel.AnchorSideRight.Control = ledtComputedHashA
+      EditLabel.AnchorSideRight.Side = asrBottom
+      EditLabel.AnchorSideBottom.Control = ledtComputedHashA
+      EditLabel.Left = 8
+      EditLabel.Height = 13
+      EditLabel.Top = 480
+      EditLabel.Width = 464
+      EditLabel.Caption = 'Device Hash MD5'
+      EditLabel.ParentColor = False
+      TabOrder = 16
+      Text = '...'
+    end
+    object ledtComputedHashB: TLabeledEdit
+      Left = 8
+      Height = 21
+      Top = 544
+      Width = 464
+      EditLabel.AnchorSideLeft.Control = ledtComputedHashB
+      EditLabel.AnchorSideRight.Control = ledtComputedHashB
+      EditLabel.AnchorSideRight.Side = asrBottom
+      EditLabel.AnchorSideBottom.Control = ledtComputedHashB
+      EditLabel.Left = 8
+      EditLabel.Height = 13
+      EditLabel.Top = 528
+      EditLabel.Width = 464
+      EditLabel.Caption = 'Device Hash SHA-1'
+      EditLabel.ParentColor = False
+      TabOrder = 17
+      Text = '...'
+    end
+    object ledtImageHashA: TLabeledEdit
+      Left = 8
+      Height = 21
+      Top = 592
+      Width = 464
+      EditLabel.AnchorSideLeft.Control = ledtImageHashA
+      EditLabel.AnchorSideRight.Control = ledtImageHashA
+      EditLabel.AnchorSideRight.Side = asrBottom
+      EditLabel.AnchorSideBottom.Control = ledtImageHashA
+      EditLabel.Left = 8
+      EditLabel.Height = 13
+      EditLabel.Top = 576
+      EditLabel.Width = 464
+      EditLabel.Caption = 'Image Hash MD5'
+      EditLabel.ParentColor = False
+      Enabled = False
+      TabOrder = 18
+      Text = '...'
+      Visible = False
+    end
+    object ledtImageHashB: TLabeledEdit
+      Left = 8
+      Height = 21
+      Top = 640
+      Width = 464
+      EditLabel.AnchorSideLeft.Control = ledtImageHashB
+      EditLabel.AnchorSideRight.Control = ledtImageHashB
+      EditLabel.AnchorSideRight.Side = asrBottom
+      EditLabel.AnchorSideBottom.Control = ledtImageHashB
+      EditLabel.Left = 8
+      EditLabel.Height = 13
+      EditLabel.Top = 624
+      EditLabel.Width = 464
+      EditLabel.Caption = 'Image Hash SHA-1'
+      EditLabel.ParentColor = False
+      Enabled = False
+      TabOrder = 19
+      Text = '...'
+      Visible = False
     end
   end
-  object ledtComputedHashA: TLabeledEdit
-    Left = 32
-    Height = 21
-    Top = 600
-    Width = 464
-    EditLabel.AnchorSideLeft.Control = ledtComputedHashA
-    EditLabel.AnchorSideRight.Control = ledtComputedHashA
-    EditLabel.AnchorSideRight.Side = asrBottom
-    EditLabel.AnchorSideBottom.Control = ledtComputedHashA
-    EditLabel.Left = 32
-    EditLabel.Height = 13
-    EditLabel.Top = 584
-    EditLabel.Width = 464
-    EditLabel.Caption = 'Device Hash MD5'
-    EditLabel.ParentColor = False
-    TabOrder = 3
-    Text = '...'
+  object Label6: TLabel
+    Left = 16
+    Height = 13
+    Top = 768
+    Width = 12
+    Caption = '...'
+    ParentColor = False
   end
-  object ledtImageHashA: TLabeledEdit
-    Left = 32
-    Height = 21
-    Top = 680
-    Width = 464
-    EditLabel.AnchorSideLeft.Control = ledtImageHashA
-    EditLabel.AnchorSideRight.Control = ledtImageHashA
-    EditLabel.AnchorSideRight.Side = asrBottom
-    EditLabel.AnchorSideBottom.Control = ledtImageHashA
-    EditLabel.Left = 32
-    EditLabel.Height = 13
-    EditLabel.Top = 664
-    EditLabel.Width = 464
-    EditLabel.Caption = 'Image Hash MD5'
-    EditLabel.ParentColor = False
-    Enabled = False
-    TabOrder = 4
-    Text = '...'
-    Visible = False
+  object Label7: TLabel
+    Left = 16
+    Height = 13
+    Top = 792
+    Width = 12
+    Caption = '...'
+    ParentColor = False
   end
-  object ledtImageHashB: TLabeledEdit
-    Left = 32
-    Height = 21
-    Top = 728
-    Width = 464
-    EditLabel.AnchorSideLeft.Control = ledtImageHashB
-    EditLabel.AnchorSideRight.Control = ledtImageHashB
-    EditLabel.AnchorSideRight.Side = asrBottom
-    EditLabel.AnchorSideBottom.Control = ledtImageHashB
-    EditLabel.Left = 32
-    EditLabel.Height = 13
-    EditLabel.Top = 712
-    EditLabel.Width = 464
-    EditLabel.Caption = 'Image Hash SHA-1'
-    EditLabel.ParentColor = False
-    Enabled = False
-    TabOrder = 5
-    Text = '...'
-    Visible = False
+  object lblTotalBytesRead: TLabel
+    AnchorSideRight.Control = Label9
+    Left = 336
+    Height = 13
+    Top = 760
+    Width = 99
+    Anchors = [akTop, akLeft, akRight]
+    BorderSpacing.Right = 5
+    Caption = '...'
+    ParentColor = False
   end
-  object ledtComputedHashB: TLabeledEdit
-    Left = 32
-    Height = 21
-    Top = 640
-    Width = 464
-    EditLabel.AnchorSideLeft.Control = ledtComputedHashB
-    EditLabel.AnchorSideRight.Control = ledtComputedHashB
-    EditLabel.AnchorSideRight.Side = asrBottom
-    EditLabel.AnchorSideBottom.Control = ledtComputedHashB
-    EditLabel.Left = 32
-    EditLabel.Height = 13
-    EditLabel.Top = 624
-    EditLabel.Width = 464
-    EditLabel.Caption = 'Device Hash SHA-1'
-    EditLabel.ParentColor = False
-    TabOrder = 6
-    Text = '...'
+  object Label9: TLabel
+    Left = 440
+    Height = 13
+    Top = 760
+    Width = 4
+    Caption = '/'
+    ParentColor = False
+  end
+  object lbllblTotalBytesSource: TLabel
+    Left = 456
+    Height = 13
+    Top = 760
+    Width = 12
+    Caption = '...'
+    ParentColor = False
   end
   object ImageList1: TImageList
     Height = 32
@@ -813,8 +857,8 @@ object frmYaffi: TfrmYaffi
   object SaveImageDialog: TSaveDialog
     Title = 'Save Image As...'
     DefaultExt = '.dd'
-    left = 448
-    top = 432
+    left = 464
+    top = 288
   end
   object PopupMenu1: TPopupMenu
     left = 208

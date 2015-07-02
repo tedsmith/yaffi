@@ -59,10 +59,15 @@ type
     ComboSegmentSize: TComboBox;
     ComboImageType: TComboBox;
     comboHashChoice: TComboBox;
+    lbllblTotalBytesSource: TLabel;
+    Label6: TLabel;
+    Label7: TLabel;
+    lblTotalBytesRead: TLabel;
+    Label9: TLabel;
+    ledtComputedHashA: TLabeledEdit;
     ledtComputedHashB: TLabeledEdit;
     ledtExaminersName: TLabeledEdit;
     ledtCaseName: TLabeledEdit;
-    ledtImageHashA: TLabeledEdit;
     GroupBox1: TGroupBox;
     ImageList1: TImageList;
     Label1: TLabel;
@@ -70,7 +75,7 @@ type
     Label3: TLabel;
     Label4: TLabel;
     Label5: TLabel;
-    ledtComputedHashA: TLabeledEdit;
+    ledtImageHashA: TLabeledEdit;
     ledtImageHashB: TLabeledEdit;
     ledtImageName: TLabeledEdit;
     ledtExhibitRef: TLabeledEdit;
@@ -86,7 +91,6 @@ type
     SaveImageDialog: TSaveDialog;
     TreeView1: TTreeView;
 
-    // Two procedures below contributed by Paweld :
     // http://forum.lazarus.freepascal.org/index.php/topic,28560.0.html
     procedure btnAbortClick(Sender: TObject);
     procedure btnStartImagingClick(Sender: TObject);
@@ -125,16 +129,18 @@ var
   function VarStrNull(const V:OleVariant):string;
   function GetWMIObject(const objectName: String): IDispatch;
   function VarArrayToStr(const vArray: variant): string;
+  // Imaging functions
   function WindowsImageDiskDD(hDiskHandle : THandle; DiskSize : Int64; HashChoice : Integer; hImageName : THandle) : Int64;
   function VerifyDDImage(hImageName : THandle) : string;
   function WindowsImageDiskE01(hDiskHandle : THandle; SegmentSize : Int64; DiskSize : Int64; HashChoice : Integer) : Int64;
+  // Formatting functions
   function GetDiskLengthInBytes(hSelectedDisk : THandle) : Int64;
   function GetJustDriveLetter(str : widestring) : string;
   function GetDriveIDFromLetter(str : string) : Byte;
   function FormatByteSize(const bytes: QWord): string;
   function GetVolumeName(DriveLetter: Char): string;
   function GetOSName() : string;
-
+  function VerifyE01Image(strImageName : widestring) : string;
   {$endif}
 
 implementation
@@ -277,8 +283,8 @@ var
   DiskInfoProcess          : TProcess;
   DiskInfoProcessUDISKS    : TProcess;
   diskinfo, diskinfoUDISKS : TStringList;
-  i: Integer;
-  stmp: String;
+  i                        : Integer;
+  stmp                     : String;
 begin
 
   if cbdisks.ItemIndex<0 then
@@ -795,6 +801,26 @@ result := -1;
     end;
 end;
 
+// Obtains the name of the host OS for embedding into the E01 image
+// http://free-pascal-lazarus.989080.n3.nabble.com/Lazarus-WindowsVersion-td4032307.html
+function GetOSName() : string;
+var
+  OSVersion : string;
+begin
+  if WindowsVersion = wv95 then OSVersion              := 'Windows 95 '
+   else if WindowsVersion = wvNT4 then OSVersion       := 'Windows NT v.4 '
+   else if WindowsVersion = wv98 then OSVersion        := 'Windows 98 '
+   else if WindowsVersion = wvMe then OSVersion        := 'Windows ME '
+   else if WindowsVersion = wv2000 then OSVersion      := 'Windows 2000 '
+   else if WindowsVersion = wvXP then OSVersion        := 'Windows XP '
+   else if WindowsVersion = wvServer2003 then OSVersion:= 'Windows Server 2003 '
+   else if WindowsVersion = wvVista then OSVersion     := 'Windows Vista '
+   else if WindowsVersion = wv7 then OSVersion         := 'Windows 7 '
+   else OSVersion:= 'MS Windows ';
+  result := OSVersion;
+end;
+
+
 procedure TfrmYaffi.btnStartImagingClick(Sender: TObject);
 const
   // These values are needed for For FSCTL_ALLOW_EXTENDED_DASD_IO to work properly
@@ -817,6 +843,7 @@ var
   BytesReturned                           : DWORD;
   VerificationHash                        : string;
   ImageVerified                           : boolean;
+  StartedAt, EndedAt, VerificationStartedAt, VerificationEndedAt : TDateTime;
 
 begin
   BytesReturned   := 0;
@@ -827,6 +854,10 @@ begin
   ImageTypeChoice := -1;
   SegmentSize     := 0;
   SegmentSize     := InitialiseSegmentSize(nil);
+  StartedAt       := 0;
+  EndedAt         := 0;
+  VerificationStartedAt := 0;
+  VerificationEndedAt := 0;
   SourceDevice    := ledtSelectedItem.Text;
   strImageName    := ledtImageName.Text;
   ImageVerified   := false;
@@ -872,23 +903,44 @@ begin
       // First, compute the exact disk size of the disk or volume
       ExactDiskSize := GetDiskLengthInBytes(hSelectedDisk);
       SectorCount   := ExactDiskSize DIV 512;
+      frmYaffi.lbllblTotalBytesSource.Caption := IntToStr(ExactDiskSize);
 
       // Now image the chosen device, passing the exact size and
       // hash selection and Image name.
       // If InitialiseImageType returns 1, we use E01 and libEWF C library. Otherwise, DD.
       if InitialiseImageType(nil) = 1 then
         begin
+          StartedAt := Now;
          // libEWF takes care of assigning handles to image etc
           ImageResult := WindowsImageDiskE01(hSelectedDisk, SegmentSize, ExactDiskSize, HashChoice);
 
-          // Verify the image
-          if (cbVerify.Checked) and (ImageResult > -1) then
+          If ImageResult = ExactDiskSize then
             begin
-             //VerifyE01Image(strImageName);
-            end;
+            Label6.Caption := 'Imaged OK. ' + IntToStr(ExactDiskSize)+' bytes captured.';
+            EndedAt := Now;
+
+            // Verify the E01 image, if desired by the user
+            if (cbVerify.Checked) and (ImageResult > -1) then
+              begin
+                VerificationStartedAt := Now;
+                VerificationHash := VerifyE01Image(strImageName);
+                if (Length(VerificationHash) = 32) or   // MD5
+                   (Length(VerificationHash) = 40) or   // SHA-1
+                   (Length(VerificationHash) = 73) then // Both hashes with a space char
+                  begin
+                    ImageVerified := true;
+                    Label7.Caption := 'Image re-read OK. Verifies. See log file';
+                  end;
+                VerificationEndedAt := Now;
+              end
+              else ShowMessage('E01 Verification Failed.');
+             end
+          else ShowMessage('Imaging Failed. Only ' + IntToStr(ImageResult) + ' bytes captured.');
+
         end
       else if InitialiseImageType(nil) = 2 then
       begin
+        StartedAt := Now;
         // Assign handle to DD image file
         hImageName := CreateFileW(PWideChar(strImageName), GENERIC_WRITE OR GENERIC_READ,
                      FILE_SHARE_WRITE, nil, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
@@ -904,17 +956,22 @@ begin
 
         If ImageResult = ExactDiskSize then
         begin
-         ShowMessage('Imaged OK. ' + IntToStr(ExactDiskSize)+' bytes captured.');
+         Label6.Caption := 'Imaged OK. ' + IntToStr(ExactDiskSize)+' bytes captured.';
+         EndedAt := Now;
 
          // Verify the DD image, if desired by the user
          if (cbVerify.Checked) and (ImageResult > -1) then
            begin
+             VerificationStartedAt := Now;
              VerificationHash := VerifyDDImage(hImageName);
-             if Length(VerificationHash) > 0 then
+             if (Length(VerificationHash) = 32) or   // MD5
+                (Length(VerificationHash) = 40) or   // SHA-1
+                (Length(VerificationHash) = 73) then // Both hashes with a space char
                begin
                 ImageVerified := true;
-                ShowMessage(VerificationHash);
+                Label7.Caption := 'Image re-read OK. Verifies. See log file';
                end;
+             VerificationEndedAt := Now;
            end;
          end
         else ShowMessage('Imaging Failed. Only ' + IntToStr(ImageResult) + ' bytes captured.');
@@ -927,35 +984,50 @@ begin
         if (hImageName > 0) then
           CloseHandle(hImageName);
       finally
-        //
+        ComboImageType.Text      := 'Choose Image Type';
+        ComboImageType.Enabled   := true;
+        comboHashChoice.Enabled  := true;
+        ComboSegmentSize.Enabled := true;
+        ComboCompression.Enabled := true;
       end;
 
        // Log the actions
       try
         slImagingLog := TStringList.Create;
-        slImagingLog.Add('Image name : ' + ExtractFileName(strImageName));
-        slImagingLog.Add('Full path: ' + ledtImageName.Text);
-        slImagingLog.Add('Device ID : ' + SourceDevice);
-        slImagingLog.Add('Hashing Algorithm : ' + comboHashChoice.Text);
+        slImagingLog.Add('Imaging Software: '          + frmYaffi.Caption);
+        slImagingLog.Add('Imaging Started At: '        + FormatDateTime('dd/mm/yy HH:MM:SS', StartedAt));
+        slImagingLog.Add('By Examiner: '               + ledtExaminersName.Text);
+        slImagingLog.Add('Using operating system: '    + GetOSName);
+        slImagingLog.Add('Username: '                  + SysUtils.GetEnvironmentVariable('USERNAME'));
+        slImagingLog.Add('Case Name: '                 + ledtCaseName.Text);
+        slImagingLog.Add('Exhibit Reference: '         + ledtExhibitRef.Text);
+        slImagingLog.Add('Unique description: '        + memNotes.Text);
+        slImagingLog.Add('General notes: '             + memGeneralCaseNotes.Text);
+        slImagingLog.Add('Image name: '                + ExtractFileName(strImageName));
+        slImagingLog.Add('Full path: '                 + ledtImageName.Text);
+        slImagingLog.Add('Device ID: '                 + SourceDevice);
+        slImagingLog.Add('Device Capacity: '           + FormatByteSize(ImageResult) + ' (' + IntToStr(ImageResult) + ' bytes specifically.)');
+        slImagingLog.Add('Chosen Hash Algorithm: '     + comboHashChoice.Text);
         slImagingLog.Add('Hash(es) of source media : ' + ledtComputedHashA.Text + ' ' + ledtComputedHashB.Text);
-        slImagingLog.Add('Hash(es) of image : ' + ledtImageHashA.Text + ' ' + ledtImageHashB.Text);
+        slImagingLog.Add('Hash of image: MD5: '        + ledtImageHashA.Text);
+        slImagingLog.Add('Hash of image: SHA-1: '      + ledtImageHashB.Text);
+        slImagingLog.Add('Imaging Ended At: '          + FormatDateTime('dd/mm/yy HH:MM:SS', EndedAt));
+
+        if cbVerify.Checked then
+          slImagingLog.Add('Verification enabled');
 
         if ImageVerified = true then
           begin
-           slImagingLog.Add('Image Verified? Yes. ' + VerificationHash);
+           slImagingLog.Add('Image Verified Hash: ' + VerificationHash);
+           slImagingLog.Add('Image verification started at: ' + FormatDateTime('dd/mm/yy HH:MM:SS', VerificationStartedAt));
+           slImagingLog.Add('Image file verification finished at: ' + FormatDateTime('dd/mm/yy HH:MM:SS', VerificationEndedAt));
           end
-        else slImagingLog.Add('Image Verified? No. ');
-
-        slImagingLog.Add(ledtExhibitRef.Text);
-        slImagingLog.Add(memNotes.Text);
+        else slImagingLog.Add('Image Verification failed.');
       finally
-        slImagingLog.SaveToFile(IncludeTrailingPathDelimiter(ExtractFilePath(SaveImageDialog.FileName)) + 'ImageLog.txt');
+        slImagingLog.SaveToFile(IncludeTrailingPathDelimiter(ExtractFilePath(SaveImageDialog.FileName)) + 'ImagingLog.txt');
         slImagingLog.free;
       end;
 
-      ComboImageType.Enabled   := true;
-      comboHashChoice.Enabled  := true;
-      ComboSegmentSize.Enabled := true;
       {
       if not hDiskHandle = INVALID_HANDLE_VALUE then CloseHandle(hDiskHandle);
       if not hImageName = INVALID_HANDLE_VALUE then CloseHandle(hImageName);
@@ -980,7 +1052,7 @@ var
   SHA1ctxImage             : TSHA1Context;
   MD5DigestImage           : TMD5Digest;
   SHA1DigestImage          : TSHA1Digest;
-
+  SystemDateNow            : TDateTime;
   BytesRead                : integer;
 
   TotalBytesRead, BytesWritten, TotalBytesWritten : Int64;
@@ -1026,6 +1098,8 @@ begin
           end;
         inc(TotalBytesRead, BytesRead);
 
+        frmYaffi.lblTotalBytesRead.Caption := IntToStr(TotalBytesRead);
+
         BytesWritten  := FileWrite(hImageName, Buffer, BytesRead);
         if BytesWritten = -1 then
           begin
@@ -1033,6 +1107,8 @@ begin
             exit;
           end;
         inc(TotalBytesWritten, BytesWritten);
+
+
 
         // Hash the bytes read and\or written using the algorithm required
         // If the user selected no hashing, break the loop immediately; faster
@@ -1171,7 +1247,7 @@ var
   BytesRead                            : integer;
   TotalBytesRead, ImageFileSize        : Int64;
 
-  strMD5Hash, strSHA1Hash              : string;
+  MD5HashIs, SHA1HashIs, strMD5Hash, strSHA1Hash              : string;
 
 begin
   BytesRead      := 0;
@@ -1218,7 +1294,11 @@ begin
         end;
       until TotalBytesRead = ImageFileSize;
       MD5Final(MD5ctxImageVerification, MD5ImageVerificationDigest);
-      result := Uppercase(MD5Print(MD5ImageVerificationDigest));
+      MD5HashIs := Uppercase(MD5Print(MD5ImageVerificationDigest));
+
+      if MD5HashIs = Trim(frmYaffi.ledtImageHashA.Text) then
+        result := MD5HashIs
+      else result := 'MD-5 Verification failed!';
     end;
 
     // If SHA1 hash was chosen, compute the SHA1 hash of the image
@@ -1241,7 +1321,11 @@ begin
         end;
       until TotalBytesRead = ImageFileSize;
       SHA1Final(SHA1ctxImageVerification, SHA1ImageVerificationDigest);
-      result := Uppercase(SHA1Print(SHA1ImageVerificationDigest));
+      SHA1HashIs := Uppercase(SHA1Print(SHA1ImageVerificationDigest));
+
+      if SHA1HashIs = Trim(frmYaffi.ledtImageHashB.Text) then
+        result := SHA1HashIs
+      else result := 'SHA-1 Verification failed!';
     end;
 
     // If MD5 & SHA1 hashes were chosen, compute both
@@ -1268,7 +1352,10 @@ begin
       SHA1Final(SHA1ctxImageVerification, SHA1ImageVerificationDigest);
       strMD5Hash := Uppercase(MD5Print(MD5ImageVerificationDigest));
       strSHA1Hash := Uppercase(SHA1Print(SHA1ImageVerificationDigest));
-      result := strMD5Hash + ' ' + strSHA1Hash;
+
+      if (strMD5Hash = Trim(frmYaffi.ledtImageHashA.Text)) and (strSHA1Hash = Trim(frmYaffi.ledtImageHashB.Text)) then
+        result := strMD5Hash + ' ' + strSHA1Hash
+      else result := 'Multiple hash verification failed';
     end;
 end;
 
@@ -1302,7 +1389,7 @@ var
   strError                 : string;
 
   TotalBytesRead, BytesWritten, TotalBytesWritten : Int64;
-  SystemDateNow : TDateTime;
+
   fLibEWF: TLibEWF;
 
 begin
@@ -1313,7 +1400,7 @@ begin
   CompressionChoice   := -1;
 
   // Create the libEWF instance and ensure the DLL is found
-  fLibEWF:=TLibEWF.create;
+  fLibEWF := TLibEWF.create;
   // Now open the E01 image file with write access
   if fLibEWF.libewf_open(frmYaffi.ledtImageName.Text,LIBEWF_OPEN_WRITE) = 0 then
   begin
@@ -1399,6 +1486,7 @@ begin
               exit;
             end;
           inc(TotalBytesWritten, BytesWritten);
+          frmYaffi.lblTotalBytesRead.Caption := IntToStr(TotalBytesRead);
 
           // Hash the bytes read and\or written using the algorithm required
           // If the user sel;ected no hashing, break the loop immediately; faster
@@ -1436,7 +1524,7 @@ begin
           begin
             // Disk hash
             frmYaffi.ledtComputedHashA.Clear;
-            frmYaffi.ledtComputedHashA.Text := Uppercase('MD5: ' + MD5Print(MD5Digest));
+            frmYaffi.ledtComputedHashA.Text := Uppercase(MD5Print(MD5Digest));
             // Image hash
             frmYaffi.ledtImageHashA.Clear;
             frmYaffi.ledtImageHashB.Clear;
@@ -1444,7 +1532,7 @@ begin
             frmYaffi.ledtImageHashA.Visible := true;
             frmYaffi.ledtImageHashB.Enabled := false;
             frmYaffi.ledtImageHashB.Visible := false;
-            frmYaffi.ledtImageHashA.Text    := 'MD5: ' + Uppercase(MD5Print(MD5DigestImage));
+            frmYaffi.ledtImageHashA.Text    := Uppercase(MD5Print(MD5DigestImage));
             // Store the MD5 hash inside the E01
             fLibEWF.libewf_handle_set_md5_hash(@MD5DigestImage, SizeOF(MD5DigestImage));
           end;
@@ -1458,7 +1546,7 @@ begin
               begin
                 // Disk Hash
                 frmYaffi.ledtComputedHashA.Clear;
-                frmYaffi.ledtComputedHashA.Text := Uppercase('SHA-1: ' + SHA1Print(SHA1Digest));
+                frmYaffi.ledtComputedHashA.Text := Uppercase(SHA1Print(SHA1Digest));
                 // Image Hash
                 frmYaffi.ledtImageHashA.Clear;
                 frmYaffi.ledtImageHashB.Clear;
@@ -1466,7 +1554,7 @@ begin
                 frmYaffi.ledtImageHashA.Visible := false;
                 frmYaffi.ledtImageHashB.Enabled := true;
                 frmYaffi.ledtImageHashB.Visible := true;
-                frmYaffi.ledtImageHashB.Text    := 'SHA-1 : ' + Uppercase(SHA1Print(SHA1DigestImage));
+                frmYaffi.ledtImageHashB.Text    := Uppercase(SHA1Print(SHA1DigestImage));
                 fLibEWF.libewf_handle_set_sha1_hash(@SHA1DigestImage, SizeOf(SHA1DigestImage));
               end;
             end
@@ -1491,10 +1579,10 @@ begin
                      frmYaffi.ledtImageHashB.Clear;
                      frmYaffi.ledtImageHashA.Enabled := true;
                      frmYaffi.ledtImageHashA.Visible := true;
-                     frmYaffi.ledtImageHashA.Text    := 'MD5: ' + Uppercase(MD5Print(MD5DigestImage));
+                     frmYaffi.ledtImageHashA.Text    := Uppercase(MD5Print(MD5DigestImage));
                      frmYaffi.ledtImageHashB.Enabled := true;
                      frmYaffi.ledtImageHashB.Visible := true;
-                     frmYaffi.ledtImageHashB.Text    := 'SHA-1 : ' + Uppercase(SHA1Print(SHA1DigestImage));
+                     frmYaffi.ledtImageHashB.Text    := Uppercase(SHA1Print(SHA1DigestImage));
                      // Store both hashes inside the E01
                      fLibEWF.libewf_handle_set_md5_hash(@MD5DigestImage, SizeOF(MD5DigestImage));
                      fLibEWF.libewf_handle_set_SHA1_hash(@SHA1DigestImage, SizeOf(SHA1DigestImage));
@@ -1517,23 +1605,145 @@ begin
   result := TotalBytesRead;
 end;
 
-
-function GetOSName() : string;
+// Computes the hashes of the created E01 image and compares against the computed hash
+// generated during imaging
+function VerifyE01Image(strImageName : widestring) : string;
 var
-  OSVersion : string;
+  MD5ctxImageVerification              : TMD5Context;
+  MD5ImageVerificationDigest           : TMD5Digest;
+
+  SHA1ctxImageVerification             : TSHA1Context;
+  SHA1ImageVerificationDigest          : TSHA1Digest;
+
+  Buffer                               : array [0..32767] of byte;
+  BytesRead                            : integer;
+  TotalBytesRead, ImageFileSize        : Int64;
+
+  MD5HashIs, SHA1HashIs, strMD5Hash, strSHA1Hash              : string;
+
+  fLibEWFVerificationInstance : TLibEWF;
+
 begin
-  if WindowsVersion = wv95 then OSVersion := 'Windows 95 '
-   else if WindowsVersion = wvNT4 then OSVersion := 'Windows NT v.4 '
-   else if WindowsVersion = wv98 then OSVersion := 'Windows 98 '
-   else if WindowsVersion = wvMe then OSVersion := 'Windows ME '
-   else if WindowsVersion = wv2000 then OSVersion := 'Windows 2000 '
-   else if WindowsVersion = wvXP then OSVersion := 'Windows XP '
-   else if WindowsVersion = wvServer2003 then OSVersion := 'Windows Server 2003 '
-   else if WindowsVersion = wvVista then OSVersion := 'Windows Vista '
-   else if WindowsVersion = wv7 then OSVersion := 'Windows 7 '
-   else OSVersion:= 'MS Windows ';
-  result := OSVersion;
+  BytesRead      := 0;
+  TotalBytesRead := 0;
+  ImageFileSize  := 0;
+  strMD5Hash     := '';
+  strSHA1Hash    := '';
+  ImageFileSize := 0;
+
+  // Initialise new hashing digests
+
+  if HashChoice = 1 then
+    begin
+    MD5Init(MD5ctxImageVerification);
+    end
+    else if HashChoice = 2 then
+      begin
+      SHA1Init(SHA1ctxImageVerification);
+      end
+        else if HashChoice = 3 then
+          begin
+           MD5Init(MD5ctxImageVerification);
+           SHA1Init(SHA1ctxImageVerification);
+          end;
+
+    // Create the libEWF instance and ensure the DLL is found
+     fLibEWFVerificationInstance := TLibEWF.create;
+     // Now open the E01 image file with write access
+     if fLibEWFVerificationInstance.libewf_open(strImageName, LIBEWF_OPEN_READ) = 0 then
+     begin
+        ImageFileSize := fLibEWFVerificationInstance.libewf_handle_get_media_size();
+
+        // If MD5 hash was chosen, compute the MD5 hash of the image
+
+        if HashChoice = 1 then
+        begin
+          fLibEWFVerificationInstance.libewf_handle_seek_offset(0, 0);
+          repeat
+          // Read the E01 image file in buffered blocks. Hash each block as we go
+            BytesRead     := fLibEWFVerificationInstance.libewf_handle_read_buffer(@Buffer, SizeOf(Buffer));
+            if BytesRead = -1 then
+              begin
+                RaiseLastOSError;
+                exit;
+              end
+            else
+            begin
+              inc(TotalBytesRead, BytesRead);
+              MD5Update(MD5ctxImageVerification, Buffer, BytesRead);
+            end;
+          until TotalBytesRead = ImageFileSize;
+
+          MD5Final(MD5ctxImageVerification, MD5ImageVerificationDigest);
+          MD5HashIs := Uppercase(MD5Print(MD5ImageVerificationDigest));
+
+          if MD5HashIs = Trim(frmYaffi.ledtImageHashA.Text) then
+            result := MD5HashIs
+          else result := 'MD-5 Verification failed!';
+        end;   // End of HashChoice 1
+
+        // If SHA1 hash was chosen, compute the SHA1 hash of the image
+
+        if HashChoice = 2 then
+        begin
+         fLibEWFVerificationInstance.libewf_handle_seek_offset(0, 0);
+          repeat
+            // Read the E01 image file in buffered blocks. Hash each block as we go
+            BytesRead     := fLibEWFVerificationInstance.libewf_handle_read_buffer(@Buffer, SizeOf(Buffer));
+            if BytesRead = -1 then
+              begin
+                RaiseLastOSError;
+                exit;
+              end
+            else
+            begin
+              inc(TotalBytesRead, BytesRead);
+              SHA1Update(SHA1ctxImageVerification, Buffer, BytesRead);
+            end;
+          until TotalBytesRead = ImageFileSize;
+
+          SHA1Final(SHA1ctxImageVerification, SHA1ImageVerificationDigest);
+          SHA1HashIs := Uppercase(SHA1Print(SHA1ImageVerificationDigest));
+
+          if SHA1HashIs = Trim(frmYaffi.ledtImageHashB.Text) then
+            result := SHA1HashIs
+          else result := 'SHA-1 Verification failed!';
+        end; // End of HashChoice 2
+
+        // If MD5 & SHA1 hashes were chosen, compute both
+
+        if HashChoice = 3 then
+        begin
+         fLibEWFVerificationInstance.libewf_handle_seek_offset(0, 0);
+          repeat
+            // Read the E01 image file in buffered blocks. Hash each block as we go
+            BytesRead     := fLibEWFVerificationInstance.libewf_handle_read_buffer(@Buffer, SizeOf(Buffer));
+            if BytesRead = -1 then
+              begin
+                RaiseLastOSError;
+                exit;
+              end
+            else
+            begin
+              inc(TotalBytesRead, BytesRead);
+              MD5Update(MD5ctxImageVerification, Buffer, BytesRead);
+              SHA1Update(SHA1ctxImageVerification, Buffer, BytesRead);
+            end;
+          until TotalBytesRead = ImageFileSize;
+
+          MD5Final(MD5ctxImageVerification, MD5ImageVerificationDigest);
+          SHA1Final(SHA1ctxImageVerification, SHA1ImageVerificationDigest);
+          strMD5Hash := Uppercase(MD5Print(MD5ImageVerificationDigest));
+          strSHA1Hash := Uppercase(SHA1Print(SHA1ImageVerificationDigest));
+
+          if (strMD5Hash = Trim(frmYaffi.ledtImageHashA.Text)) and (strSHA1Hash = Trim(frmYaffi.ledtImageHashB.Text)) then
+            result := strMD5Hash + ' ' + strSHA1Hash
+          else result := 'Multiple hash verification failed';
+        end;  // End of HashChoice 3
+     end // End of E01 Open statement
+     else ShowMessage('Unable to open E01 image file for verification');
 end;
+
 
 {$endif}
 end.

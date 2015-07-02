@@ -82,7 +82,8 @@ type
 
   // Added by SMITH for better fault detection in the event of BytesWrite failure
   TLibEWFErrorSPrint             = function (error: pointer; str: pchar; size: TSIZE) : TINT16; cdecl;
-  // Added by SMITH for creating new, valid, EWF E01 file with libewf_handle_write_buffer.
+  // Added by SMITH for reading and creating new, valid, EWF E01 file with libewf_handle_read_buffer and libewf_handle_write_buffer.
+  Tlibewfhandlereadbuffer        = function(handle : PLIBEWFHDL; buffer : pointer; size : TSIZE; error:pointer) : integer; cdecl;
   Tlibewfhandlewritebuffer       = function(handle : PLIBEWFHDL; buffer : pointer; size : TSIZE; error:pointer) : integer; cdecl;
   TlibewfhandlesetMD5hash        = function(handle : PLIBEWFHDL; md5_hash : Pointer; size : TSIZE; error:pointer) : integer; cdecl;
   TlibewfhandlesetSHA1hash       = function(handle : PLIBEWFHDL; sha1_hash : Pointer; size : TSIZE; error:pointer) : integer; cdecl;
@@ -91,6 +92,7 @@ type
   Tlibewfhandlesetmaximumsegmentsize= function(handle : PLIBEWFHDL; size : TSIZE64; error:pointer) : integer;  cdecl;
   Tlibewfhandlesetformat         = function(handle : PLIBEWFHDL; Format : TUINT8; error:pointer) : integer; cdecl;
   Tlibewfhandlesetmediaflags     = function(handle : PLIBEWFHDL; volume_type : TUINT8; error:pointer) : integer; cdecl;
+  Tlibewfhandleseekoffset        = function(handle : PLIBEWFHDL; Offset : TSIZE64; whence : TSIZE; error:pointer) : integer; cdecl;
   {/*
     * TLibEWF - class providing Delphi bindings to a subset of libewf functions (only those required for reading at present).
     */}
@@ -137,6 +139,7 @@ type
     // Added by SMITH for better fault detection in the event of BytesWrite failure
     fLibEWFErrorSPrint : TLibEWFErrorSPrint;
     // Added by SMITH 2015 for full compliant write to EWF E01 file
+    flibewfhandlereadbuffer : Tlibewfhandlereadbuffer;
     flibewfhandlewritebuffer : Tlibewfhandlewritebuffer;
     flibewfhandlesetMD5hash :  TlibewfhandlesetMD5hash;
     flibewfhandlepreparewritechunk : Tlibewfhandlepreparewritechunk;
@@ -145,6 +148,7 @@ type
     flibewfhandlesetmaximumsegmentsize : Tlibewfhandlesetmaximumsegmentsize;
     flibewfhandlesetformat : Tlibewfhandlesetformat;
     flibewfhandlesetmediaflags : Tlibewfhandlesetmediaflags;
+    flibewfhandleseekoffset : Tlibewfhandleseekoffset;
   public
     constructor create();
     destructor destroy(); override;
@@ -152,7 +156,7 @@ type
     function libewf_open(const filename : ansistring;flag:byte=$1) : integer;
     function libewf_read_random(buffer : pointer; size : longword; offset : int64) : integer;
     function libewf_write_random(buffer : pointer; size : longword; offset : int64) : integer;
-    function libewf_get_media_size() : int64;
+    function libewf_handle_get_media_size() : int64;
     function libewf_parse_header_values_deprecated(date_format : byte) : integer;
     function libewf_close() : integer;
     function libewf_SetCompressionValues(level,flags:byte) : integer;
@@ -160,6 +164,7 @@ type
     function libewf_GetHeaderValue(identifier:ansistring;var value:ansistring) : integer;
     function libewf_GetHashValue(identifier:ansistring;var value:ansistring) : integer;
     // Added by SMITH 2015
+    function libewf_handle_read_buffer(Buffer : Pointer; size : longword) : integer;
     function libewf_handle_write_buffer(Buffer : Pointer; size : longword) : integer;
     function libewf_handle_set_md5_hash(md5_hash : Pointer; size : TSIZE) : integer;
     function libewf_handle_prepare_write_chunk(ChunkBuffer : Pointer; ChunkBufferSize, CompressedChunkBufferSize : integer; size : Longword) : integer;
@@ -168,6 +173,7 @@ type
     function libewf_handle_set_maximum_segment_size(size : TSIZE64) : integer;
     function libewf_handle_set_format(Format : TUINT8) : integer;
     function libewf_handle_set_media_flags(volume_type : TUINT8) : integer;
+    function libewf_handle_seek_offset(Offset : TSIZE64; Whence : TSIZE) : integer;
   end;
 
 const
@@ -225,6 +231,7 @@ begin
       // Added by Smith 2015 for better fault reporting in the event of write failure to image
       @fLibEWFErrorSPrint               :=GetProcAddress(fLibHandle,'_libewf_error_backtrace_sprint');
       // Added by Smith 2015
+      @flibewfhandlereadbuffer          :=GetProcAddress(fLibHandle, '_libewf_handle_read_buffer');
       @flibEWFhandlewritebuffer         :=GetProcAddress(fLibHandle, '_libewf_handle_write_buffer');
       @flibewfhandlesetSHA1hash         :=GetProcAddress(fLibHandle, '_libewf_handle_set_sha1_hash');
       @flibewfhandlesetMD5hash          :=GetProcAddress(fLibHandle, '_libewf_handle_set_md5_hash');
@@ -233,6 +240,7 @@ begin
       @flibewfhandlesetmaximumsegmentsize:=GetProcAddress(fLibHandle, '_libewf_handle_set_maximum_segment_size');
       @flibewfhandlesetformat           :=GetProcAddress(fLibHandle, '_libewf_handle_set_format');
       @flibewfhandlesetmediaflags       :=GetProcAddress(fLibHandle, '_libewf_handle_set_media_flags');
+      @flibewfhandleseekoffset          :=GetProcAddress(fLibHandle, '_libewf_handle_seek_offset');
     end;
   end
   else showmessage('could not find libewf.dll');
@@ -427,9 +435,66 @@ begin
 
 end;
 
-{ Added by Smith 2015
-  @param md5_hash is a pointer the computed MD5 hash digest
-  @param Size is the size of the hash string itself
+// Used to read and then verify the newly created E01 file
+function TLibEWF.libewf_handle_read_buffer(Buffer : Pointer; size : longword) : integer;
+var
+  err:pointer;
+  strError : string;
+begin
+  err:=nil;
+  Result:=-1;
+  if fLibHandle<>0 then
+  begin
+    if LIBEWF_VERSION='V2' then
+    Result:=flibEWFhandlereadbuffer(fCurEWFHandle,
+                                    buffer,
+                                    size,
+                                    @err);
+  end;
+
+  // This will throw a more specific error than generic system messages
+  if result = -1 then
+  begin
+    SetLength(strError, 512);
+    fLibEWFErrorSPrint(err, @strError[1], Length(strError));
+    ShowMessage(strError);
+  end;
+
+end;
+
+// We can't use FileSeek on an libEWF handle, so we use libewf_handle_seek_offset
+// to ensure we start at offset zero of the opened E01 image, ready for verification
+// Returns 1 if successful. -1 if error.
+function TLibEWF.libewf_handle_seek_offset(Offset : TSIZE64; Whence : TSIZE) : integer;
+var
+  err:pointer;
+  strError : string;
+begin
+  err:=nil;
+   Result:=-1;
+
+   if fLibHandle<>0 then
+   begin
+     if LIBEWF_VERSION='V2' then
+     Result:=flibewfhandleseekoffset(fCurEWFHandle,
+                                     Offset,
+                                     Whence,
+                                     @err);
+   end;
+
+   // This will throw a more specific error than generic system messages
+   if result = -1 then
+   begin
+     SetLength(strError, 512);
+     fLibEWFErrorSPrint(err, @strError[1], Length(strError));
+     ShowMessage(strError);
+   end;
+
+end;
+
+{
+  md5_hash is a pointer the computed MD5 hash digest
+  Size is the size of the hash string itself
   Returns 1 if successful. 0 if empty. -1 if error.
 }
 function TLibEWF.libewf_handle_set_md5_hash(md5_hash : Pointer; size : TSIZE) : integer;
@@ -459,9 +524,8 @@ begin
 
 end;
 
-{ Added by Smith 2015
-  @param sha1_hash is a pointer the computed SHA-1 hash digest
-  @param Size is the size of the hash itself
+{ sha1_hash is a pointer the computed SHA-1 hash digest
+  Size is the size of the hash itself
   Returns 1 if successful. 0 if empty. -1 if error.
 }
 function TLibEWF.libewf_handle_set_SHA1_hash(sha1_hash : Pointer; size : TSIZE) : integer;
@@ -490,6 +554,8 @@ begin
   end;
 end;
 
+// Sets the E01 segmentation size to whatever size is passed to it.
+// EWF specification is 2Gb as preferred.
 function TLibEWF.libewf_handle_set_maximum_segment_size(Size : TSIZE64) : integer;
 // https://github.com/libyal/libewf/blob/54b0eada69defd015c49e4e1e1e4e26a27409ba3/include/libewf.h.in#L631
 var
@@ -808,22 +874,22 @@ end;
   * Get the total true size of the EWF file.
   * @return The size of the ewf file in bytes, -1 if unsuccessful.
   */}
-function TLibEWF.libewf_get_media_size() : int64;
+function TLibEWF.libewf_handle_get_media_size() : int64;
 var
   resInt64 :Int64;
   err:pointer;
+  strError : Pointer;
 begin
   err:=nil;
   Result:=-1;
   resInt64:=-1;
   if (fLibHandle<>0) and (fCurEWFHandle<>nil) then
   begin
-    if libewf_version='V1' then fLibEWFGetSize(fCurEWFHandle,@resInt64);
+    //if libewf_version='V1' then fLibEWFGetSize(fCurEWFHandle,@resInt64);
     if libewf_version='V2' then flibewfhandlegetmediasize (fCurEWFHandle,
                                                           @resInt64,
                                                           @err);
     Result:=resInt64;
-    //Result:=fLibEWFGetSize(fCurEWFHandle); //v1
   end;
 end;
 
