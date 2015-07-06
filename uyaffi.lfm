@@ -1,7 +1,7 @@
 object frmYaffi: TfrmYaffi
-  Left = 530
+  Left = 1612
   Height = 817
-  Top = 11
+  Top = 185
   Width = 524
   Caption = 'YAFFI (Yet Another Free Forensic Imager) by Ted Smith (c) 2015'
   ClientHeight = 817
@@ -866,6 +866,10 @@ object frmYaffi: TfrmYaffi
     object menShowDiskManager: TMenuItem
       Caption = 'Show Disk Manager'
       OnClick = menShowDiskManagerClick
+    end
+    object memWipeDisk: TMenuItem
+      Caption = 'Wipe this disk!'
+      OnClick = memWipeDiskClick
     end
   end
 end

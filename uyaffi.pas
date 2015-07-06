@@ -87,6 +87,7 @@ type
     memNotes: TMemo;
     memGeneralCaseNotes: TMemo;
     menShowDiskManager: TMenuItem;
+    memWipeDisk: TMenuItem;
     PopupMenu1: TPopupMenu;
     SaveImageDialog: TSaveDialog;
     TreeView1: TTreeView;
@@ -100,6 +101,7 @@ type
     procedure ComboImageTypeSelect(Sender: TObject);
     procedure ComboSegmentSizeSelect(Sender: TObject);
     procedure FormCreate(Sender: TObject);
+    procedure memWipeDiskClick(Sender: TObject);
     procedure menShowDiskManagerClick(Sender: TObject);
     procedure TreeView1SelectionChanged(Sender: TObject);
     function InitialiseHashChoice(Sender : TObject) : Integer;
@@ -186,6 +188,59 @@ begin
   GroupBox1.Enabled := false;
   GroupBox1.Visible := false;
   {$endif}
+end;
+
+// Wipes a selected disk on right click, if the user chooses it.
+procedure TfrmYaffi.memWipeDiskClick(Sender: TObject);
+var
+  DiskToWipe : widestring;
+  TotalBytesWritten, ExactDiskSize : Int64;
+  BytesWritten : integer;
+  Buffer       : array [0..32767] of Byte;   // 1048576 (1Mb) or 262144 (240Kb) or 131072 (120Kb buffer) or 65536 (64Kb buffer)
+  hDiskToWipe  : THandle;
+
+begin
+  TotalBytesWritten := 0;
+  BytesWritten      := 0;
+  ExactDiskSize     := 0;
+  DiskToWipe        := frmYaffi.TreeView1.Selected.Text;
+
+  FillChar(Buffer, SizeOf(Buffer), 0); // Initialise the zero buffer
+
+  // Create WRITE handle to source disk. Abort if fails
+  hDiskToWipe := CreateFileW(PWideChar(DiskToWipe), GENERIC_READ OR GENERIC_WRITE,
+                   FILE_SHARE_READ OR FILE_SHARE_WRITE, nil, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, 0);
+
+  // Check if handle is valid before doing anything else
+  if hDiskToWipe = INVALID_HANDLE_VALUE then
+  begin
+    RaiseLastOSError;
+  end;
+
+  if hDiskToWipe > -1 then
+  begin
+    ExactDiskSize := GetDiskLengthInBytes(hDiskToWipe);
+    FileSeek(hDiskToWipe, 0, 0);
+    ShowMessage('Wiping ' + IntToStr(ExactDiskSize) + ' bytes of ' + DiskToWipe);
+    repeat
+      // TODO : OS Code 19 or OS Code 5 raised. Unable to write to media.
+      // Look into how to write to disks...this seems insufficient
+      BytesWritten  := FileWrite(hDiskToWipe, Buffer, SizeOf(Buffer));
+      if BytesWritten = -1 then
+        begin
+          RaiseLastOSError;
+          exit;
+        end;
+      inc(TotalBytesWritten, BytesWritten);
+//      ShowMessage('Total wiped: ' + IntToStr(TotalBytesWritten));
+    until TotalBytesWritten = ExactDiskSize;
+    ShowMessage('Wiped OK');
+    try
+    if (hDiskToWipe > 0) then
+      CloseHandle(hDiskToWipe);
+    finally
+    end;
+  end;
 end;
 
 procedure TfrmYaffi.Button1Click(Sender: TObject);
