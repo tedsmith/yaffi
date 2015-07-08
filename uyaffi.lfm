@@ -6,8 +6,10 @@ object frmYaffi: TfrmYaffi
   Caption = 'YAFFI (Yet Another Free Forensic Imager) by Ted Smith (c) 2015'
   ClientHeight = 817
   ClientWidth = 524
+  DefaultMonitor = dmDesktop
   OnCreate = FormCreate
   OnShow = Button1Click
+  Position = poDesktopCenter
   LCLVersion = '1.4.0.4'
   object cbdisks: TComboBox
     Left = 64

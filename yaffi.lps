@@ -23,8 +23,8 @@
         <IsVisibleTab Value="True"/>
         <EditorIndex Value="1"/>
         <WindowIndex Value="1"/>
-        <TopLine Value="1403"/>
-        <CursorPos X="18" Y="1328"/>
+        <TopLine Value="1313"/>
+        <CursorPos X="22" Y="1336"/>
         <UsageCount Value="141"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
@@ -102,7 +102,7 @@
         <UsageCount Value="6"/>
       </Unit9>
     </Units>
-    <JumpHistory Count="30" HistoryIndex="29">
+    <JumpHistory Count="29" HistoryIndex="28">
       <Position1>
         <Filename Value="UYaffi.pas"/>
         <Caret Line="1313" Column="14" TopLine="1304"/>
@@ -219,10 +219,6 @@
         <Filename Value="UYaffi.pas"/>
         <Caret Line="1217" Column="9" TopLine="1185"/>
       </Position29>
-      <Position30>
-        <Filename Value="UYaffi.pas"/>
-        <Caret Line="1318" Column="45" TopLine="1390"/>
-      </Position30>
     </JumpHistory>
   </ProjectSession>
   <Debugging>
