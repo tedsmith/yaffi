@@ -132,8 +132,8 @@ var
   function GetWMIObject(const objectName: String): IDispatch;
   function VarArrayToStr(const vArray: variant): string;
   // Imaging functions
-  function WindowsImageDiskDD(hDiskHandle : THandle; DiskSize : Int64; HashChoice : Integer; hImageName : THandle) : Int64;
-  function VerifyDDImage(hImageName : THandle; ImageFileSize : Int64) : string;
+  function WindowsImageDiskDD(hDiskHandle : THandle; DiskSize : Int64; HashChoice : Integer; fsImageName : TFileStream) : Int64;
+  function VerifyDDImage(fsImageName : TFileStream; ImageFileSize : Int64) : string;
   function WindowsImageDiskE01(hDiskHandle : THandle; SegmentSize : Int64; DiskSize : Int64; HashChoice : Integer) : Int64;
   // Formatting functions
   function GetDiskLengthInBytes(hSelectedDisk : THandle) : Int64;
@@ -326,6 +326,7 @@ procedure TfrmYaffi.ComboSegmentSizeSelect(Sender: TObject);
 begin
   frmYaffi.InitialiseSegmentSize(nil);
 end;
+
 
 procedure TfrmYaffi.ComboCompressionSelect(Sender: TObject);
 begin
@@ -895,7 +896,7 @@ const
 
 var
   SourceDevice, strImageName              : widestring;
-  hSelectedDisk, hImageName               : THandle;
+  hSelectedDisk                           : THandle;
   ExactDiskSize, SectorCount, ImageResult,
     SegmentSize, ImageFileSize            : Int64;
   ImageTypeChoice                         : integer;
@@ -904,6 +905,8 @@ var
   VerificationHash                        : string;
   ImageVerified                           : boolean;
   StartedAt, EndedAt, VerificationStartedAt, VerificationEndedAt : TDateTime;
+
+  fsImageName : TFileStream;
 
 
 begin
@@ -974,6 +977,8 @@ begin
       // Now image the chosen device, passing the exact size and
       // hash selection and Image name.
       // If InitialiseImageType returns 1, we use E01 and libEWF C library. Otherwise, DD.
+
+      // E01 IMAGE
       if InitialiseImageType(nil) = 1 then
         begin
           StartedAt := Now;
@@ -1002,71 +1007,48 @@ begin
               else ShowMessage('E01 Verification Failed.');
              end
           else ShowMessage('Imaging Failed. Only ' + IntToStr(ImageResult) + ' bytes captured.');
-
         end
+
+      // DD IMAGE
       else if InitialiseImageType(nil) = 2 then
-      begin
-        StartedAt := Now;
-        // Assign handle to DD image file
-        hImageName := CreateFileW(PWideChar(strImageName),
-                                  GENERIC_WRITE OR GENERIC_READ,
-                                  FILE_SHARE_WRITE,
-                                  nil,
-                                  CREATE_ALWAYS,
-                                  FILE_ATTRIBUTE_NORMAL,
-                                  0);
-
-        // Check if handle to DD image file is valid before doing anything else
-        if hImageName = INVALID_HANDLE_VALUE then
-          begin
-            RaiseLastOSError;
-          end;
-
-        // Image hSelectedDisk to hImageName, returning the number of bytes read
-        ImageResult := WindowsImageDiskDD(hSelectedDisk, ExactDiskSize, HashChoice, hImageName);
-
-        If ImageResult = ExactDiskSize then
         begin
-         Label6.Caption := 'Imaged OK. ' + IntToStr(ExactDiskSize)+' bytes captured.';
-         EndedAt := Now;
+          StartedAt := Now;
+          // Create a filestream for the output image file
+          fsImageName := TFileStream.Create(Trim(ledtImageName.Text), fmCreate);
 
-         // Verify the DD image, if desired by the user
-         if (cbVerify.Checked) and (ImageResult > -1) then
-           begin
-            // Close the write enabled handle
-            CloseHandle(hImageName);
-            // Use a better file size function to obtain the image file size
-            ImageFileSize := FileSize(strImageName);
-            // Now open a read-only handle to the image for the verification function
-            hImageName := CreateFileW(PWideChar(strImageName),
-                                      GENERIC_READ,
-                                      0,
-                                      nil,
-                                      OPEN_EXISTING,
-                                      FILE_ATTRIBUTE_NORMAL,
-                                      0);
+          // Image hSelectedDisk to fsImageName, returning the number of bytes read
+          ImageResult := WindowsImageDiskDD(hSelectedDisk, ExactDiskSize, HashChoice, fsImageName);
 
-             VerificationStartedAt := Now;
-             VerificationHash := VerifyDDImage(hImageName, ImageFileSize);
-             if (Length(VerificationHash) = 32) or   // MD5
-                (Length(VerificationHash) = 40) or   // SHA-1
-                (Length(VerificationHash) = 73) then // Both hashes with a space char
-               begin
-                ImageVerified := true;
-                Label7.Caption := 'Image re-read OK. Verifies. See log file';
-               end;
-             VerificationEndedAt := Now;
-           end;
-         end
-        else ShowMessage('Imaging Failed. Only ' + IntToStr(ImageResult) + ' bytes captured.');
-      end;
+          If ImageResult = ExactDiskSize then
+          begin
+           Label6.Caption := 'Imaged OK. ' + IntToStr(ExactDiskSize)+' bytes captured.';
+           EndedAt := Now;
 
-      // Release existing handles to disk and image
+           // Verify the DD image, if desired by the user
+           if (cbVerify.Checked) and (ImageResult > -1) then
+             begin
+              ImageFileSize := fsImageName.Size;
+               VerificationStartedAt := Now;
+               VerificationHash := VerifyDDImage(fsImageName, ImageFileSize);
+               if (Length(VerificationHash) = 32) or   // MD5
+                  (Length(VerificationHash) = 40) or   // SHA-1
+                  (Length(VerificationHash) = 73) then // Both hashes with a space char
+                 begin
+                  ImageVerified := true;
+                  Label7.Caption := 'Image re-read OK. Verifies. See log file';
+                 end;
+               VerificationEndedAt := Now;
+             end;
+           end
+          else ShowMessage('Imaging Failed. Only ' + IntToStr(ImageResult) + ' bytes captured.');
+          // Win or lose, release the image file stream
+          fsImageName.Free;
+        end; // End of "if DD image type"
+
+      // Release existing handle to disk
       try
         if (hSelectedDisk > 0) then
           CloseHandle(hSelectedDisk);
-        if (hImageName > 0) then
-          CloseHandle(hImageName);
       finally
         ComboImageType.Text      := 'Choose Image Type';
         ComboImageType.Enabled   := true;
@@ -1121,9 +1103,12 @@ end;
 
 // DD images the disk and returns the number of bytes successfully imaged
 // Windows centric function
-function WindowsImageDiskDD(hDiskHandle : THandle; DiskSize : Int64; HashChoice : Integer; hImageName : THandle) : Int64;
+function WindowsImageDiskDD(hDiskHandle : THandle; DiskSize : Int64; HashChoice : Integer; fsImageName : TFileStream) : Int64;
 var
-  Buffer                   : array [0..8191] of Byte;   // // 32767 (32Kb) or 1048576 (1Mb) or 262144 (240Kb) or 131072 (120Kb buffer) or 65536 (64Kb buffer)
+  // Buffer size has to be divisible by the disk size.
+  // 8Kb chosen as that should be divisible to all disks, but it's smaller than I'd like
+  // and may be a performance inhibitor. So 1Mb chosen to try...
+  Buffer                   : array [0..1048575] of Byte;   // 8191 (8Kb) 32767 (32Kb) or 1048576 (1Mb) or 262144 (240Kb) or 131072 (120Kb buffer) or 65536 (64Kb buffer)
   // Hash digests for disk reading
   MD5ctxDisk               : TMD5Context;
   SHA1ctxDisk              : TSHA1Context;
@@ -1172,23 +1157,32 @@ begin
     FileSeek(hDiskHandle, 0, 0);
       repeat
         // Read device in buffered segments. Hash the disk and image portions as we go
-        BytesRead    := FileRead(hDiskHandle, Buffer, SizeOf(Buffer));
+        if (DiskSize - TotalBytesRead) < SizeOf(Buffer) then
+          begin
+            // If amount left to read is less than buffer size
+            BytesRead    := FileRead(hDiskHandle, Buffer, (DiskSize - TotalBytesRead));
+          end
+        else
+        begin
+          // If buffer is full
+          BytesRead    := FileRead(hDiskHandle, Buffer, SizeOf(Buffer));
+        end;
         if BytesRead = -1 then
           begin
             RaiseLastOSError;
             exit;
-          end;
-        inc(TotalBytesRead, BytesRead);
+          end
+        else inc(TotalBytesRead, BytesRead);
 
         frmYaffi.lblTotalBytesRead.Caption := IntToStr(TotalBytesRead);
 
-        BytesWritten  := FileWrite(hImageName, Buffer, BytesRead);
+        BytesWritten := fsImageName.Write(Buffer, BytesRead);      // FileWrite(hImageName, Buffer, BytesRead);
         if BytesWritten = -1 then
           begin
             RaiseLastOSError;
             exit;
-          end;
-        inc(TotalBytesWritten, BytesWritten);
+          end
+        else inc(TotalBytesWritten, BytesWritten);
 
         // Hash the bytes read and\or written using the algorithm required
         // If the user selected no hashing, break the loop immediately; faster
@@ -1214,7 +1208,7 @@ begin
                       SHA1Update(SHA1ctxImage, Buffer, BytesWritten);
                     end;
 
-      //Application.ProcessMessages;
+      Application.ProcessMessages;
       until (TotalBytesRead = DiskSize) or (frmYaffi.Stop = true);// or (frmYAFFI.Stop = true);
   finally
     // Compute the final hashes of disk and image
@@ -1253,7 +1247,7 @@ begin
               frmYaffi.ledtComputedHashB.Clear;
               frmYAffi.ledtComputedHashB.Enabled := true;
               frmYAffi.ledtComputedHashB.Visible := true;
-              frmYaffi.ledtComputedHashB.Text := Uppercase(SHA1Print(SHA1Digest));
+              frmYaffi.ledtComputedHashB.Text    := Uppercase(SHA1Print(SHA1Digest));
               // Image Hash
               frmYaffi.ledtImageHashA.Clear;
               frmYaffi.ledtImageHashB.Clear;
@@ -1297,17 +1291,17 @@ begin
               end
               else if HashChoice = 4 then
                 begin
-                 frmYaffi.ledtComputedHashA.Text := Uppercase('No hash computed');
-                 frmYaffi.ledtComputedHashB.Text := Uppercase('No hash computed');
+                 frmYaffi.ledtComputedHashA.Text    := Uppercase('No hash computed');
+                 frmYaffi.ledtComputedHashB.Text    := Uppercase('No hash computed');
                  frmYAffi.ledtComputedHashA.Enabled := true;
                  frmYAffi.ledtComputedHashA.Visible := true;
                  frmYAffi.ledtComputedHashB.Enabled := true;
                  frmYAffi.ledtComputedHashB.Visible := true;
 
-                 frmYaffi.ledtImageHashA.Enabled := false;
-                 frmYaffi.ledtImageHashA.Visible := false;
-                 frmYaffi.ledtImageHashB.Enabled := false;
-                 frmYaffi.ledtImageHashB.Visible := false;
+                 frmYaffi.ledtImageHashA.Enabled    := false;
+                 frmYaffi.ledtImageHashA.Visible    := false;
+                 frmYaffi.ledtImageHashB.Enabled    := false;
+                 frmYaffi.ledtImageHashB.Visible    := false;
                 end;
       end;
     result := TotalBytesRead;
@@ -1315,7 +1309,7 @@ end;
 
 // Computes the hashes of the created DD image and compares against the computed hash
 // generated during imaging
-function VerifyDDImage(hImageName : THandle; ImageFileSize : Int64) : string;
+function VerifyDDImage(fsImageName : TFileStream; ImageFileSize : Int64) : string;
 var
   MD5ctxImageVerification              : TMD5Context;
   MD5ImageVerificationDigest           : TMD5Digest;
@@ -1323,7 +1317,8 @@ var
   SHA1ctxImageVerification             : TSHA1Context;
   SHA1ImageVerificationDigest          : TSHA1Digest;
 
-  Buffer                               : array [0..8191] of byte;
+  // a 1Mb buffer for verification. 8191 is the 8Kb as used to image
+  Buffer                               : array [0..1048575] of byte;
   BytesRead                            : integer;
   TotalBytesRead                       : Int64;
 
@@ -1334,6 +1329,7 @@ begin
   TotalBytesRead := 0;
   strMD5Hash     := '';
   strSHA1Hash    := '';
+  frmYaffi.Label7.Caption := ' Verifying DD image...please wait';
 
   // Initialise new hashing digests
 
@@ -1355,10 +1351,11 @@ begin
 
     if HashChoice = 1 then
     begin
-      FileSeek(hImageName, 0, 0);
+      fsImageName.Seek(0,0); // hImageName, 0, 0);
       repeat
+        Application.ProcessMessages;
         // Read DD image in buffered segments. Hash the image portions as we go
-        BytesRead     := FileRead(hImageName, Buffer, SizeOf(Buffer));
+        BytesRead     := fsImageName.Read(Buffer, SizeOf(Buffer));
         if BytesRead = -1 then
           begin
             RaiseLastOSError;
@@ -1382,10 +1379,11 @@ begin
 
     if HashChoice = 2 then
     begin
-      FileSeek(hImageName, 0, 0);
+      fsImageName.Seek(0,0);
       repeat
+        Application.ProcessMessages;
         // Read device in buffered segments. Hash the disk and image portions as we go
-        BytesRead     := FileRead(hImageName, Buffer, SizeOf(Buffer));
+        BytesRead     := fsImageName.Read(Buffer, SizeOf(Buffer));
         if BytesRead = -1 then
           begin
             RaiseLastOSError;
@@ -1409,10 +1407,11 @@ begin
 
     if HashChoice = 3 then
     begin
-      FileSeek(hImageName, 0, 0);
+      fsImageName.Seek(0,0);
       repeat
+        Application.ProcessMessages;
         // Read device in buffered segments. Hash the disk and image portions as we go
-        BytesRead     := FileRead(hImageName, Buffer, SizeOf(Buffer));
+        BytesRead     := fsImageName.Read(Buffer, SizeOf(Buffer));
         if BytesRead = -1 then
           begin
             RaiseLastOSError;
@@ -1821,6 +1820,34 @@ begin
      else ShowMessage('Unable to open E01 image file for verification');
 end;
 
+{ Useful but unused code:
+
+// Assign handle to DD image file
+hImageName := CreateFileW(PWideChar(strImageName),
+                          GENERIC_WRITE OR GENERIC_READ,
+                          FILE_SHARE_WRITE,
+                          nil,
+                          CREATE_ALWAYS,
+                          FILE_ATTRIBUTE_NORMAL,
+                          0);
+
+
+// Check if handle to DD image file is valid before doing anything else
+if hImageName = INVALID_HANDLE_VALUE then
+  begin
+    RaiseLastOSError;
+  end;
+
+// Now open a read-only handle to the image for the verification function
+hImageName := CreateFileW(PWideChar(strImageName),
+                          GENERIC_READ,
+                          0,
+                          nil,
+                          OPEN_EXISTING,
+                          FILE_ATTRIBUTE_NORMAL,
+                          0);
+
+}
 
 {$endif}
 end.
