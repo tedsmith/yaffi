@@ -904,10 +904,11 @@ var
   BytesReturned                           : DWORD;
   VerificationHash                        : string;
   ImageVerified                           : boolean;
-  StartedAt, EndedAt, VerificationStartedAt, VerificationEndedAt : TDateTime;
+  StartedAt, EndedAt,
+    VerificationStartedAt, VerificationEndedAt,
+    TimeTakenToImage, TimeTakenToVerify   : TDateTime;
 
   fsImageName : TFileStream;
-
 
 begin
   BytesReturned   := 0;
@@ -921,8 +922,10 @@ begin
   SegmentSize     := InitialiseSegmentSize(nil);
   StartedAt       := 0;
   EndedAt         := 0;
+  TimeTakenToImage:= 0;
   VerificationStartedAt := 0;
   VerificationEndedAt := 0;
+  TimeTakenToVerify := 0;
   SourceDevice    := ledtSelectedItem.Text;
   strImageName    := ledtImageName.Text;
   ImageVerified   := false;
@@ -989,6 +992,7 @@ begin
             begin
             Label6.Caption := 'Imaged OK. ' + IntToStr(ExactDiskSize)+' bytes captured.';
             EndedAt := Now;
+            TimeTakenToImage := EndedAt - StartedAt;
 
             // Verify the E01 image, if desired by the user
             if (cbVerify.Checked) and (ImageResult > -1) then
@@ -1000,9 +1004,10 @@ begin
                    (Length(VerificationHash) = 73) then // Both hashes with a space char
                   begin
                     ImageVerified := true;
+                    VerificationEndedAt := Now;
+                    TimeTakenToVerify   := VerificationEndedAt - VerificationStartedAt;
                     Label7.Caption := 'Image re-read OK. Verifies. See log file';
                   end;
-                VerificationEndedAt := Now;
               end
               else ShowMessage('E01 Verification Failed.');
              end
@@ -1023,6 +1028,7 @@ begin
           begin
            Label6.Caption := 'Imaged OK. ' + IntToStr(ExactDiskSize)+' bytes captured.';
            EndedAt := Now;
+           TimeTakenToImage := EndedAt - StartedAt;
 
            // Verify the DD image, if desired by the user
            if (cbVerify.Checked) and (ImageResult > -1) then
@@ -1035,9 +1041,10 @@ begin
                   (Length(VerificationHash) = 73) then // Both hashes with a space char
                  begin
                   ImageVerified := true;
+                  VerificationEndedAt := Now;
+                  TimeTakenToVerify   := VerificationEndedAt - VerificationStartedAt;
                   Label7.Caption := 'Image re-read OK. Verifies. See log file';
                  end;
-               VerificationEndedAt := Now;
              end;
            end
           else ShowMessage('Imaging Failed. Only ' + IntToStr(ImageResult) + ' bytes captured.');
@@ -1062,6 +1069,8 @@ begin
         slImagingLog := TStringList.Create;
         slImagingLog.Add('Imaging Software: '          + frmYaffi.Caption);
         slImagingLog.Add('Imaging Started At: '        + FormatDateTime('dd/mm/yy HH:MM:SS', StartedAt));
+        slImagingLog.Add('Imaging Ended At: '          + FormatDateTime('dd/mm/yy HH:MM:SS', EndedAt));
+        slImagingLog.Add('Time Taken to Image: '       + FormatDateTime('HH:MM:SS', TimeTakenToImage));
         slImagingLog.Add('By Examiner: '               + ledtExaminersName.Text);
         slImagingLog.Add('Using operating system: '    + GetOSName);
         slImagingLog.Add('Username: '                  + SysUtils.GetEnvironmentVariable('USERNAME'));
@@ -1077,7 +1086,6 @@ begin
         slImagingLog.Add('Hash(es) of source media : ' + ledtComputedHashA.Text + ' ' + ledtComputedHashB.Text);
         slImagingLog.Add('Hash of image: MD5: '        + ledtImageHashA.Text);
         slImagingLog.Add('Hash of image: SHA-1: '      + ledtImageHashB.Text);
-        slImagingLog.Add('Imaging Ended At: '          + FormatDateTime('dd/mm/yy HH:MM:SS', EndedAt));
 
         if cbVerify.Checked then
           slImagingLog.Add('Verification enabled');
@@ -1087,6 +1095,7 @@ begin
            slImagingLog.Add('Image Verified Hash: ' + VerificationHash);
            slImagingLog.Add('Image verification started at: ' + FormatDateTime('dd/mm/yy HH:MM:SS', VerificationStartedAt));
            slImagingLog.Add('Image file verification finished at: ' + FormatDateTime('dd/mm/yy HH:MM:SS', VerificationEndedAt));
+           slImagingLog.Add('Time Taken to Image: '       + FormatDateTime('HH:MM:SS', TimeTakenToVerify));
           end
         else slImagingLog.Add('Image Verification failed.');
       finally
@@ -1164,7 +1173,7 @@ begin
           end
         else
         begin
-          // If buffer is full
+          // But if buffer is full, just read fully
           BytesRead    := FileRead(hDiskHandle, Buffer, SizeOf(Buffer));
         end;
         if BytesRead = -1 then
@@ -1176,7 +1185,7 @@ begin
 
         frmYaffi.lblTotalBytesRead.Caption := IntToStr(TotalBytesRead);
 
-        BytesWritten := fsImageName.Write(Buffer, BytesRead);      // FileWrite(hImageName, Buffer, BytesRead);
+        BytesWritten := fsImageName.Write(Buffer, BytesRead);
         if BytesWritten = -1 then
           begin
             RaiseLastOSError;
@@ -1209,7 +1218,7 @@ begin
                     end;
 
       Application.ProcessMessages;
-      until (TotalBytesRead = DiskSize) or (frmYaffi.Stop = true);// or (frmYAFFI.Stop = true);
+      until (TotalBytesRead = DiskSize) or (frmYaffi.Stop = true);
   finally
     // Compute the final hashes of disk and image
     if HashChoice = 1 then
@@ -1317,12 +1326,13 @@ var
   SHA1ctxImageVerification             : TSHA1Context;
   SHA1ImageVerificationDigest          : TSHA1Digest;
 
-  // a 1Mb buffer for verification. 8191 is the 8Kb as used to image
+  // a 1Mb buffer for verification.
   Buffer                               : array [0..1048575] of byte;
   BytesRead                            : integer;
   TotalBytesRead                       : Int64;
 
-  MD5HashIs, SHA1HashIs, strMD5Hash, strSHA1Hash              : string;
+  MD5HashIs, SHA1HashIs,
+    strMD5Hash, strSHA1Hash            : string;
 
 begin
   BytesRead      := 0;
@@ -1448,7 +1458,7 @@ const
 var
   // 64kB Buffers sometimes seem to cause read errors in final few sectors. Not sure why?
   // 32Kb ones seem not to though
-  Buffer                   : array [0..32767] of Byte;   // 1048576 (1Mb) or 262144 (240Kb) or 131072 (120Kb buffer) or 65536 (64Kb buffer)
+  Buffer                   : array [0..1048575] of Byte;   // 32768 for 32Kb, 1048576 (1Mb) or 262144 (240Kb) or 131072 (120Kb buffer) or 65536 (64Kb buffer)
   // Hash digests for disk reading
   MD5ctxDisk               : TMD5Context;
   SHA1ctxDisk              : TSHA1Context;
@@ -1546,24 +1556,34 @@ begin
       // Now to seek to start of device
       FileSeek(hDiskHandle, 0, 0);
         repeat
-          // Read device in buffered segments. Hash the disk and image portions as we go
-          BytesRead     := FileRead(hDiskHandle, Buffer, SizeOf(Buffer));
-          if BytesRead = -1 then
+          if (DiskSize - TotalBytesRead) < SizeOf(Buffer) then
             begin
-              RaiseLastOSError;
-              exit;
-            end;
-          inc(TotalBytesRead, BytesRead);
-          // Write read data to E01 image file
-          BytesWritten  := fLibEWF.libewf_handle_write_buffer(@Buffer, BytesRead);
-          if BytesWritten = -1 then
+              // If amount left to read is less than buffer size
+              BytesRead    := FileRead(hDiskHandle, Buffer, (DiskSize - TotalBytesRead));
+            end
+          else
             begin
-              RaiseLastOSError;
-              exit;
+              // Read device in buffered segments. Hash the disk and image portions as we go
+              BytesRead     := FileRead(hDiskHandle, Buffer, SizeOf(Buffer));
+              if BytesRead = -1 then
+                begin
+                  RaiseLastOSError;
+                  exit;
+                end
+              else
+                begin
+                inc(TotalBytesRead, BytesRead);
+                // Write read data to E01 image file
+                BytesWritten  := fLibEWF.libewf_handle_write_buffer(@Buffer, BytesRead);
+                if BytesWritten = -1 then
+                  begin
+                    RaiseLastOSError;
+                    exit;
+                  end;
+                inc(TotalBytesWritten, BytesWritten);
+                end;
+              frmYaffi.lblTotalBytesRead.Caption := IntToStr(TotalBytesRead);
             end;
-          inc(TotalBytesWritten, BytesWritten);
-          frmYaffi.lblTotalBytesRead.Caption := IntToStr(TotalBytesRead);
-
           // Hash the bytes read and\or written using the algorithm required
           // If the user sel;ected no hashing, break the loop immediately; faster
           if HashChoice = 4 then
@@ -1691,7 +1711,7 @@ var
   SHA1ctxImageVerification             : TSHA1Context;
   SHA1ImageVerificationDigest          : TSHA1Digest;
 
-  Buffer                               : array [0..32767] of byte;
+  Buffer                               : array [0..1048575] of byte;
   BytesRead                            : integer;
   TotalBytesRead, ImageFileSize        : Int64;
 
@@ -1729,7 +1749,7 @@ begin
      if fLibEWFVerificationInstance.libewf_open(strImageName, LIBEWF_OPEN_READ) = 0 then
      begin
         ImageFileSize := fLibEWFVerificationInstance.libewf_handle_get_media_size();
-
+         frmYaffi.Label7.Caption := ' Verifying DD image...please wait';
         // If MD5 hash was chosen, compute the MD5 hash of the image
 
         if HashChoice = 1 then
@@ -1748,6 +1768,7 @@ begin
               inc(TotalBytesRead, BytesRead);
               MD5Update(MD5ctxImageVerification, Buffer, BytesRead);
             end;
+            Application.ProcessMessages;
           until TotalBytesRead = ImageFileSize;
 
           MD5Final(MD5ctxImageVerification, MD5ImageVerificationDigest);
@@ -1776,6 +1797,7 @@ begin
               inc(TotalBytesRead, BytesRead);
               SHA1Update(SHA1ctxImageVerification, Buffer, BytesRead);
             end;
+            Application.ProcessMessages;
           until TotalBytesRead = ImageFileSize;
 
           SHA1Final(SHA1ctxImageVerification, SHA1ImageVerificationDigest);
@@ -1805,6 +1827,7 @@ begin
               MD5Update(MD5ctxImageVerification, Buffer, BytesRead);
               SHA1Update(SHA1ctxImageVerification, Buffer, BytesRead);
             end;
+            Application.ProcessMessages;
           until TotalBytesRead = ImageFileSize;
 
           MD5Final(MD5ctxImageVerification, MD5ImageVerificationDigest);
