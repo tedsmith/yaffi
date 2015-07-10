@@ -1,7 +1,7 @@
 object frmYaffi: TfrmYaffi
-  Left = 1612
+  Left = 965
   Height = 817
-  Top = 185
+  Top = 190
   Width = 524
   Caption = 'YAFFI (Yet Another Free Forensic Imager) by Ted Smith (c) 2015'
   ClientHeight = 817
@@ -14,7 +14,7 @@ object frmYaffi: TfrmYaffi
   object cbdisks: TComboBox
     Left = 64
     Height = 21
-    Top = 16
+    Top = 8
     Width = 288
     ItemHeight = 13
     OnChange = cbdisksChange
@@ -24,7 +24,7 @@ object frmYaffi: TfrmYaffi
   object Label1: TLabel
     Left = 16
     Height = 13
-    Top = 24
+    Top = 8
     Width = 23
     Caption = 'Disk:'
     ParentColor = False
@@ -52,15 +52,6 @@ object frmYaffi: TfrmYaffi
     Width = 46
     Caption = 'Serial No:'
     ParentColor = False
-  end
-  object Button1: TButton
-    Left = 368
-    Height = 32
-    Top = 16
-    Width = 128
-    Caption = 'Refresh Disk List'
-    OnClick = Button1Click
-    TabOrder = 1
   end
   object lv: TLabel
     Left = 95
@@ -108,14 +99,14 @@ object frmYaffi: TfrmYaffi
   end
   object GroupBox1: TGroupBox
     Left = 16
-    Height = 696
-    Top = 56
+    Height = 720
+    Top = 32
     Width = 489
     Anchors = [akTop, akLeft, akRight]
     Caption = 'Disk Imaging'
-    ClientHeight = 678
+    ClientHeight = 702
     ClientWidth = 485
-    TabOrder = 2
+    TabOrder = 1
     object TreeView1: TTreeView
       Left = 8
       Height = 136
@@ -130,19 +121,20 @@ object frmYaffi: TfrmYaffi
       OnSelectionChanged = TreeView1SelectionChanged
     end
     object ledtSelectedItem: TLabeledEdit
-      Left = 8
+      Left = 144
       Height = 21
-      Top = 176
-      Width = 457
+      Top = 171
+      Width = 321
       Anchors = [akTop, akLeft, akRight]
+      Color = clGradientInactiveCaption
       EditLabel.AnchorSideLeft.Control = ledtSelectedItem
       EditLabel.AnchorSideRight.Control = ledtSelectedItem
       EditLabel.AnchorSideRight.Side = asrBottom
       EditLabel.AnchorSideBottom.Control = ledtSelectedItem
-      EditLabel.Left = 8
+      EditLabel.Left = 144
       EditLabel.Height = 13
-      EditLabel.Top = 160
-      EditLabel.Width = 457
+      EditLabel.Top = 155
+      EditLabel.Width = 321
       EditLabel.Caption = 'Selected Item:'
       EditLabel.ParentColor = False
       TabOrder = 1
@@ -151,8 +143,8 @@ object frmYaffi: TfrmYaffi
     object ledtImageName: TLabeledEdit
       Left = 144
       Height = 21
-      Top = 220
-      Width = 192
+      Top = 212
+      Width = 321
       Color = clGradientInactiveCaption
       EditLabel.AnchorSideLeft.Control = ledtImageName
       EditLabel.AnchorSideRight.Control = ledtImageName
@@ -160,27 +152,27 @@ object frmYaffi: TfrmYaffi
       EditLabel.AnchorSideBottom.Control = ledtImageName
       EditLabel.Left = 144
       EditLabel.Height = 13
-      EditLabel.Top = 204
-      EditLabel.Width = 192
+      EditLabel.Top = 196
+      EditLabel.Width = 321
       EditLabel.Caption = 'Image Name and Path'
       EditLabel.ParentColor = False
       TabOrder = 3
       Text = '...'
     end
     object ledtExhibitRef: TLabeledEdit
-      Left = 248
+      Left = 8
       Height = 21
-      Top = 272
-      Width = 224
+      Top = 344
+      Width = 296
       Anchors = [akTop, akLeft, akRight]
       EditLabel.AnchorSideLeft.Control = ledtExhibitRef
       EditLabel.AnchorSideRight.Control = ledtExhibitRef
       EditLabel.AnchorSideRight.Side = asrBottom
       EditLabel.AnchorSideBottom.Control = ledtExhibitRef
-      EditLabel.Left = 248
+      EditLabel.Left = 8
       EditLabel.Height = 13
-      EditLabel.Top = 256
-      EditLabel.Width = 224
+      EditLabel.Top = 328
+      EditLabel.Width = 296
       EditLabel.Caption = 'Exhibit Reference'
       EditLabel.ParentColor = False
       TabOrder = 7
@@ -189,8 +181,8 @@ object frmYaffi: TfrmYaffi
     object memNotes: TMemo
       Left = 8
       Height = 24
-      Top = 344
-      Width = 224
+      Top = 376
+      Width = 296
       Anchors = [akTop, akLeft, akRight]
       Lines.Strings = (
         'Unique Exhibit Notes...'
@@ -200,31 +192,31 @@ object frmYaffi: TfrmYaffi
     object btnChooseImageName: TButton
       Left = 8
       Height = 25
-      Top = 216
+      Top = 208
       Width = 120
-      Caption = 'Choose Location'
+      Caption = 'Save Image As...'
       OnClick = btnChooseImageNameClick
       TabOrder = 2
     end
     object comboHashChoice: TComboBox
-      Left = 248
+      Left = 344
       Height = 21
       Top = 312
-      Width = 96
+      Width = 120
       ItemHeight = 13
       Items.Strings = (
         'MD5'
         'SHA-1'
-        'Use Both'
+        'MD5 & SHA-1'
         'Use None'
       )
       TabOrder = 9
       Text = 'Choose Hash'
     end
     object ComboImageType: TComboBox
-      Left = 352
+      Left = 344
       Height = 21
-      Top = 216
+      Top = 264
       Width = 120
       ItemHeight = 13
       Items.Strings = (
@@ -236,16 +228,16 @@ object frmYaffi: TfrmYaffi
       Text = 'Choose Image Type'
     end
     object btnStartImaging: TButton
-      Left = 376
+      Left = 352
       Height = 25
-      Top = 384
+      Top = 408
       Width = 96
       Caption = 'Start Imaging'
       OnClick = btnStartImagingClick
       TabOrder = 14
     end
     object btnAbort: TButton
-      Left = 376
+      Left = 352
       Height = 25
       Top = 447
       Width = 96
@@ -254,10 +246,10 @@ object frmYaffi: TfrmYaffi
       TabOrder = 15
     end
     object ComboSegmentSize: TComboBox
-      Left = 360
+      Left = 344
       Height = 21
-      Top = 312
-      Width = 96
+      Top = 344
+      Width = 120
       ItemHeight = 13
       Items.Strings = (
         '640Mb'
@@ -271,16 +263,16 @@ object frmYaffi: TfrmYaffi
     object ledtCaseName: TLabeledEdit
       Left = 8
       Height = 21
-      Top = 272
-      Width = 224
+      Top = 264
+      Width = 296
       EditLabel.AnchorSideLeft.Control = ledtCaseName
       EditLabel.AnchorSideRight.Control = ledtCaseName
       EditLabel.AnchorSideRight.Side = asrBottom
       EditLabel.AnchorSideBottom.Control = ledtCaseName
       EditLabel.Left = 8
       EditLabel.Height = 13
-      EditLabel.Top = 256
-      EditLabel.Width = 224
+      EditLabel.Top = 248
+      EditLabel.Width = 296
       EditLabel.Caption = 'Case Name'
       EditLabel.ParentColor = False
       TabOrder = 6
@@ -289,16 +281,16 @@ object frmYaffi: TfrmYaffi
     object ledtExaminersName: TLabeledEdit
       Left = 8
       Height = 21
-      Top = 312
-      Width = 224
+      Top = 304
+      Width = 296
       EditLabel.AnchorSideLeft.Control = ledtExaminersName
       EditLabel.AnchorSideRight.Control = ledtExaminersName
       EditLabel.AnchorSideRight.Side = asrBottom
       EditLabel.AnchorSideBottom.Control = ledtExaminersName
       EditLabel.Left = 8
       EditLabel.Height = 13
-      EditLabel.Top = 296
-      EditLabel.Width = 224
+      EditLabel.Top = 288
+      EditLabel.Width = 296
       EditLabel.Caption = 'Examiners Name'
       EditLabel.ParentColor = False
       TabOrder = 8
@@ -306,19 +298,19 @@ object frmYaffi: TfrmYaffi
     end
     object memGeneralCaseNotes: TMemo
       Left = 8
-      Height = 88
-      Top = 384
-      Width = 361
+      Height = 56
+      Top = 416
+      Width = 296
       Lines.Strings = (
         'General Case Notes...'
       )
       TabOrder = 13
     end
     object ComboCompression: TComboBox
-      Left = 248
+      Left = 344
       Height = 21
-      Top = 344
-      Width = 96
+      Top = 376
+      Width = 120
       ItemHeight = 13
       Items.Strings = (
         'Low (Fast)'
@@ -330,10 +322,10 @@ object frmYaffi: TfrmYaffi
       Text = 'Compression..'
     end
     object cbVerify: TCheckBox
-      Left = 352
+      Left = 344
       Height = 17
       Hint = 'Tick to have the image verified after writing. '#13#10'Arguably totally pointless; a process that dates '#13#10'back to a time when we wrote images to tape. '#13#10'But people still seem to bang on about it.'
-      Top = 240
+      Top = 288
       Width = 53
       Alignment = taLeftJustify
       Caption = 'Verify?'
@@ -418,6 +410,15 @@ object frmYaffi: TfrmYaffi
       TabOrder = 19
       Text = '...'
       Visible = False
+    end
+    object Button1: TButton
+      Left = 8
+      Height = 24
+      Top = 168
+      Width = 120
+      Caption = 'Refresh Disk List'
+      OnClick = Button1Click
+      TabOrder = 20
     end
   end
   object Label6: TLabel
@@ -860,7 +861,7 @@ object frmYaffi: TfrmYaffi
     Title = 'Save Image As...'
     DefaultExt = '.dd'
     left = 464
-    top = 288
+    top = 240
   end
   object PopupMenu1: TPopupMenu
     left = 208
@@ -868,10 +869,6 @@ object frmYaffi: TfrmYaffi
     object menShowDiskManager: TMenuItem
       Caption = 'Show Disk Manager'
       OnClick = menShowDiskManagerClick
-    end
-    object memWipeDisk: TMenuItem
-      Caption = 'Wipe this disk!'
-      OnClick = memWipeDiskClick
     end
   end
 end

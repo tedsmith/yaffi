@@ -1,15 +1,26 @@
 { YAFFI - Yet Another Free Forensic Imager   Copyright (C) <2015>  <Ted Smith>
 
-  A free, cross platform, GUI based imager for acquiring images in DD raw and EWF format
+  A free, cross platform, GUI based imager for acquiring images
+  in DD raw and EWF format:
 
   https://github.com/tedsmith/yaffi
 
-  Contributions from Erwan for the provision of a Delphi conversion of libEWF
-  (http://labalec.fr/erwan/?p=1235) are welcomed and acknowledged.
-  Adjusted for use with Freepascal by Ted Smith and supplied as part of this project
+  Provision of the libEWF C library by Joachim Metz is heavily
+  acknowledged and credited : https://github.com/libyal/libewf
+  My personal thanks to Joachim for the several e-mails he read
+  and helpfully replied to!
 
-  Provision of the libEWF library by Joachim Metz also acknowledged and thanked
-  https://github.com/libyal/libewf
+  Contributions from Erwan Labalec for the provision of the
+  originating Delphi library that contained some of the converted
+  libEWF functions, a supporting zlib DLL and a compatabile
+  libewf.dll file (68Kb). These were needed for the opening of
+  an EWF image file. That is acknowledged: http://labalec.fr/erwan/?p=1235
+
+  That same library has then been adjusted and enhanced by Ted Smith :
+    *  Addition of several other functions that are needed for imaging
+    *  Better error reporting added for verbose errors on -1 return values
+    *  Adjusted for use with the Freepascal Compiler and Lazarus IDE
+    *  See unit LibEWFUnit.pas for more details.
 
   This program is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -87,7 +98,6 @@ type
     memNotes: TMemo;
     memGeneralCaseNotes: TMemo;
     menShowDiskManager: TMenuItem;
-    memWipeDisk: TMenuItem;
     PopupMenu1: TPopupMenu;
     SaveImageDialog: TSaveDialog;
     TreeView1: TTreeView;
@@ -101,7 +111,6 @@ type
     procedure ComboImageTypeSelect(Sender: TObject);
     procedure ComboSegmentSizeSelect(Sender: TObject);
     procedure FormCreate(Sender: TObject);
-    procedure memWipeDiskClick(Sender: TObject);
     procedure menShowDiskManagerClick(Sender: TObject);
     procedure TreeView1SelectionChanged(Sender: TObject);
     function InitialiseHashChoice(Sender : TObject) : Integer;
@@ -188,64 +197,6 @@ begin
   GroupBox1.Enabled := false;
   GroupBox1.Visible := false;
   {$endif}
-end;
-
-// Wipes a selected disk on right click, if the user chooses it.
-procedure TfrmYaffi.memWipeDiskClick(Sender: TObject);
-var
-  DiskToWipe : widestring;
-  TotalBytesWritten, ExactDiskSize : Int64;
-  BytesWritten : integer;
-  Buffer       : array [0..32767] of Byte;   // 1048576 (1Mb) or 262144 (240Kb) or 131072 (120Kb buffer) or 65536 (64Kb buffer)
-  hDiskToWipe  : THandle;
-
-begin
-  TotalBytesWritten := 0;
-  BytesWritten      := 0;
-  ExactDiskSize     := 0;
-  DiskToWipe        := frmYaffi.TreeView1.Selected.Text;
-
-  FillChar(Buffer, SizeOf(Buffer), 0); // Initialise the zero buffer
-
-  // Create WRITE handle to source disk. Abort if fails
-  hDiskToWipe := CreateFileW(PWideChar(DiskToWipe),
-                             GENERIC_READ OR GENERIC_WRITE,
-                             FILE_SHARE_READ OR FILE_SHARE_WRITE,
-                             nil,
-                             OPEN_EXISTING,
-                             FILE_FLAG_SEQUENTIAL_SCAN,
-                             0);
-
-  // Check if handle is valid before doing anything else
-  if hDiskToWipe = INVALID_HANDLE_VALUE then
-  begin
-    RaiseLastOSError;
-  end;
-
-  if hDiskToWipe > -1 then
-  begin
-    ExactDiskSize := GetDiskLengthInBytes(hDiskToWipe);
-    FileSeek(hDiskToWipe, 0, 0);
-    ShowMessage('Wiping ' + IntToStr(ExactDiskSize) + ' bytes of ' + DiskToWipe);
-    repeat
-      // TODO : OS Code 19 or OS Code 5 raised. Unable to write to media.
-      // Look into how to write to disks...this seems insufficient
-      BytesWritten  := FileWrite(hDiskToWipe, Buffer, SizeOf(Buffer));
-      if BytesWritten = -1 then
-        begin
-          RaiseLastOSError;
-          exit;
-        end;
-      inc(TotalBytesWritten, BytesWritten);
-//      ShowMessage('Total wiped: ' + IntToStr(TotalBytesWritten));
-    until TotalBytesWritten = ExactDiskSize;
-    ShowMessage('Wiped OK');
-    try
-    if (hDiskToWipe > 0) then
-      CloseHandle(hDiskToWipe);
-    finally
-    end;
-  end;
 end;
 
 procedure TfrmYaffi.Button1Click(Sender: TObject);
@@ -433,9 +384,8 @@ begin
    if Sender is TTreeView then
    begin
     if  (TTreeView(Sender).Selected.Text = 'Physical Disk')
-      or (TTreeView(Sender).Selected.Text = 'Partition No')
-        or (TTreeView(Sender).Selected.Text = 'Logical Volume') then
-          ledtSelectedItem.Text := '...'
+      or (TTreeView(Sender).Selected.Text = 'Logical Volume') then
+        ledtSelectedItem.Text := '...'
     else
     // If the user Chooses "Drive E:", adjust the selection to "E:" for the Thandle initiation
     // We just copy the characters following "Drive ".
@@ -542,12 +492,12 @@ begin;
   frmYAFFI.Treeview1.Images := frmYAFFI.ImageList1;
   PhyDiskNode     := frmYAFFI.TreeView1.Items.Add(nil,'Physical Disk') ;
   PhyDiskNode.ImageIndex := 0;
-
+  {
   PartitionNoNode := frmYAFFI.TreeView1.Items.Add(nil,'Partition No') ;
-  PartitionNoNode.ImageIndex := 1;
-
+  PartitionNoNode.ImageIndex := 2;
+  }
   DriveLetterNode := frmYAFFI.TreeView1.Items.Add(nil,'Logical Volume') ;
-  DriveLetterNode.ImageIndex := 2;
+  DriveLetterNode.ImageIndex := 1;
 
   FSWbemLocator   := CreateOleObject('WbemScripting.SWbemLocator');
   objWMIService   := FSWbemLocator.ConnectServer('localhost', 'root\CIMV2', '', '');
@@ -575,7 +525,8 @@ begin;
         val2 := Format('%s',[string(objPartition.DeviceID)]);
          if Length(Val2) > 0 then
          begin
-           frmYaffi.TreeView1.Items.AddChild(PartitionNoNode, Val2);
+          // Removed for now, until partition numbers themselves are needed
+          // frmYaffi.TreeView1.Items.AddChild(PartitionNoNode, Val2);
          end;
         //link the Win32_DiskPartition class with theWin32_LogicalDiskToPartition class.
         s:='ASSOCIATORS OF {Win32_DiskPartition.DeviceID="'+VarToStr(objPartition.DeviceID)+'"} WHERE AssocClass = Win32_LogicalDiskToPartition';
@@ -770,7 +721,7 @@ begin
    begin
     result := 2;
    end
-  else if comboHashChoice.Text = 'Use Both' then
+  else if comboHashChoice.Text = 'MD5 & SHA-1' then
    begin
     result := 3;
    end
@@ -857,7 +808,7 @@ result := -1;
    end
   else
     begin
-      ShowMessage('Choose compression level.');
+      ShowMessage('Compression level not specified, so set to "Low (Fast)"');
       result := -1;
     end;
 end;
@@ -933,7 +884,7 @@ begin
   comboHashChoice.Enabled  := false;
   ComboSegmentSize.Enabled := false;
 
-  // Determine what hash algorithm to use. MD5 = 1, SHA-1 = 2, Use Both = 3, Use Non = 4. -1 is false
+  // Determine what hash algorithm to use. MD5 = 1, SHA-1 = 2, MD5 & SHA-1 = 3, Use Non = 4. -1 is false
   HashChoice := frmYaffi.InitialiseHashChoice(nil);
   if HashChoice = -1 then abort;
 
@@ -959,8 +910,6 @@ begin
     begin
       // If chosen device is logical volume, initiate FSCTL_ALLOW_EXTENDED_DASD_IO
       // to ensure all sectors acquired, even those protected by the OS normally.
-      // See:
-      // https://stackoverflow.com/questions/30671387/unable-to-read-final-few-kb-of-logical-drives-on-windows-7-64-bit/30719570#30719570
       // https://msdn.microsoft.com/en-us/library/windows/desktop/aa363147%28v=vs.85%29.aspx
       // https://msdn.microsoft.com/en-us/library/windows/desktop/aa364556%28v=vs.85%29.aspx
 
@@ -1011,7 +960,7 @@ begin
               end
               else ShowMessage('E01 Verification Failed.');
              end
-          else ShowMessage('Imaging Failed. Only ' + IntToStr(ImageResult) + ' bytes captured.');
+          else ShowMessage('Imaging failed\aborted. ' + IntToStr(ImageResult) + ' bytes captured of the reported ' + IntToStr(ExactDiskSize));
         end
 
       // DD IMAGE
@@ -1102,11 +1051,6 @@ begin
         slImagingLog.SaveToFile(IncludeTrailingPathDelimiter(ExtractFilePath(SaveImageDialog.FileName)) + 'ImagingLog.txt');
         slImagingLog.free;
       end;
-
-      {
-      if not hDiskHandle = INVALID_HANDLE_VALUE then CloseHandle(hDiskHandle);
-      if not hImageName = INVALID_HANDLE_VALUE then CloseHandle(hImageName);
-      }
   end;
 end;
 
@@ -1376,7 +1320,8 @@ begin
           inc(TotalBytesRead, BytesRead);
           MD5Update(MD5ctxImageVerification, Buffer, BytesRead);
         end;
-      until TotalBytesRead = ImageFileSize;
+      until (TotalBytesRead = ImageFileSize) or (frmYaffi.Stop = true);
+
       MD5Final(MD5ctxImageVerification, MD5ImageVerificationDigest);
       MD5HashIs := Uppercase(MD5Print(MD5ImageVerificationDigest));
 
@@ -1404,7 +1349,7 @@ begin
           inc(TotalBytesRead, BytesRead);
           SHA1Update(SHA1ctxImageVerification, Buffer, BytesRead);
         end;
-      until TotalBytesRead = ImageFileSize;
+      until (TotalBytesRead = ImageFileSize) or (frmYaffi.Stop = true);
       SHA1Final(SHA1ctxImageVerification, SHA1ImageVerificationDigest);
       SHA1HashIs := Uppercase(SHA1Print(SHA1ImageVerificationDigest));
 
@@ -1433,7 +1378,8 @@ begin
           MD5Update(MD5ctxImageVerification, Buffer, BytesRead);
           SHA1Update(SHA1ctxImageVerification, Buffer, BytesRead);
         end;
-      until TotalBytesRead = ImageFileSize;
+      until (TotalBytesRead = ImageFileSize) or (frmYaffi.Stop = true);
+
       MD5Final(MD5ctxImageVerification, MD5ImageVerificationDigest);
       SHA1Final(SHA1ctxImageVerification, SHA1ImageVerificationDigest);
       strMD5Hash := Uppercase(MD5Print(MD5ImageVerificationDigest));
@@ -1500,7 +1446,7 @@ begin
    end
    else
    begin
-     // Just set it a sensible option
+     // Just set to a sensible option if the user didn't remember to set it at all
      fLibEWF.libewf_SetCompressionValues(1,0);
    end;
 
@@ -1523,11 +1469,11 @@ begin
    // Set the E01 image format to v6.
    fLibEWF.libewf_handle_set_format(LIBEWF_FORMAT_ENCASE6);
    // The rest is self explanatory:
-   fLibEWF.libewf_SetHeaderValue('examiner_name', frmYaffi.ledtExaminersName.Text);
+   fLibEWF.libewf_SetHeaderValue('examiner_name',   frmYaffi.ledtExaminersName.Text);
    fLibEWF.libewf_SetHeaderValue('evidence_number', frmYaffi.ledtExhibitRef.Text);
-   fLibEWF.libewf_SetHeaderValue('case_number', frmYaffi.ledtCaseName.Text);
-   fLibEWF.libewf_SetHeaderValue('description', Trim(frmYaffi.memNotes.Text));
-   fLibEWF.libewf_SetHeaderValue('notes', Trim(frmYaffi.memGeneralCaseNotes.Text));
+   fLibEWF.libewf_SetHeaderValue('case_number',     frmYaffi.ledtCaseName.Text);
+   fLibEWF.libewf_SetHeaderValue('description',     Trim(frmYaffi.memNotes.Text));
+   fLibEWF.libewf_SetHeaderValue('notes',           Trim(frmYaffi.memGeneralCaseNotes.Text));
    fLibEWF.libewf_SetHeaderValue('acquiry_operating_system', GetOSName);
 
     try
@@ -1620,7 +1566,13 @@ begin
           begin
             // Disk hash
             frmYaffi.ledtComputedHashA.Clear;
+            frmYaffi.ledtComputedHashA.Enabled := true;
+            frmYaffi.ledtComputedHashA.Visible := true;
             frmYaffi.ledtComputedHashA.Text := Uppercase(MD5Print(MD5Digest));
+            frmYaffi.ledtComputedHashB.Clear;
+            frmYaffi.ledtComputedHashB.Enabled := false;
+            frmYaffi.ledtComputedHashB.Visible := false;
+            frmYaffi.ledtComputedHashB.Text := 'Not computed';
             // Image hash
             frmYaffi.ledtImageHashA.Clear;
             frmYaffi.ledtImageHashB.Clear;
@@ -1642,7 +1594,14 @@ begin
               begin
                 // Disk Hash
                 frmYaffi.ledtComputedHashA.Clear;
-                frmYaffi.ledtComputedHashA.Text := Uppercase(SHA1Print(SHA1Digest));
+                frmYaffi.ledtComputedHashA.Enabled := false;
+                frmYaffi.ledtComputedHashA.Visible := true;
+                frmYaffi.ledtComputedHashA.Text := 'Not computed';
+
+                frmYaffi.ledtComputedHashB.Clear;
+                frmYaffi.ledtComputedHashB.Enabled := true;
+                frmYaffi.ledtComputedHashB.Visible := true;
+                frmYaffi.ledtComputedHashB.Text := Uppercase(SHA1Print(SHA1Digest));
                 // Image Hash
                 frmYaffi.ledtImageHashA.Clear;
                 frmYaffi.ledtImageHashB.Clear;
@@ -1667,6 +1626,7 @@ begin
                      frmYaffi.ledtComputedHashA.Clear;
                      frmYaffi.ledtComputedHashB.Clear;
                      frmYaffi.ledtComputedHashA.Text    := Uppercase(MD5Print(MD5Digest));
+                     frmYaffi.ledtComputedHashA.Enabled := true;
                      frmYaffi.ledtComputedHashB.Visible := true;
                      frmYaffi.ledtComputedHashB.Enabled := true;
                      frmYaffi.ledtComputedHashB.Text    := Uppercase(SHA1Print(SHA1Digest));
@@ -1769,7 +1729,7 @@ begin
               MD5Update(MD5ctxImageVerification, Buffer, BytesRead);
             end;
             Application.ProcessMessages;
-          until TotalBytesRead = ImageFileSize;
+          until (TotalBytesRead = ImageFileSize) or (frmYaffi.Stop = true);
 
           MD5Final(MD5ctxImageVerification, MD5ImageVerificationDigest);
           MD5HashIs := Uppercase(MD5Print(MD5ImageVerificationDigest));
@@ -1798,7 +1758,7 @@ begin
               SHA1Update(SHA1ctxImageVerification, Buffer, BytesRead);
             end;
             Application.ProcessMessages;
-          until TotalBytesRead = ImageFileSize;
+          until (TotalBytesRead = ImageFileSize) or (frmYaffi.Stop = true);
 
           SHA1Final(SHA1ctxImageVerification, SHA1ImageVerificationDigest);
           SHA1HashIs := Uppercase(SHA1Print(SHA1ImageVerificationDigest));
@@ -1828,7 +1788,7 @@ begin
               SHA1Update(SHA1ctxImageVerification, Buffer, BytesRead);
             end;
             Application.ProcessMessages;
-          until TotalBytesRead = ImageFileSize;
+          until (TotalBytesRead = ImageFileSize) or (frmYaffi.Stop = true);
 
           MD5Final(MD5ctxImageVerification, MD5ImageVerificationDigest);
           SHA1Final(SHA1ctxImageVerification, SHA1ImageVerificationDigest);
@@ -1870,6 +1830,153 @@ hImageName := CreateFileW(PWideChar(strImageName),
                           FILE_ATTRIBUTE_NORMAL,
                           0);
 
+}
+
+{if not DeviceIOControl(hDiskToWipe,
+              FSCTL_LOCK_VOLUME,
+              nil,
+              0,
+              nil,
+              lpOutputBufferSize,
+              lpBytesReturned,
+              nil)
+     then raise Exception.Create('Unable to LOCK volume');}
+
+{ if not DeviceIOControl(hDiskToWipe,
+          FSCTL_UNLOCK_VOLUME,
+          nil,
+          0,
+          nil,
+          lpOutputBufferSize,
+          lpBytesReturned,
+          nil)
+ then raise Exception.Create('Unable to UNLOCK volume');}
+
+ {
+// =============================================================================
+// For disk wiping. Migrate to a seperate tool one day
+// Wipes a selected disk on right click, if the user chooses it.
+procedure TfrmYaffi.memWipeDiskClick(Sender: TObject);
+var
+  DiskToWipe   : widestring;
+  BytesWritten : integer;
+  Buffer       : array [0..32767] of Byte;   // 1048576 (1Mb) or 262144 (240Kb) or 131072 (120Kb buffer) or 65536 (64Kb buffer)
+  hDiskToWipe  : THandle;
+  TotalBytesWritten, ExactDiskSize    : Int64;
+  lpBytesReturned, lpOutputBufferSize : DWORD;
+
+const
+  {
+  Appendix_I_O_Control_Codes_in_the_WDK_8:
+  http://social.technet.microsoft.com/wiki/contents/articles/24653.decoding-io-control-codes-ioctl-fsctl-and-deviceiocodes-with-table-of-known-values.aspx
+  }
+  // Needed to dismount mounted volumes:
+   FSCTL_DISMOUNT_VOLUME     = $00090020;
+   // Don't think these are needed:
+   {
+   IOCTL_STORAGE_EJECT_MEDIA = $002D4808;
+   FSCTL_LOCK_VOLUME         = $00090018;
+   FSCTL_UNLOCK_VOLUME       = $0009001C;
+   }
+
+   // Needed for FSCTL_ALLOW_EXTENDED_DASD_IO :
+   FILE_DEVICE_FILE_SYSTEM = $00000009;
+   FILE_ANY_ACCESS = 0;
+   METHOD_NEITHER = 3;
+   FSCTL_ALLOW_EXTENDED_DASD_IO = ((FILE_DEVICE_FILE_SYSTEM shl 16)
+                                  or (FILE_ANY_ACCESS shl 14)
+                                  or (32 shl 2) or METHOD_NEITHER);
+
+begin
+  TotalBytesWritten := 0;
+  BytesWritten      := 0;
+  ExactDiskSize     := 0;
+  DiskToWipe        := frmYaffi.TreeView1.Selected.Text;
+
+  FillChar(Buffer, SizeOf(Buffer), 0); // Initialise the zero buffer
+
+
+  // If the user Chooses "Drive E:", adjust the selection to "E:" for the Thandle initiation
+  // We just copy the characters following "Drive ".
+  if Pos('Drive', TreeView1.Selected.Text) > 0 then
+    begin
+     DiskToWipe := '\\?\'+Trim(Copy(TreeView1.Selected.Text, 6, 3));
+     ledtSelectedItem.Text := DiskToWipe;
+    end;
+
+  // Create WRITE handle to source disk. Abort if fails
+  hDiskToWipe := CreateFileW(PWideChar(DiskToWipe),
+                             GENERIC_READ OR GENERIC_WRITE,
+                             FILE_SHARE_READ AND FILE_SHARE_WRITE,
+                             nil,
+                             OPEN_EXISTING,
+                             FILE_FLAG_SEQUENTIAL_SCAN,
+                             0);
+
+  // Check if handle is valid before doing anything else
+  if hDiskToWipe = INVALID_HANDLE_VALUE then
+  begin
+    RaiseLastOSError;
+  end;
+
+  // If disk is a logical drive letter, call DeviceIOControl on the drive handle
+ if Pos('?', ledtSelectedItem.Text) > 0 then
+   begin
+    if not DeviceIOControl(hDiskToWipe,
+             FSCTL_ALLOW_EXTENDED_DASD_IO,
+             nil,
+             0,
+             nil,
+             0,
+             lpBytesReturned,
+             nil)
+    then raise Exception.Create('Unable to initiate FSCTL_ALLOW_EXTENDED_DASD_IO for full volume wiping.');
+
+    if not DeviceIOControl(hDiskToWipe,
+             FSCTL_DISMOUNT_VOLUME,
+             nil,
+             0,
+             nil,
+             lpOutputBufferSize,
+             lpBytesReturned,
+             nil)
+    then raise Exception.Create('Unable to dismount volume for wiping');
+  end;
+
+ // If handle OK and all appropriate DeviceIOControl calls succeed, start wiping
+  if hDiskToWipe > -1 then
+  begin
+    ExactDiskSize := GetDiskLengthInBytes(hDiskToWipe);
+    FileSeek(hDiskToWipe, 0, 0);
+    ShowMessage('Wiping ' + IntToStr(ExactDiskSize) + ' bytes of ' + DiskToWipe);
+    repeat
+      if (ExactDiskSize - TotalBytesWritten) < SizeOf(Buffer) then
+      begin
+        // If amount left to read is less than buffer size
+        BytesWritten := FileWrite(hDiskToWipe, Buffer, (ExactDiskSize - TotalBytesWritten));
+        inc(TotalBytesWritten, BytesWritten);
+      end
+      else
+      begin
+        BytesWritten  := FileWrite(hDiskToWipe, Buffer, SizeOf(Buffer));
+        if BytesWritten = -1 then
+          begin
+            RaiseLastOSError;
+            exit;
+          end;
+        inc(TotalBytesWritten, BytesWritten);
+      end;
+    until TotalBytesWritten = ExactDiskSize;
+
+    try
+    if (hDiskToWipe > 0) then
+      CloseHandle(hDiskToWipe);
+    finally
+      ShowMessage(IntToStr(TotalBytesWritten) + ' bytes wiped to zero, OK');
+    end;
+  end;
+end;
+// ==============================================================================
 }
 
 {$endif}
