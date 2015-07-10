@@ -1052,6 +1052,7 @@ begin
         slImagingLog.free;
       end;
   end;
+  Application.ProcessMessages;
 end;
 
 // DD images the disk and returns the number of bytes successfully imaged
@@ -1114,18 +1115,24 @@ begin
           begin
             // If amount left to read is less than buffer size
             BytesRead    := FileRead(hDiskHandle, Buffer, (DiskSize - TotalBytesRead));
+            if BytesRead = -1 then
+            begin
+              RaiseLastOSError;
+              exit;
+            end
+              else inc(TotalBytesRead, BytesRead);
           end
-        else
-        begin
-          // But if buffer is full, just read fully
-          BytesRead    := FileRead(hDiskHandle, Buffer, SizeOf(Buffer));
-        end;
-        if BytesRead = -1 then
-          begin
-            RaiseLastOSError;
-            exit;
-          end
-        else inc(TotalBytesRead, BytesRead);
+          else
+            begin
+              // But if buffer is full, just read fully
+              BytesRead    := FileRead(hDiskHandle, Buffer, SizeOf(Buffer));
+            end;
+            if BytesRead = -1 then
+              begin
+                RaiseLastOSError;
+                exit;
+              end
+                else inc(TotalBytesRead, BytesRead);
 
         frmYaffi.lblTotalBytesRead.Caption := IntToStr(TotalBytesRead);
 
@@ -1506,6 +1513,12 @@ begin
             begin
               // If amount left to read is less than buffer size
               BytesRead    := FileRead(hDiskHandle, Buffer, (DiskSize - TotalBytesRead));
+              if BytesRead = -1 then
+                begin
+                  RaiseLastOSError;
+                  exit;
+                end;
+              if BytesRead > -1 then inc(TotalBytesRead, BytesRead);
             end
           else
             begin
@@ -1515,21 +1528,18 @@ begin
                 begin
                   RaiseLastOSError;
                   exit;
-                end
-              else
-                begin
-                inc(TotalBytesRead, BytesRead);
-                // Write read data to E01 image file
-                BytesWritten  := fLibEWF.libewf_handle_write_buffer(@Buffer, BytesRead);
-                if BytesWritten = -1 then
-                  begin
-                    RaiseLastOSError;
-                    exit;
-                  end;
-                inc(TotalBytesWritten, BytesWritten);
                 end;
-              frmYaffi.lblTotalBytesRead.Caption := IntToStr(TotalBytesRead);
+              if BytesRead > -1 then inc(TotalBytesRead, BytesRead);
+            // Write read data to E01 image file
+              BytesWritten  := fLibEWF.libewf_handle_write_buffer(@Buffer, BytesRead);
+              if BytesWritten = -1 then
+                begin
+                  RaiseLastOSError;
+                  exit;
+                end;
+              if BytesWritten > -1 then inc(TotalBytesWritten, BytesWritten);
             end;
+            frmYaffi.lblTotalBytesRead.Caption := IntToStr(TotalBytesRead);
           // Hash the bytes read and\or written using the algorithm required
           // If the user sel;ected no hashing, break the loop immediately; faster
           if HashChoice = 4 then
@@ -1709,7 +1719,7 @@ begin
      if fLibEWFVerificationInstance.libewf_open(strImageName, LIBEWF_OPEN_READ) = 0 then
      begin
         ImageFileSize := fLibEWFVerificationInstance.libewf_handle_get_media_size();
-         frmYaffi.Label7.Caption := ' Verifying DD image...please wait';
+         frmYaffi.Label7.Caption := ' Verifying E01 image...please wait';
         // If MD5 hash was chosen, compute the MD5 hash of the image
 
         if HashChoice = 1 then

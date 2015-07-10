@@ -49,6 +49,7 @@
       <Unit2>
         <Filename Value="libEWF-FPC\LibEWFUnit.pas"/>
         <IsPartOfProject Value="True"/>
+        <UnitName Value="LibEWFUnit"/>
       </Unit2>
     </Units>
   </ProjectOptions>
