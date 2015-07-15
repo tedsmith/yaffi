@@ -123,6 +123,7 @@ type
     { private declarations }
   public
     Stop : boolean;
+    BytesPerSector : integer;
     { public declarations }
   end;
 
@@ -379,7 +380,7 @@ end;
 
 procedure TfrmYaffi.TreeView1SelectionChanged(Sender: TObject);
 var
-  DriveLetter : string;
+  strDriveLetter, strPhysicalDiskID : string;
 begin
    if Sender is TTreeView then
    begin
@@ -391,11 +392,18 @@ begin
     // We just copy the characters following "Drive ".
     if Pos('Drive', TTreeView(Sender).Selected.Text) > 0 then
       begin
-       DriveLetter := '\\?\'+Trim(Copy(TTreeView(Sender).Selected.Text, 6, 3));
-       ledtSelectedItem.Text := DriveLetter;
+       strDriveLetter := '\\?\'+Trim(Copy(TTreeView(Sender).Selected.Text, 6, 3));
+       ledtSelectedItem.Text := strDriveLetter;
       end
-    else
-      ledtSelectedItem.Text := (TTreeView(Sender).Selected.Text);
+    // If the user chooses a physical disk, adjust the friendly displayed version
+    // to an actual low level name the OS can initiate a handle to
+    else if Pos('\\.\PHYSICALDRIVE', TTreeView(Sender).Selected.Text) > 0 then
+      begin
+       // "\\.\PHYSICALDRIVE" = 17 chars, and up to '25' disks allocated so a further
+       // 2 chars for that, so 19 chars ibn total.
+       strPhysicalDiskID := Trim(Copy(TTreeView(Sender).Selected.Text, 0, 19));
+       ledtSelectedItem.Text := strPhysicalDiskID;
+      end;
    end;
   end;
 
@@ -476,19 +484,18 @@ var
   oEnumPartition : IEnumvariant;
   oEnumLogical   : IEnumvariant;
   iValue         : pULONG;
-  DeviceID, Val1, Val2, Val3, s : widestring;
+  Val1, Val2, Val3, Val4, Val5, Val6, Val7, Val8,
+    DeviceID, Manufacturer, s : widestring;
   DriveLetter, strDiskSize, strFreeSpace, strVolumeName    : string;
   DriveLetterID  : Byte;
-  intDriveSize, intFreeSpace   : Int64;
+  intDriveSize, intFreeSpace, ReportedSectors   : Int64;
 
 begin;
-  Result:='';
-  Val1 := '';
-  Val2 := '';
-  Val3 := '';
+  Result       := '';
   intDriveSize := 0;
   intFreeSpace := 0;
-
+  ReportedSectors := 0;
+  frmYaffi.BytesPerSector := 0;
   frmYAFFI.Treeview1.Images := frmYAFFI.ImageList1;
   PhyDiskNode     := frmYAFFI.TreeView1.Items.Add(nil,'Physical Disk') ;
   PhyDiskNode.ImageIndex := 0;
@@ -501,15 +508,28 @@ begin;
 
   FSWbemLocator   := CreateOleObject('WbemScripting.SWbemLocator');
   objWMIService   := FSWbemLocator.ConnectServer('localhost', 'root\CIMV2', '', '');
-  colDiskDrives   := objWMIService.ExecQuery('SELECT DeviceID FROM Win32_DiskDrive', 'WQL');
+  //colDiskDrives   := objWMIService.ExecQuery('SELECT DeviceID FROM Win32_DiskDrive', 'WQL');
+  colDiskDrives   := objWMIService.ExecQuery('SELECT * FROM Win32_DiskDrive', 'WQL');
+
   oEnumDiskDrive  := IUnknown(colDiskDrives._NewEnum) as IEnumVariant;
 
   while oEnumDiskDrive.Next(1, objdiskDrive, nil) = 0 do
    begin
-      Val1 := Format('%s',[string(objdiskDrive.DeviceID)]);
+      Val1 := Format('%s',[string(objdiskDrive.DeviceID)]) + ' (';
+      Val2 := FormatByteSize(objdiskDrive.Size)            + ') ';
+      Val3 := Format('%s',[string(objdiskDrive.Model)])    + ' ' ;
+      Val4 := Format('%s',[string(objdiskDrive.Manufacturer)]);
+      Val5 := Format('%s',[string(objdiskDrive.Name)]); // Should also be "\\.\PHYSICALDRIVEX" but not guaranteed to be
+      Val6 := 'Status : ' + Format('%s',[string(objdiskDrive.Status)]);
+      frmYaffi.BytesPerSector  := objdiskDrive.BytesPerSector;
+      ReportedSectors := objdiskDrive.TotalSectors;
+      Val7 := 'Sector Size : ' + IntToStr(frmYaffi.BytesPerSector);
+      Val8 := 'Reported Sectors : ' + IntToStr(ReportedSectors);
+
+      //Format('%s',[string(objdiskDrive.DeviceID)]);
       if Length(Val1) > 0 then
       begin
-        frmYaffi.TreeView1.Items.AddChild(PhyDiskNode, Val1);
+        frmYaffi.TreeView1.Items.AddChild(PhyDiskNode, Val1 + Val2 + Val3 + Val4);
       end;
       //Escape the `\` chars in the DeviceID value because the '\' is a reserved character in WMI.
       DeviceID        := StringReplace(objdiskDrive.DeviceID,'\','\\',[rfReplaceAll]);
@@ -923,7 +943,7 @@ begin
       // Source disk handle are OK. So attempt imaging
       // First, compute the exact disk size of the disk or volume
       ExactDiskSize := GetDiskLengthInBytes(hSelectedDisk);
-      SectorCount   := ExactDiskSize DIV 512;
+      SectorCount   := ExactDiskSize DIV BytesPerSector;
       frmYaffi.lbllblTotalBytesSource.Caption := IntToStr(ExactDiskSize);
 
       // Now image the chosen device, passing the exact size and

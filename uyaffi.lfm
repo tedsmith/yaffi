@@ -1,7 +1,7 @@
 object frmYaffi: TfrmYaffi
-  Left = 965
+  Left = 507
   Height = 817
-  Top = 190
+  Top = 36
   Width = 524
   Caption = 'YAFFI (Yet Another Free Forensic Imager) by Ted Smith (c) 2015'
   ClientHeight = 817
@@ -145,6 +145,7 @@ object frmYaffi: TfrmYaffi
       Height = 21
       Top = 212
       Width = 321
+      Anchors = [akTop, akLeft, akRight]
       Color = clGradientInactiveCaption
       EditLabel.AnchorSideLeft.Control = ledtImageName
       EditLabel.AnchorSideRight.Control = ledtImageName
@@ -164,7 +165,6 @@ object frmYaffi: TfrmYaffi
       Height = 21
       Top = 344
       Width = 296
-      Anchors = [akTop, akLeft, akRight]
       EditLabel.AnchorSideLeft.Control = ledtExhibitRef
       EditLabel.AnchorSideRight.Control = ledtExhibitRef
       EditLabel.AnchorSideRight.Side = asrBottom
@@ -183,7 +183,6 @@ object frmYaffi: TfrmYaffi
       Height = 24
       Top = 376
       Width = 296
-      Anchors = [akTop, akLeft, akRight]
       Lines.Strings = (
         'Unique Exhibit Notes...'
       )

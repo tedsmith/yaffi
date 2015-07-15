@@ -32,7 +32,8 @@ uses
   cthreads,
   {$ENDIF}{$ENDIF}
   Interfaces, // this includes the LCL widgetset
-  Forms, uyaffi, LibEWFUnit
+  Forms, uyaffi,
+  LibEWFUnit
   { you can add units after this };
 
 {$R *.res}
