@@ -98,6 +98,7 @@ type
     memNotes: TMemo;
     memGeneralCaseNotes: TMemo;
     menShowDiskManager: TMenuItem;
+    menShowDiskTechData: TMenuItem;
     PopupMenu1: TPopupMenu;
     SaveImageDialog: TSaveDialog;
     TreeView1: TTreeView;
@@ -118,6 +119,7 @@ type
     function InitialiseSegmentSize(Sender : TObject) : Int64;
     function InitialiseCompressionChoice(Sender : TObject) : Integer;
     procedure cbdisksChange(Sender: TObject);
+    function GetDiskTechnicalSpecs(Sender: TObject) : Integer;
 
   private
     { private declarations }
@@ -470,6 +472,7 @@ begin
   OleCheck(Moniker.BindToObject(BindCtx, nil, IDispatch, Result));
 end;
 
+
 function ListDrives : string;
 var
   FSWbemLocator  : Variant;
@@ -484,8 +487,8 @@ var
   oEnumPartition : IEnumvariant;
   oEnumLogical   : IEnumvariant;
   iValue         : pULONG;
-  Val1, Val2, Val3, Val4, Val5, Val6, Val7, Val8,
-    DeviceID, Manufacturer, s : widestring;
+  Val1, Val2, Val3, Val4,
+    DeviceID, s : widestring;
   DriveLetter, strDiskSize, strFreeSpace, strVolumeName    : string;
   DriveLetterID  : Byte;
   intDriveSize, intFreeSpace, ReportedSectors   : Int64;
@@ -519,12 +522,6 @@ begin;
       Val2 := FormatByteSize(objdiskDrive.Size)            + ') ';
       Val3 := Format('%s',[string(objdiskDrive.Model)])    + ' ' ;
       Val4 := Format('%s',[string(objdiskDrive.Manufacturer)]);
-      Val5 := Format('%s',[string(objdiskDrive.Name)]); // Should also be "\\.\PHYSICALDRIVEX" but not guaranteed to be
-      Val6 := 'Status : ' + Format('%s',[string(objdiskDrive.Status)]);
-      frmYaffi.BytesPerSector  := objdiskDrive.BytesPerSector;
-      ReportedSectors := objdiskDrive.TotalSectors;
-      Val7 := 'Sector Size : ' + IntToStr(frmYaffi.BytesPerSector);
-      Val8 := 'Reported Sectors : ' + IntToStr(ReportedSectors);
 
       //Format('%s',[string(objdiskDrive.DeviceID)]);
       if Length(Val1) > 0 then
@@ -574,6 +571,127 @@ begin;
       end;
        objdiskDrive:=Unassigned;
    end;
+end;
+
+
+// Get the technical disk data for a specifically selected disk. Returns 1 on success
+// -1 otherwise
+function TfrmYaffi.GetDiskTechnicalSpecs(Sender : TObject) : integer;
+{
+https://msdn.microsoft.com/en-us/library/aa394132%28v=vs.85%29.aspx
+uint32   BytesPerSector;
+uint64   DefaultBlockSize;
+string   Description;
+datetime InstallDate;
+string   InterfaceType;
+uint32   LastErrorCode;
+string   Model;
+uint32   Partitions;
+uint32   SectorsPerTrack;
+string   SerialNumber;
+uint32   Signature;
+uint64   Size;
+string   Status;
+uint64   TotalCylinders;
+uint32   TotalHeads;
+uint64   TotalSectors;
+uint64   TotalTracks;
+uint32   TracksPerCylinder;
+}
+var
+  FSWbemLocator  : Variant;
+  objWMIService  : Variant;
+  colDiskDrives  : Variant;
+  colLogicalDisks: Variant;
+  colPartitions  : Variant;
+  objdiskDrive   : Variant;
+  objPartition   : Variant;
+  objLogicalDisk : Variant;
+  oEnumDiskDrive : IEnumvariant;
+  oEnumPartition : IEnumvariant;
+  oEnumLogical   : IEnumvariant;
+
+  ReportedSectors, DefaultBlockSize, Size, TotalCylinders, TotalSectors,
+    TotalTracks: Int64;
+
+  SectorSize, LastErrorCode, Partitions, SectorsPerTrack,
+    Signature, TotalHeads, TracksPerCylinder : integer;
+
+  Description, InterfaceType, Model, SerialNumber,
+    Status: string;
+
+  SelectedDisk : widestring;
+
+  slDiskSpecs : TStringList;
+
+begin
+  result := -1;
+
+  if Pos('\\.\PHYSICALDRIVE', TreeView1.Selected.Text) > 0 then
+    begin
+      // "\\.\PHYSICALDRIVE" = 17 chars, and up to '25' disks allocated so a further
+      // 2 chars for that, so 19 chars ibn total.
+     SelectedDisk := Trim(Copy(TreeView1.Selected.Text, 0, 19));
+     SelectedDisk := ANSIToUTF8(Trim(StringReplace(SelectedDisk,'\','\\',[rfReplaceAll])));
+     // Years from now, when this makes no sense, just remember that WMI wants a widestring!!!!
+     // Dont spend hours of your life again trying to work that undocumented aspect out.
+    end;
+
+  SectorSize := 0;
+  ReportedSectors := 0;
+  FSWbemLocator   := CreateOleObject('WbemScripting.SWbemLocator');
+  objWMIService   := FSWbemLocator.ConnectServer('localhost', 'root\CIMV2', '', '');
+  colDiskDrives   := objWMIService.ExecQuery('SELECT * FROM Win32_DiskDrive WHERE DeviceID="'+SelectedDisk+'"', 'WQL');
+  oEnumDiskDrive  := IUnknown(colDiskDrives._NewEnum) as IEnumVariant;
+
+  while oEnumDiskDrive.Next(1, objdiskDrive, nil) = 0 do
+  begin
+   ReportedSectors := objdiskDrive.TotalSectors;
+   BytesPerSector  := objdiskDrive.BytesPerSector;
+   //DefaultBlockSize:= objdiskDrive.DefaultBlockSize; Doesnt work
+   Description     := objdiskDrive.Description;
+   InterfaceType   := objdiskDrive.InterfaceType;
+   //LastErrorCode   := objdiskDrive.LastErrorCode;    Doesnt work
+   Model           := objdiskDrive.Model;
+   Partitions      := objdiskDrive.Partitions;
+   SectorsPerTrack := objdiskDrive.SectorsPerTrack;
+   SerialNumber    := objdiskDrive.SerialNumber;
+   Signature       := objdiskDrive.Signature;
+   Size            := objdiskDrive.Size;
+   Status          := objdiskDrive.Status;
+   TotalCylinders  := objdiskDrive.TotalCylinders;
+   TotalHeads      := objdiskDrive.TotalHeads;
+   TotalSectors    := objdiskDrive.TotalSectors;
+   TotalTracks     := objdiskDrive.TotalTracks;
+   TracksPerCylinder:= objdiskDrive.TracksPerCylinder;
+
+    if Size > 0 then
+    begin
+      slDiskSpecs := TStringList.Create;
+      slDiskSpecs.Add('Reported Sectors: ' + IntToStr(ReportedSectors));
+      slDiskSpecs.Add('Bytes per Sector: ' + IntToStr(BytesPerSector));
+      slDiskSpecs.Add('Desription: '       + Description);
+      slDiskSpecs.Add('Interface type: '   + InterfaceType);
+      slDiskSpecs.Add('Model: '            + Model);
+      slDiskSpecs.Add('No of Partitions: ' + IntToStr(Partitions));
+      slDiskSpecs.Add('Serial Number: '    + SerialNumber);
+      slDiskSpecs.Add('Disk Signature: '   + IntToStr(Signature));
+      slDiskSpecs.Add('Size: '             + IntToStr(Size) + ' bytes. ' + FormatByteSize(Size));
+      slDiskSpecs.Add('Status: '           + Status);
+      slDiskSpecs.Add('Cylinders: '        + IntToStr(TotalCylinders));
+      slDiskSpecs.Add('Heads: '            + IntToStr(TotalHeads));
+      slDiskSpecs.Add('Sectors '           + IntToStr(TotalSectors) + ' (might not match pure LBA)');
+      slDiskSpecs.Add('Tracks '            + IntToStr(TotalTracks));
+      slDiskSpecs.Add('Tracks per Cylinder ' + IntToStr(TracksPerCylinder));
+
+      result := 1;
+      ShowMessage(slDiskSpecs.Text);
+      // TODO: Make this as a popup text memo in a form with a save to file button
+      slDiskSpecs.Free;
+    end
+    else result := -1;
+  end;
+ objdiskDrive:=Unassigned;
 end;
 
 // Returns just the drive letter from the treeview, e.g. 'Drive X:' becomes just 'X'
@@ -943,7 +1061,7 @@ begin
       // Source disk handle are OK. So attempt imaging
       // First, compute the exact disk size of the disk or volume
       ExactDiskSize := GetDiskLengthInBytes(hSelectedDisk);
-      SectorCount   := ExactDiskSize DIV BytesPerSector;
+      SectorCount   := ExactDiskSize DIV 512; // TODO : Call BytesPerSector value as computed by tech specs lookup
       frmYaffi.lbllblTotalBytesSource.Caption := IntToStr(ExactDiskSize);
 
       // Now image the chosen device, passing the exact size and

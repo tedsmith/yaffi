@@ -869,5 +869,9 @@ object frmYaffi: TfrmYaffi
       Caption = 'Show Disk Manager'
       OnClick = menShowDiskManagerClick
     end
+    object menShowDiskTechData: TMenuItem
+      Caption = 'Show Disk Technical Data'
+      OnClick = GetDiskTechnicalSpecs
+    end
   end
 end
