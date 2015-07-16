@@ -54,6 +54,7 @@
         <Filename Value="diskspecification.pas"/>
         <IsPartOfProject Value="True"/>
         <ComponentName Value="frmTechSpecs"/>
+        <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="diskspecification"/>
       </Unit3>

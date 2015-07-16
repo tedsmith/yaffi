@@ -477,7 +477,7 @@ function ListDrives : string;
 var
   FSWbemLocator  : Variant;
   objWMIService  : Variant;
-  colDiskDrives  : Variant;
+  colDiskDrivesWin32DiskDrive  : Variant;
   colLogicalDisks: Variant;
   colPartitions  : Variant;
   objdiskDrive   : Variant;
@@ -510,10 +510,10 @@ begin;
 
   FSWbemLocator   := CreateOleObject('WbemScripting.SWbemLocator');
   objWMIService   := FSWbemLocator.ConnectServer('localhost', 'root\CIMV2', '', '');
-  //colDiskDrives   := objWMIService.ExecQuery('SELECT DeviceID FROM Win32_DiskDrive', 'WQL');
-  colDiskDrives   := objWMIService.ExecQuery('SELECT * FROM Win32_DiskDrive', 'WQL');
+  //colDiskDrivesWin32DiskDrive   := objWMIService.ExecQuery('SELECT DeviceID FROM Win32_DiskDrive', 'WQL');
+  colDiskDrivesWin32DiskDrive   := objWMIService.ExecQuery('SELECT * FROM Win32_DiskDrive', 'WQL');
 
-  oEnumDiskDrive  := IUnknown(colDiskDrives._NewEnum) as IEnumVariant;
+  oEnumDiskDrive  := IUnknown(colDiskDrivesWin32DiskDrive._NewEnum) as IEnumVariant;
 
   while oEnumDiskDrive.Next(1, objdiskDrive, nil) = 0 do
    begin
@@ -600,15 +600,18 @@ uint32   TracksPerCylinder;
 var
   FSWbemLocator  : Variant;
   objWMIService  : Variant;
-  colDiskDrives  : Variant;
+  colDiskDrivesWin32DiskDrive  : Variant;
+  //colDiskDrivesWin32_PhysicalMedia : Variant;
   colLogicalDisks: Variant;
   colPartitions  : Variant;
   objdiskDrive   : Variant;
+  //objDiskDrivePhysicalMedia : Variant;
   objPartition   : Variant;
   objLogicalDisk : Variant;
   oEnumDiskDrive : IEnumvariant;
   oEnumPartition : IEnumvariant;
   oEnumLogical   : IEnumvariant;
+  //oEnumDiskDriveWin32_PhysicalMedia : IEnumvariant;
 
   ReportedSectors, DefaultBlockSize, Size, TotalCylinders, TotalSectors,
     TotalTracks: Int64;
@@ -660,9 +663,21 @@ begin
 
   FSWbemLocator   := CreateOleObject('WbemScripting.SWbemLocator');
   objWMIService   := FSWbemLocator.ConnectServer('localhost', 'root\CIMV2', '', '');
-  colDiskDrives   := objWMIService.ExecQuery('SELECT * FROM Win32_DiskDrive WHERE DeviceID="'+SelectedDisk+'"', 'WQL');
-  oEnumDiskDrive  := IUnknown(colDiskDrives._NewEnum) as IEnumVariant;
+  colDiskDrivesWin32DiskDrive   := objWMIService.ExecQuery('SELECT * FROM Win32_DiskDrive WHERE DeviceID="'+SelectedDisk+'"', 'WQL');
+  oEnumDiskDrive  := IUnknown(colDiskDrivesWin32DiskDrive._NewEnum) as IEnumVariant;
+  { TODO : Win32_DiskDrive seems to be returning invalid serial numbers.
+  //       Win32_PhysicalMedia should return it but isnt. Need to work one of them out.
 
+  // Parse the Win32_PhysicalMedia WMI for the disk serial number
+  colDiskDrivesWin32_PhysicalMedia := objWMIService.ExecQuery('SELECT * FROM Win32_PhysicalMedia WHERE DeviceID="'+SelectedDisk+'"', 'WQL');
+  oEnumDiskDriveWin32_PhysicalMedia  := IUnknown(colDiskDrivesWin32_PhysicalMedia._NewEnum) as IEnumVariant;
+  while oEnumDiskDriveWin32_PhysicalMedia.Next(1, objDiskDrivePhysicalMedia, nil) = 0 do
+  begin
+    if objDiskDrivePhysicalMedia.SerialNumber <> '' then SerialNumber := objDiskDrivePhysicalMedia.SerialNumber;
+  end;
+  }
+
+  // Parse the Win32_Diskdrive WMI
   while oEnumDiskDrive.Next(1, objdiskDrive, nil) = 0 do
   begin
     if objdiskDrive.TotalSectors     <> 0  then ReportedSectors := objdiskDrive.TotalSectors;
@@ -715,6 +730,7 @@ begin
     else result := -1;
   end;
  objdiskDrive:=Unassigned;
+ //objDiskDrivePhysicalMedia := Unassigned;
 end;
 
 // Returns just the drive letter from the treeview, e.g. 'Drive X:' becomes just 'X'
@@ -862,6 +878,7 @@ var
 begin
   ByteSize      := 0;
   BytesReturned := 0;
+  // https://msdn.microsoft.com/en-us/library/aa365178%28v=vs.85%29.aspx
   if not DeviceIOControl(hSelectedDisk, IOCTL_DISK_GET_LENGTH_INFO, nil, 0,
          @DLength, SizeOf(TDiskLength), BytesReturned, nil) then
          raise Exception.Create('Unable to initiate IOCTL_DISK_GET_LENGTH_INFO.');
