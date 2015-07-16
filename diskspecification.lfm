@@ -1,0 +1,34 @@
+object frmTechSpecs: TfrmTechSpecs
+  Left = 700
+  Height = 240
+  Top = 295
+  Width = 320
+  Caption = 'YAFFI - Technical Specifications of Disk'
+  ClientHeight = 240
+  ClientWidth = 320
+  LCLVersion = '1.4.0.4'
+  object Memo1: TMemo
+    Left = 8
+    Height = 168
+    Top = 24
+    Width = 294
+    Lines.Strings = (
+      'Memo1'
+    )
+    ScrollBars = ssAutoBoth
+    TabOrder = 0
+  end
+  object btnSaveTechnicalSpecs: TButton
+    Left = 112
+    Height = 25
+    Top = 208
+    Width = 99
+    Caption = 'Save to File...'
+    OnClick = btnSaveTechnicalSpecsClick
+    TabOrder = 1
+  end
+  object sdTechSpecsFile: TSaveDialog
+    left = 240
+    top = 200
+  end
+end

@@ -49,7 +49,7 @@ uses
   {$endif}
 
   {$ifdef Windows}
-    Process, Windows, ActiveX, ComObj, Variants,
+    Process, Windows, ActiveX, ComObj, Variants, diskspecification,
     win32proc, // for the OS name detection : http://free-pascal-lazarus.989080.n3.nabble.com/Lazarus-WindowsVersion-td4032307.html
   {$endif}
     LibEWFUnit, Classes, SysUtils, FileUtil, Forms, Controls, Graphics, LazUTF8,
@@ -491,13 +491,12 @@ var
     DeviceID, s : widestring;
   DriveLetter, strDiskSize, strFreeSpace, strVolumeName    : string;
   DriveLetterID  : Byte;
-  intDriveSize, intFreeSpace, ReportedSectors   : Int64;
+  intDriveSize, intFreeSpace : Int64;
 
 begin;
   Result       := '';
   intDriveSize := 0;
   intFreeSpace := 0;
-  ReportedSectors := 0;
   frmYaffi.BytesPerSector := 0;
   frmYAFFI.Treeview1.Images := frmYAFFI.ImageList1;
   PhyDiskNode     := frmYAFFI.TreeView1.Items.Add(nil,'Physical Disk') ;
@@ -618,14 +617,36 @@ var
     Signature, TotalHeads, TracksPerCylinder : integer;
 
   Description, InterfaceType, Model, SerialNumber,
-    Status: string;
+    Status, DiskName, Manufacturer: string;
 
   SelectedDisk : widestring;
 
   slDiskSpecs : TStringList;
 
 begin
-  result := -1;
+  result           := -1;
+  DiskName         := '';
+  Size             := 0;
+  TotalSectors     := 0;
+  TotalHeads       := 0;
+  TotalCylinders   := 0;
+  BytesPerSector   := 0;
+  Signature        := 0;
+  TotalHeads       := 0;
+  TotalSectors     := 0;
+  TotalTracks      := 0;
+  TotalCylinders   := 0;
+  TracksPerCylinder:= 0;
+
+  Status           := '';
+  Model            := '';
+  Description      := '';
+  InterfaceType    := '';
+  Manufacturer     := '';
+  SerialNumber     := '';
+  Partitions       := 0;
+
+  frmTechSpecs.Memo1.Clear;
 
   if Pos('\\.\PHYSICALDRIVE', TreeView1.Selected.Text) > 0 then
     begin
@@ -637,8 +658,6 @@ begin
      // Dont spend hours of your life again trying to work that undocumented aspect out.
     end;
 
-  SectorSize := 0;
-  ReportedSectors := 0;
   FSWbemLocator   := CreateOleObject('WbemScripting.SWbemLocator');
   objWMIService   := FSWbemLocator.ConnectServer('localhost', 'root\CIMV2', '', '');
   colDiskDrives   := objWMIService.ExecQuery('SELECT * FROM Win32_DiskDrive WHERE DeviceID="'+SelectedDisk+'"', 'WQL');
@@ -646,33 +665,37 @@ begin
 
   while oEnumDiskDrive.Next(1, objdiskDrive, nil) = 0 do
   begin
-   ReportedSectors := objdiskDrive.TotalSectors;
-   BytesPerSector  := objdiskDrive.BytesPerSector;
-   //DefaultBlockSize:= objdiskDrive.DefaultBlockSize; Doesnt work
-   Description     := objdiskDrive.Description;
-   InterfaceType   := objdiskDrive.InterfaceType;
-   //LastErrorCode   := objdiskDrive.LastErrorCode;    Doesnt work
-   Model           := objdiskDrive.Model;
-   Partitions      := objdiskDrive.Partitions;
-   SectorsPerTrack := objdiskDrive.SectorsPerTrack;
-   SerialNumber    := objdiskDrive.SerialNumber;
-   Signature       := objdiskDrive.Signature;
-   Size            := objdiskDrive.Size;
-   Status          := objdiskDrive.Status;
-   TotalCylinders  := objdiskDrive.TotalCylinders;
-   TotalHeads      := objdiskDrive.TotalHeads;
-   TotalSectors    := objdiskDrive.TotalSectors;
-   TotalTracks     := objdiskDrive.TotalTracks;
-   TracksPerCylinder:= objdiskDrive.TracksPerCylinder;
+    if objdiskDrive.TotalSectors     <> 0  then ReportedSectors := objdiskDrive.TotalSectors;
+    if objdiskDrive.BytesPerSector   <> 0  then BytesPerSector  := objdiskDrive.BytesPerSector;
+    if objdiskDrive.Description      <> '' then Description     := objdiskDrive.Description;
+    if objdiskDrive.InterfaceType    <> '' then InterfaceType   := objdiskDrive.InterfaceType;
+    if objdiskDrive.Model            <> '' then Model           := objdiskDrive.Model;
+    if objdiskDrive.Name             <> '' then DiskName        := objdiskDrive.Name;
+    if objdiskDrive.Partitions       <> 0  then Partitions      := objdiskDrive.Partitions;
+    if objdiskDrive.SectorsPerTrack  <> 0  then SectorsPerTrack := objdiskDrive.SectorsPerTrack;
+    // TODO : Resolve signature to ASCII
+    if objdiskDrive.Signature        <> 0  then Signature       := objdiskDrive.Signature;
+    if objdiskDrive.Size             <> 0  then Size            := objdiskDrive.Size;
+    if objdiskDrive.Status           <> '' then Status          := objdiskDrive.Status;
+    if objdiskDrive.TotalCylinders   <> 0  then TotalCylinders  := objdiskDrive.TotalCylinders;
+    if objdiskDrive.TotalHeads       <> 0  then TotalHeads      := objdiskDrive.TotalHeads;
+    if objdiskDrive.TotalTracks      <> 0  then TotalTracks     := objdiskDrive.TotalTracks;
+    if objdiskDrive.TracksPerCylinder<> 0  then TracksPerCylinder:= objdiskDrive.TracksPerCylinder;
+    // The next few dont work. Need to work out why:
+    //if objdiskDrive.DefaultBlockSize <> 0 then DefaultBlockSize:= objdiskDrive.DefaultBlockSize;
+    //if objdiskDrive.LastErrorCode    <> 0 then LastErrorCode   := objdiskDrive.LastErrorCode;
+    //if objdiskDrive.Manufacturer     <> ''  then Manufacturer    := objdiskDrive.Manufacturer;
+    //if objdiskDrive.SerialNumber     <> ''  then SerialNumber    := objdiskDrive.SerialNumber;
 
     if Size > 0 then
     begin
       slDiskSpecs := TStringList.Create;
-      slDiskSpecs.Add('Reported Sectors: ' + IntToStr(ReportedSectors));
+      slDiskSpecs.Add('Disk ID: '          + DiskName);
       slDiskSpecs.Add('Bytes per Sector: ' + IntToStr(BytesPerSector));
       slDiskSpecs.Add('Desription: '       + Description);
       slDiskSpecs.Add('Interface type: '   + InterfaceType);
       slDiskSpecs.Add('Model: '            + Model);
+      slDiskSpecs.Add('Manufacturer: '     + Manufacturer);
       slDiskSpecs.Add('No of Partitions: ' + IntToStr(Partitions));
       slDiskSpecs.Add('Serial Number: '    + SerialNumber);
       slDiskSpecs.Add('Disk Signature: '   + IntToStr(Signature));
@@ -680,13 +703,13 @@ begin
       slDiskSpecs.Add('Status: '           + Status);
       slDiskSpecs.Add('Cylinders: '        + IntToStr(TotalCylinders));
       slDiskSpecs.Add('Heads: '            + IntToStr(TotalHeads));
-      slDiskSpecs.Add('Sectors '           + IntToStr(TotalSectors) + ' (might not match pure LBA)');
+      slDiskSpecs.Add('Reported Sectors '  + IntToStr(ReportedSectors) + ' (might not match pure LBA)');
       slDiskSpecs.Add('Tracks '            + IntToStr(TotalTracks));
       slDiskSpecs.Add('Tracks per Cylinder ' + IntToStr(TracksPerCylinder));
 
       result := 1;
-      ShowMessage(slDiskSpecs.Text);
-      // TODO: Make this as a popup text memo in a form with a save to file button
+      frmTechSpecs.Memo1.Lines.AddText(slDiskSpecs.Text);
+      frmTechSpecs.Show;
       slDiskSpecs.Free;
     end
     else result := -1;

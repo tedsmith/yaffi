@@ -33,7 +33,7 @@
         <PackageName Value="LCL"/>
       </Item1>
     </RequiredPackages>
-    <Units Count="3">
+    <Units Count="4">
       <Unit0>
         <Filename Value="yaffi.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -50,6 +50,13 @@
         <Filename Value="libEWF-FPC\LibEWFUnit.pas"/>
         <IsPartOfProject Value="True"/>
       </Unit2>
+      <Unit3>
+        <Filename Value="diskspecification.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="frmTechSpecs"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="diskspecification"/>
+      </Unit3>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
