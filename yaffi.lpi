@@ -73,8 +73,9 @@
     </SearchPaths>
     <Linking>
       <Debugging>
+        <GenerateDebugInfo Value="False"/>
         <DebugInfoType Value="dsDwarf2Set"/>
-        <UseHeaptrc Value="True"/>
+        <StripSymbols Value="True"/>
       </Debugging>
       <Options>
         <Win32>

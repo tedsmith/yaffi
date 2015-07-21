@@ -99,6 +99,10 @@ Icon graphics are courtesy of :
 Icon Archive www.iconarchive.com, in particular the named artists "Treetog Artwork" 
 and "Thvg".
 
+YAFFI Logo picture originally from 
+https://s-media-cache-ak0.pinimg.com/236x/66/01/34/660134fcbb68c49d97d24d2b81eb3651.jpg
+and logo created by layer merging using The GIMP by Ted Smith 
+
 MSVCR100.dll is needed for use with Windows XP (where the DLL may not be present by default) 
 and is part of the Microsoft Windows DLL libraries. 
 

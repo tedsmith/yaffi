@@ -419,6 +419,14 @@ object frmYaffi: TfrmYaffi
       OnClick = Button1Click
       TabOrder = 20
     end
+    object lblFreeSpaceReceivingDisk: TLabel
+      Left = 144
+      Height = 13
+      Top = 240
+      Width = 12
+      Caption = '...'
+      ParentColor = False
+    end
   end
   object Label6: TLabel
     Left = 16

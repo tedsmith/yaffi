@@ -49,7 +49,7 @@ uses
   {$endif}
 
   {$ifdef Windows}
-    Process, Windows, ActiveX, ComObj, Variants, diskspecification,
+    Process, Windows, ActiveX, ComObj, Variants, diskspecification, GPTMBR,
     win32proc, // for the OS name detection : http://free-pascal-lazarus.989080.n3.nabble.com/Lazarus-WindowsVersion-td4032307.html
   {$endif}
     LibEWFUnit, Classes, SysUtils, FileUtil, Forms, Controls, Graphics, LazUTF8,
@@ -70,6 +70,7 @@ type
     ComboSegmentSize: TComboBox;
     ComboImageType: TComboBox;
     comboHashChoice: TComboBox;
+    lblFreeSpaceReceivingDisk: TLabel;
     lbllblTotalBytesSource: TLabel;
     Label6: TLabel;
     Label7: TLabel;
@@ -254,9 +255,23 @@ end;
 
 
 procedure TfrmYaffi.btnChooseImageNameClick(Sender: TObject);
+var
+  strFreeSpace, strDiskSize, DriveLetter : string;
+  intFreeSpace, intDriveSize : Int64;
+  DriveLetterID : Byte;
+
 begin
+  intFreeSpace := 0;
+  intDriveSize := 0;
   SaveImageDialog.Execute;
   ledtImageName.Text:= SaveImageDialog.Filename;
+  DriveLetter    := LeftStr(SaveImageDialog.Filename, 1);
+  DriveLetterID  := GetDriveIDFromLetter(DriveLetter);
+  intDriveSize   := DiskSize(DriveLetterID);
+  strDiskSize    := FormatByteSize(intDriveSize);
+  intFreeSpace   := DiskFree(DriveLetterID);
+  strFreeSpace   := FormatByteSize(intFreeSpace);
+  lblFreeSpaceReceivingDisk.Caption:= '(' + strFreeSpace + ' free.)' ;
 end;
 
 procedure TfrmYaffi.ComboImageTypeSelect(Sender: TObject);
@@ -486,7 +501,6 @@ var
   oEnumDiskDrive : IEnumvariant;
   oEnumPartition : IEnumvariant;
   oEnumLogical   : IEnumvariant;
-  iValue         : pULONG;
   Val1, Val2, Val3, Val4,
     DeviceID, s : widestring;
   DriveLetter, strDiskSize, strFreeSpace, strVolumeName    : string;
@@ -519,8 +533,7 @@ begin;
    begin
       Val1 := Format('%s',[string(objdiskDrive.DeviceID)]) + ' (';
       Val2 := FormatByteSize(objdiskDrive.Size)            + ') ';
-      Val3 := Format('%s',[string(objdiskDrive.Model)])    + ' ' ;
-      Val4 := Format('%s',[string(objdiskDrive.Manufacturer)]);
+      Val3 := Format('%s',[string(objdiskDrive.Model)]);
 
       //Format('%s',[string(objdiskDrive.DeviceID)]);
       if Length(Val1) > 0 then
@@ -601,26 +614,16 @@ var
   FSWbemLocator  : Variant;
   objWMIService  : Variant;
   colDiskDrivesWin32DiskDrive  : Variant;
-  //colDiskDrivesWin32_PhysicalMedia : Variant;
-  colLogicalDisks: Variant;
-  colPartitions  : Variant;
   objdiskDrive   : Variant;
-  //objDiskDrivePhysicalMedia : Variant;
-  objPartition   : Variant;
-  objLogicalDisk : Variant;
   oEnumDiskDrive : IEnumvariant;
-  oEnumPartition : IEnumvariant;
-  oEnumLogical   : IEnumvariant;
-  //oEnumDiskDriveWin32_PhysicalMedia : IEnumvariant;
 
-  ReportedSectors, DefaultBlockSize, Size, TotalCylinders, TotalSectors,
-    TotalTracks: Int64;
+  ReportedSectors, DefaultBlockSize, Size, TotalCylinders, TotalTracks: Int64;
 
-  SectorSize, LastErrorCode, Partitions, SectorsPerTrack,
-    Signature, TotalHeads, TracksPerCylinder : integer;
+  Partitions, SectorsPerTrack,
+    WinDiskSignature, TotalHeads, TracksPerCylinder : integer;
 
   Description, InterfaceType, Model, SerialNumber,
-    Status, DiskName, Manufacturer: string;
+    Status, DiskName, WinDiskSignatureHex, MBRorGPT: string;
 
   SelectedDisk : widestring;
 
@@ -630,23 +633,21 @@ begin
   result           := -1;
   DiskName         := '';
   Size             := 0;
-  TotalSectors     := 0;
   TotalHeads       := 0;
   TotalCylinders   := 0;
   BytesPerSector   := 0;
-  Signature        := 0;
+  WinDiskSignature := 0;
   TotalHeads       := 0;
-  TotalSectors     := 0;
   TotalTracks      := 0;
   TotalCylinders   := 0;
   TracksPerCylinder:= 0;
-
+  DefaultBlockSize := 0;
   Status           := '';
   Model            := '';
   Description      := '';
   InterfaceType    := '';
-  Manufacturer     := '';
   SerialNumber     := '';
+  SelectedDisk     := '';
   Partitions       := 0;
 
   frmTechSpecs.Memo1.Clear;
@@ -655,83 +656,86 @@ begin
     begin
       // "\\.\PHYSICALDRIVE" = 17 chars, and up to '25' disks allocated so a further
       // 2 chars for that, so 19 chars ibn total.
-     SelectedDisk := Trim(Copy(TreeView1.Selected.Text, 0, 19));
-     SelectedDisk := ANSIToUTF8(Trim(StringReplace(SelectedDisk,'\','\\',[rfReplaceAll])));
-     // Years from now, when this makes no sense, just remember that WMI wants a widestring!!!!
-     // Dont spend hours of your life again trying to work that undocumented aspect out.
-    end;
+      SelectedDisk := Trim(Copy(TreeView1.Selected.Text, 0, 19));
+      // First, determine if it a MBR or GPT partitioned disk. Call GPTMBR unit...
+      MBRorGPT := MBR_or_GPT(SelectedDisk);
+      // Now ensure the disk string is suitable for WMI and and so on
+      SelectedDisk := ANSIToUTF8(Trim(StringReplace(SelectedDisk,'\','\\',[rfReplaceAll])));
+      // Years from now, when this makes no sense, just remember that WMI wants a widestring!!!!
+      // Dont spend hours of your life again trying to work that undocumented aspect out.
 
-  FSWbemLocator   := CreateOleObject('WbemScripting.SWbemLocator');
-  objWMIService   := FSWbemLocator.ConnectServer('localhost', 'root\CIMV2', '', '');
-  colDiskDrivesWin32DiskDrive   := objWMIService.ExecQuery('SELECT * FROM Win32_DiskDrive WHERE DeviceID="'+SelectedDisk+'"', 'WQL');
-  oEnumDiskDrive  := IUnknown(colDiskDrivesWin32DiskDrive._NewEnum) as IEnumVariant;
-  { TODO : Win32_DiskDrive seems to be returning invalid serial numbers.
-  //       Win32_PhysicalMedia should return it but isnt. Need to work one of them out.
 
-  // Parse the Win32_PhysicalMedia WMI for the disk serial number
-  colDiskDrivesWin32_PhysicalMedia := objWMIService.ExecQuery('SELECT * FROM Win32_PhysicalMedia WHERE DeviceID="'+SelectedDisk+'"', 'WQL');
-  oEnumDiskDriveWin32_PhysicalMedia  := IUnknown(colDiskDrivesWin32_PhysicalMedia._NewEnum) as IEnumVariant;
-  while oEnumDiskDriveWin32_PhysicalMedia.Next(1, objDiskDrivePhysicalMedia, nil) = 0 do
-  begin
-    if objDiskDrivePhysicalMedia.SerialNumber <> '' then SerialNumber := objDiskDrivePhysicalMedia.SerialNumber;
-  end;
-  }
+      FSWbemLocator   := CreateOleObject('WbemScripting.SWbemLocator');
+      objWMIService   := FSWbemLocator.ConnectServer('localhost', 'root\CIMV2', '', '');
+      colDiskDrivesWin32DiskDrive   := objWMIService.ExecQuery('SELECT * FROM Win32_DiskDrive WHERE DeviceID="'+SelectedDisk+'"', 'WQL');
+      oEnumDiskDrive  := IUnknown(colDiskDrivesWin32DiskDrive._NewEnum) as IEnumVariant;
 
-  // Parse the Win32_Diskdrive WMI
-  while oEnumDiskDrive.Next(1, objdiskDrive, nil) = 0 do
-  begin
-    if objdiskDrive.TotalSectors     <> 0  then ReportedSectors := objdiskDrive.TotalSectors;
-    if objdiskDrive.BytesPerSector   <> 0  then BytesPerSector  := objdiskDrive.BytesPerSector;
-    if objdiskDrive.Description      <> '' then Description     := objdiskDrive.Description;
-    if objdiskDrive.InterfaceType    <> '' then InterfaceType   := objdiskDrive.InterfaceType;
-    if objdiskDrive.Model            <> '' then Model           := objdiskDrive.Model;
-    if objdiskDrive.Name             <> '' then DiskName        := objdiskDrive.Name;
-    if objdiskDrive.Partitions       <> 0  then Partitions      := objdiskDrive.Partitions;
-    if objdiskDrive.SectorsPerTrack  <> 0  then SectorsPerTrack := objdiskDrive.SectorsPerTrack;
-    // TODO : Resolve signature to ASCII
-    if objdiskDrive.Signature        <> 0  then Signature       := objdiskDrive.Signature;
-    if objdiskDrive.Size             <> 0  then Size            := objdiskDrive.Size;
-    if objdiskDrive.Status           <> '' then Status          := objdiskDrive.Status;
-    if objdiskDrive.TotalCylinders   <> 0  then TotalCylinders  := objdiskDrive.TotalCylinders;
-    if objdiskDrive.TotalHeads       <> 0  then TotalHeads      := objdiskDrive.TotalHeads;
-    if objdiskDrive.TotalTracks      <> 0  then TotalTracks     := objdiskDrive.TotalTracks;
-    if objdiskDrive.TracksPerCylinder<> 0  then TracksPerCylinder:= objdiskDrive.TracksPerCylinder;
-    // The next few dont work. Need to work out why:
-    //if objdiskDrive.DefaultBlockSize <> 0 then DefaultBlockSize:= objdiskDrive.DefaultBlockSize;
-    //if objdiskDrive.LastErrorCode    <> 0 then LastErrorCode   := objdiskDrive.LastErrorCode;
-    //if objdiskDrive.Manufacturer     <> ''  then Manufacturer    := objdiskDrive.Manufacturer;
-    //if objdiskDrive.SerialNumber     <> ''  then SerialNumber    := objdiskDrive.SerialNumber;
+      // Parse the Win32_Diskdrive WMI.
+      while oEnumDiskDrive.Next(1, objdiskDrive, nil) = 0 do
+      begin
+        // Using VarIsNull ensures null values are just not parsed rather than errors being generated.
+        if not VarIsNull(objdiskDrive.TotalSectors)      then ReportedSectors := objdiskDrive.TotalSectors;
+        if not VarIsNull(objdiskDrive.BytesPerSector)    then BytesPerSector  := objdiskDrive.BytesPerSector;
+        if not VarIsNull(objdiskDrive.Description)       then Description     := objdiskDrive.Description;
+        if not VarIsNull(objdiskDrive.InterfaceType)     then InterfaceType   := objdiskDrive.InterfaceType;
+        if not VarIsNull(objdiskDrive.Model)             then Model           := objdiskDrive.Model;
+        if not VarIsNull(objdiskDrive.Name)              then DiskName        := objdiskDrive.Name;
+        if not VarIsNull(objdiskDrive.Partitions)        then Partitions      := objdiskDrive.Partitions;
+        if not VarIsNull(objdiskDrive.SectorsPerTrack)   then SectorsPerTrack := objdiskDrive.SectorsPerTrack;
+        if not VarIsNull(objdiskDrive.Signature)         then WinDiskSignature:= objdiskDrive.Signature; // also returned by MBR_or_GPT function
+        if not VarIsNull(objdiskDrive.Size)              then Size            := objdiskDrive.Size;
+        if not VarIsNull(objdiskDrive.Status)            then Status          := objdiskDrive.Status;
+        if not VarIsNull(objdiskDrive.TotalCylinders)    then TotalCylinders  := objdiskDrive.TotalCylinders;
+        if not VarIsNull(objdiskDrive.TotalHeads)        then TotalHeads      := objdiskDrive.TotalHeads;
+        if not VarIsNull(objdiskDrive.TotalTracks)       then TotalTracks     := objdiskDrive.TotalTracks;
+        if not VarIsNull(objdiskDrive.TracksPerCylinder) then TracksPerCylinder:= objdiskDrive.TracksPerCylinder;
+        if not VarIsNull(objdiskDrive.DefaultBlockSize)  then DefaultBlockSize:= objdiskDrive.DefaultBlockSize;
+        //if not VarIsNull(objdiskDrive.Manufacturer)      then Manufacturer    := objdiskDrive.Manufacturer; WMI just reports "Standard Disk Drives"
+        if not VarIsNull(objdiskDrive.SerialNumber)      then SerialNumber    := objdiskDrive.SerialNumber;
 
-    if Size > 0 then
+        WinDiskSignatureHex := IntToHex(SwapEndian(WinDiskSignature), 8);
+
+        if Size > 0 then
+        begin
+          slDiskSpecs := TStringList.Create;
+          slDiskSpecs.Add('Disk ID: '          + DiskName);
+          slDiskSpecs.Add('Bytes per Sector: ' + IntToStr(BytesPerSector));
+          slDiskSpecs.Add('Desription: '       + Description);
+          slDiskSpecs.Add('Interface type: '   + InterfaceType);
+          slDiskSpecs.Add('Model: '            + Model);
+          //slDiskSpecs.Add('Manufacturer: '     + Manufacturer);
+          slDiskSpecs.Add('MBR or GPT? '       + MBRorGPT);
+          slDiskSpecs.Add('No of Partitions: ' + IntToStr(Partitions));
+          slDiskSpecs.Add('Serial Number: '    + SerialNumber);
+          slDiskSpecs.Add('Windows Disk Signature (from offset 440d): ' + WinDiskSignatureHex);
+          slDiskSpecs.Add('Size: '             + IntToStr(Size) + ' bytes (' + FormatByteSize(Size) + ').');
+          slDiskSpecs.Add('Status: '           + Status);
+          slDiskSpecs.Add('Cylinders: '        + IntToStr(TotalCylinders));
+          slDiskSpecs.Add('Heads: '            + IntToStr(TotalHeads));
+          slDiskSpecs.Add('Reported Sectors: '  + IntToStr(ReportedSectors));
+          slDiskSpecs.Add('Tracks: '            + IntToStr(TotalTracks));
+          slDiskSpecs.Add('Sectors per Track: ' + IntToStr(SectorsPerTrack));
+          slDiskSpecs.Add('Tracks per Cylinder: ' + IntToStr(TracksPerCylinder));
+          slDiskSpecs.Add('Default Block Size: ' + IntToStr(DefaultBlockSize));
+
+          result := 1;
+          frmTechSpecs.Memo1.Lines.AddText(slDiskSpecs.Text);
+          frmTechSpecs.Show;
+          slDiskSpecs.Free;
+        end
+        else result := -1;
+      end;
+      objdiskDrive:=Unassigned;
+    end; // end of if PHYSICAL DRIVEX
+
+  // If the user tries to generate such data for a logical volume, tell him he can't yet.
+  // TODO : Add detailed offset parameters for partitions and such
+  if Pos('Drive', TreeView1.Selected.Text) > 0 then
     begin
-      slDiskSpecs := TStringList.Create;
-      slDiskSpecs.Add('Disk ID: '          + DiskName);
-      slDiskSpecs.Add('Bytes per Sector: ' + IntToStr(BytesPerSector));
-      slDiskSpecs.Add('Desription: '       + Description);
-      slDiskSpecs.Add('Interface type: '   + InterfaceType);
-      slDiskSpecs.Add('Model: '            + Model);
-      slDiskSpecs.Add('Manufacturer: '     + Manufacturer);
-      slDiskSpecs.Add('No of Partitions: ' + IntToStr(Partitions));
-      slDiskSpecs.Add('Serial Number: '    + SerialNumber);
-      slDiskSpecs.Add('Disk Signature: '   + IntToStr(Signature));
-      slDiskSpecs.Add('Size: '             + IntToStr(Size) + ' bytes. ' + FormatByteSize(Size));
-      slDiskSpecs.Add('Status: '           + Status);
-      slDiskSpecs.Add('Cylinders: '        + IntToStr(TotalCylinders));
-      slDiskSpecs.Add('Heads: '            + IntToStr(TotalHeads));
-      slDiskSpecs.Add('Reported Sectors '  + IntToStr(ReportedSectors) + ' (might not match pure LBA)');
-      slDiskSpecs.Add('Tracks '            + IntToStr(TotalTracks));
-      slDiskSpecs.Add('Tracks per Cylinder ' + IntToStr(TracksPerCylinder));
-
-      result := 1;
-      frmTechSpecs.Memo1.Lines.AddText(slDiskSpecs.Text);
-      frmTechSpecs.Show;
-      slDiskSpecs.Free;
-    end
-    else result := -1;
-  end;
- objdiskDrive:=Unassigned;
- //objDiskDrivePhysicalMedia := Unassigned;
+      ShowMessage('Additional technical details about partitions is not yet available in YAFFI.');
+    end;
 end;
+
 
 // Returns just the drive letter from the treeview, e.g. 'Drive X:' becomes just 'X'
 // which can then be passed to GetDriveIDFromLetter
@@ -1222,7 +1226,7 @@ begin
            slImagingLog.Add('Image Verified Hash: ' + VerificationHash);
            slImagingLog.Add('Image verification started at: ' + FormatDateTime('dd/mm/yy HH:MM:SS', VerificationStartedAt));
            slImagingLog.Add('Image file verification finished at: ' + FormatDateTime('dd/mm/yy HH:MM:SS', VerificationEndedAt));
-           slImagingLog.Add('Time Taken to Image: '       + FormatDateTime('HH:MM:SS', TimeTakenToVerify));
+           slImagingLog.Add('Time Taken to Verify: '       + FormatDateTime('HH:MM:SS', TimeTakenToVerify));
           end
         else slImagingLog.Add('Image Verification failed.');
       finally
@@ -1251,7 +1255,6 @@ var
   SHA1ctxImage             : TSHA1Context;
   MD5DigestImage           : TMD5Digest;
   SHA1DigestImage          : TSHA1Digest;
-  SystemDateNow            : TDateTime;
   BytesRead                : integer;
 
   TotalBytesRead, BytesWritten, TotalBytesWritten : Int64;
@@ -1602,8 +1605,6 @@ var
   SHA1DigestImage          : TSHA1Digest;
 
   BytesRead, CompressionChoice : integer;
-
-  strError                 : string;
 
   TotalBytesRead, BytesWritten, TotalBytesWritten : Int64;
 
@@ -2054,18 +2055,18 @@ var
   lpBytesReturned, lpOutputBufferSize : DWORD;
 
 const
-  {
+
   Appendix_I_O_Control_Codes_in_the_WDK_8:
   http://social.technet.microsoft.com/wiki/contents/articles/24653.decoding-io-control-codes-ioctl-fsctl-and-deviceiocodes-with-table-of-known-values.aspx
-  }
+
   // Needed to dismount mounted volumes:
    FSCTL_DISMOUNT_VOLUME     = $00090020;
    // Don't think these are needed:
-   {
+
    IOCTL_STORAGE_EJECT_MEDIA = $002D4808;
    FSCTL_LOCK_VOLUME         = $00090018;
    FSCTL_UNLOCK_VOLUME       = $0009001C;
-   }
+
 
    // Needed for FSCTL_ALLOW_EXTENDED_DASD_IO :
    FILE_DEVICE_FILE_SYSTEM = $00000009;
