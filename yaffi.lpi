@@ -15,7 +15,11 @@
       <EnableI18N LFM="False"/>
     </i18n>
     <VersionInfo>
-      <StringTable ProductVersion=""/>
+      <UseVersionInfo Value="True"/>
+      <MajorVersionNr Value="1"/>
+      <Language Value="0809"/>
+      <Attributes pvaPreRelease="True"/>
+      <StringTable LegalCopyright="(c) 2015 Ted Smith" OriginalFilename="yaffi.exe" ProductName="YAFFI - Yet Another Free Forensic Imager" ProductVersion="Pre release test version"/>
     </VersionInfo>
     <BuildModes Count="1">
       <Item1 Name="Default" Default="True"/>
@@ -73,9 +77,8 @@
     </SearchPaths>
     <Linking>
       <Debugging>
-        <GenerateDebugInfo Value="False"/>
         <DebugInfoType Value="dsDwarf2Set"/>
-        <StripSymbols Value="True"/>
+        <UseHeaptrc Value="True"/>
       </Debugging>
       <Options>
         <Win32>

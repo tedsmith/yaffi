@@ -63,7 +63,7 @@ type
     btnAbort: TButton;
     btnChooseImageName: TButton;
     btnStartImaging: TButton;
-    Button1: TButton;
+    btnRefreshDiskList: TButton;
     cbdisks: TComboBox;
     cbVerify: TCheckBox;
     ComboCompression: TComboBox;
@@ -107,12 +107,17 @@ type
     // http://forum.lazarus.freepascal.org/index.php/topic,28560.0.html
     procedure btnAbortClick(Sender: TObject);
     procedure btnStartImagingClick(Sender: TObject);
-    procedure Button1Click(Sender: TObject);
+    procedure btnRefreshDiskListClick(Sender: TObject);
     procedure btnChooseImageNameClick(Sender: TObject);
     procedure ComboCompressionSelect(Sender: TObject);
     procedure ComboImageTypeSelect(Sender: TObject);
     procedure ComboSegmentSizeSelect(Sender: TObject);
     procedure FormCreate(Sender: TObject);
+    procedure ledtCaseNameEnter(Sender: TObject);
+    procedure ledtExaminersNameEnter(Sender: TObject);
+    procedure ledtExhibitRefEnter(Sender: TObject);
+    procedure memGeneralCaseNotesEnter(Sender: TObject);
+    procedure memNotesEnter(Sender: TObject);
     procedure menShowDiskManagerClick(Sender: TObject);
     procedure TreeView1SelectionChanged(Sender: TObject);
     function InitialiseHashChoice(Sender : TObject) : Integer;
@@ -203,7 +208,32 @@ begin
   {$endif}
 end;
 
-procedure TfrmYaffi.Button1Click(Sender: TObject);
+procedure TfrmYaffi.ledtCaseNameEnter(Sender: TObject);
+begin
+  ledtCaseName.Clear;
+end;
+
+procedure TfrmYaffi.ledtExaminersNameEnter(Sender: TObject);
+begin
+  ledtExaminersName.Clear;
+end;
+
+procedure TfrmYaffi.ledtExhibitRefEnter(Sender: TObject);
+begin
+  ledtExhibitRef.Clear;
+end;
+
+procedure TfrmYaffi.memGeneralCaseNotesEnter(Sender: TObject);
+begin
+  memGeneralCaseNotes.Clear;
+end;
+
+procedure TfrmYaffi.memNotesEnter(Sender: TObject);
+begin
+  memNotes.Clear;
+end;
+
+procedure TfrmYaffi.btnRefreshDiskListClick(Sender: TObject);
 {$ifdef UNIX}
 var
   DisksProcess: TProcess;
@@ -214,8 +244,10 @@ var
 begin
   {$ifdef Windows}
   try
-  TreeView1.Items.Clear;
-  ListDrives;
+   // Treeview1.OnSelectionChanged := nil;
+   // TreeView1.Select(nil, []);
+    TreeView1.Items.Clear;
+    ListDrives;
   finally
   end;
   {$endif}
@@ -583,6 +615,7 @@ begin;
       end;
        objdiskDrive:=Unassigned;
    end;
+  frmYaffi.Treeview1.AlphaSort;
 end;
 
 
@@ -1105,7 +1138,10 @@ begin
       // Source disk handle are OK. So attempt imaging
       // First, compute the exact disk size of the disk or volume
       ExactDiskSize := GetDiskLengthInBytes(hSelectedDisk);
-      SectorCount   := ExactDiskSize DIV 512; // TODO : Call BytesPerSector value as computed by tech specs lookup
+      // TODO : Call BytesPerSector value as computed by tech specs lookup
+      // With GPT disks, 1024 or 4096 is likely, and CD\DVD is usually 1024
+      // so this is rubbish at the moment!
+      SectorCount   := ExactDiskSize DIV 512;
       frmYaffi.lbllblTotalBytesSource.Caption := IntToStr(ExactDiskSize);
 
       // Now image the chosen device, passing the exact size and

@@ -8,7 +8,7 @@ object frmYaffi: TfrmYaffi
   ClientWidth = 524
   DefaultMonitor = dmDesktop
   OnCreate = FormCreate
-  OnShow = Button1Click
+  OnShow = btnRefreshDiskListClick
   Position = poDesktopCenter
   LCLVersion = '1.4.0.4'
   object cbdisks: TComboBox
@@ -137,7 +137,7 @@ object frmYaffi: TfrmYaffi
       EditLabel.Width = 321
       EditLabel.Caption = 'Selected Item:'
       EditLabel.ParentColor = False
-      TabOrder = 1
+      TabOrder = 20
       Text = '...'
     end
     object ledtImageName: TLabeledEdit
@@ -157,7 +157,7 @@ object frmYaffi: TfrmYaffi
       EditLabel.Width = 321
       EditLabel.Caption = 'Image Name and Path'
       EditLabel.ParentColor = False
-      TabOrder = 3
+      TabOrder = 2
       Text = '...'
     end
     object ledtExhibitRef: TLabeledEdit
@@ -175,8 +175,9 @@ object frmYaffi: TfrmYaffi
       EditLabel.Width = 296
       EditLabel.Caption = 'Exhibit Reference'
       EditLabel.ParentColor = False
-      TabOrder = 7
+      TabOrder = 5
       Text = '...'
+      OnEnter = ledtExhibitRefEnter
     end
     object memNotes: TMemo
       Left = 8
@@ -186,7 +187,8 @@ object frmYaffi: TfrmYaffi
       Lines.Strings = (
         'Unique Exhibit Notes...'
       )
-      TabOrder = 12
+      OnEnter = memNotesEnter
+      TabOrder = 6
     end
     object btnChooseImageName: TButton
       Left = 8
@@ -195,7 +197,7 @@ object frmYaffi: TfrmYaffi
       Width = 120
       Caption = 'Save Image As...'
       OnClick = btnChooseImageNameClick
-      TabOrder = 2
+      TabOrder = 1
     end
     object comboHashChoice: TComboBox
       Left = 344
@@ -209,7 +211,7 @@ object frmYaffi: TfrmYaffi
         'MD5 & SHA-1'
         'Use None'
       )
-      TabOrder = 9
+      TabOrder = 10
       Text = 'Choose Hash'
     end
     object ComboImageType: TComboBox
@@ -223,7 +225,7 @@ object frmYaffi: TfrmYaffi
         'DD'
       )
       OnSelect = ComboImageTypeSelect
-      TabOrder = 4
+      TabOrder = 8
       Text = 'Choose Image Type'
     end
     object btnStartImaging: TButton
@@ -233,7 +235,7 @@ object frmYaffi: TfrmYaffi
       Width = 96
       Caption = 'Start Imaging'
       OnClick = btnStartImagingClick
-      TabOrder = 14
+      TabOrder = 13
     end
     object btnAbort: TButton
       Left = 352
@@ -242,7 +244,7 @@ object frmYaffi: TfrmYaffi
       Width = 96
       Caption = 'Abort!'
       OnClick = btnAbortClick
-      TabOrder = 15
+      TabOrder = 19
     end
     object ComboSegmentSize: TComboBox
       Left = 344
@@ -256,7 +258,7 @@ object frmYaffi: TfrmYaffi
         '2.0Gb'
       )
       OnSelect = ComboSegmentSizeSelect
-      TabOrder = 10
+      TabOrder = 11
       Text = '2Gb Segments'
     end
     object ledtCaseName: TLabeledEdit
@@ -274,8 +276,9 @@ object frmYaffi: TfrmYaffi
       EditLabel.Width = 296
       EditLabel.Caption = 'Case Name'
       EditLabel.ParentColor = False
-      TabOrder = 6
+      TabOrder = 3
       Text = '...'
+      OnEnter = ledtCaseNameEnter
     end
     object ledtExaminersName: TLabeledEdit
       Left = 8
@@ -292,8 +295,9 @@ object frmYaffi: TfrmYaffi
       EditLabel.Width = 296
       EditLabel.Caption = 'Examiners Name'
       EditLabel.ParentColor = False
-      TabOrder = 8
+      TabOrder = 4
       Text = '...'
+      OnEnter = ledtExaminersNameEnter
     end
     object memGeneralCaseNotes: TMemo
       Left = 8
@@ -303,7 +307,8 @@ object frmYaffi: TfrmYaffi
       Lines.Strings = (
         'General Case Notes...'
       )
-      TabOrder = 13
+      OnEnter = memGeneralCaseNotesEnter
+      TabOrder = 7
     end
     object ComboCompression: TComboBox
       Left = 344
@@ -317,7 +322,7 @@ object frmYaffi: TfrmYaffi
         'None'
       )
       OnSelect = ComboCompressionSelect
-      TabOrder = 11
+      TabOrder = 12
       Text = 'Compression..'
     end
     object cbVerify: TCheckBox
@@ -332,7 +337,7 @@ object frmYaffi: TfrmYaffi
       ParentShowHint = False
       ShowHint = True
       State = cbChecked
-      TabOrder = 5
+      TabOrder = 9
     end
     object ledtComputedHashA: TLabeledEdit
       Left = 8
@@ -349,7 +354,7 @@ object frmYaffi: TfrmYaffi
       EditLabel.Width = 464
       EditLabel.Caption = 'Device Hash MD5'
       EditLabel.ParentColor = False
-      TabOrder = 16
+      TabOrder = 15
       Text = '...'
     end
     object ledtComputedHashB: TLabeledEdit
@@ -367,7 +372,7 @@ object frmYaffi: TfrmYaffi
       EditLabel.Width = 464
       EditLabel.Caption = 'Device Hash SHA-1'
       EditLabel.ParentColor = False
-      TabOrder = 17
+      TabOrder = 16
       Text = '...'
     end
     object ledtImageHashA: TLabeledEdit
@@ -386,7 +391,7 @@ object frmYaffi: TfrmYaffi
       EditLabel.Caption = 'Image Hash MD5'
       EditLabel.ParentColor = False
       Enabled = False
-      TabOrder = 18
+      TabOrder = 17
       Text = '...'
       Visible = False
     end
@@ -406,18 +411,18 @@ object frmYaffi: TfrmYaffi
       EditLabel.Caption = 'Image Hash SHA-1'
       EditLabel.ParentColor = False
       Enabled = False
-      TabOrder = 19
+      TabOrder = 18
       Text = '...'
       Visible = False
     end
-    object Button1: TButton
+    object btnRefreshDiskList: TButton
       Left = 8
       Height = 24
       Top = 168
       Width = 120
       Caption = 'Refresh Disk List'
-      OnClick = Button1Click
-      TabOrder = 20
+      OnClick = btnRefreshDiskListClick
+      TabOrder = 14
     end
     object lblFreeSpaceReceivingDisk: TLabel
       Left = 144
