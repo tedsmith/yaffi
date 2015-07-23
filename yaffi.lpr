@@ -33,7 +33,7 @@ uses
   {$ENDIF}{$ENDIF}
   Interfaces, // this includes the LCL widgetset
   Forms, uyaffi,
-  LibEWFUnit, diskspecification
+  LibEWFUnit, diskspecification, uProgress
   { you can add units after this };
 
 {$R *.res}
@@ -43,6 +43,7 @@ begin
   Application.Initialize;
   Application.CreateForm(TfrmYAFFI, frmYAFFI);
   Application.CreateForm(TfrmTechSpecs, frmTechSpecs);
+  Application.CreateForm(TfrmProgress, frmProgress);
   Application.Run;
 end.
 

@@ -37,7 +37,7 @@
         <PackageName Value="LCL"/>
       </Item1>
     </RequiredPackages>
-    <Units Count="4">
+    <Units Count="5">
       <Unit0>
         <Filename Value="yaffi.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -62,6 +62,13 @@
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="diskspecification"/>
       </Unit3>
+      <Unit4>
+        <Filename Value="uprogress.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="frmProgress"/>
+        <ResourceBaseClass Value="Form"/>
+        <UnitName Value="uProgress"/>
+      </Unit4>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

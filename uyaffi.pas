@@ -49,7 +49,7 @@ uses
   {$endif}
 
   {$ifdef Windows}
-    Process, Windows, ActiveX, ComObj, Variants, diskspecification, GPTMBR,
+    Process, Windows, ActiveX, ComObj, Variants, diskspecification, GPTMBR, uProgress,
     win32proc, // for the OS name detection : http://free-pascal-lazarus.989080.n3.nabble.com/Lazarus-WindowsVersion-td4032307.html
   {$endif}
     LibEWFUnit, Classes, SysUtils, FileUtil, Forms, Controls, Graphics, LazUTF8,
@@ -71,11 +71,6 @@ type
     ComboImageType: TComboBox;
     comboHashChoice: TComboBox;
     lblFreeSpaceReceivingDisk: TLabel;
-    lbllblTotalBytesSource: TLabel;
-    Label6: TLabel;
-    Label7: TLabel;
-    lblTotalBytesRead: TLabel;
-    Label9: TLabel;
     ledtComputedHashA: TLabeledEdit;
     ledtComputedHashB: TLabeledEdit;
     ledtExaminersName: TLabeledEdit;
@@ -155,6 +150,7 @@ var
   function WindowsImageDiskE01(hDiskHandle : THandle; SegmentSize : Int64; DiskSize : Int64; HashChoice : Integer) : Int64;
   // Formatting functions
   function GetDiskLengthInBytes(hSelectedDisk : THandle) : Int64;
+  function GetSectorSizeInBytes(hSelectedDisk : THandle) : Int64;
   function GetJustDriveLetter(str : widestring) : string;
   function GetDriveIDFromLetter(str : string) : Byte;
   function FormatByteSize(const bytes: QWord): string;
@@ -244,8 +240,6 @@ var
 begin
   {$ifdef Windows}
   try
-   // Treeview1.OnSelectionChanged := nil;
-   // TreeView1.Select(nil, []);
     TreeView1.Items.Clear;
     ListDrives;
   finally
@@ -431,7 +425,7 @@ procedure TfrmYaffi.TreeView1SelectionChanged(Sender: TObject);
 var
   strDriveLetter, strPhysicalDiskID : string;
 begin
-   if Sender is TTreeView then
+   if (Sender is TTreeView) and Assigned(TTreeview(Sender).Selected) then
    begin
     if  (TTreeView(Sender).Selected.Text = 'Physical Disk')
       or (TTreeView(Sender).Selected.Text = 'Logical Volume') then
@@ -842,6 +836,45 @@ begin
   end;
 end;
 
+// GetSectorSizeInBytes queries the disk secotr size. 512 is most common size
+// but with GPT disks, 1024 and 4096 bytes will soon be common.
+// We're only interested in BytesPerSector by the way - the rest of it is utter rubbish
+// in this day and age. LBA is used now by almost all storage devices, with rare exception.
+// But the  IOCTL_DISK_GET_DRIVE_GEOMETRY structure expects 5 variables.
+function GetSectorSizeInBytes(hSelectedDisk : THandle) : Int64;
+type
+TDiskGeometry = packed record
+  Cylinders            : Int64;    // This is stored just for compliance with the structure
+  MediaType            : Integer;  // This is stored just for compliance with the structure
+  TracksPerCylinder    : DWORD;    // This is stored just for compliance with the structure
+  SectorsPerTrack      : DWORD;    // This is stored just for compliance with the structure
+  BytesPerSector       : DWORD;    // This, however, is useful to us!
+end;
+
+const
+  IOCTL_DISK_GET_DRIVE_GEOMETRY      = $0070000;
+var
+  DG : TDiskGeometry;
+  SectorSizeInBytes, BytesReturned : Integer;
+
+begin
+  if not DeviceIOControl(hSelectedDisk,
+                         IOCTL_DISK_GET_DRIVE_GEOMETRY,
+                         nil,
+                         0,
+                         @DG,
+                         SizeOf(TDiskGeometry),
+                         @BytesReturned,
+                         nil)
+                         then raise Exception.Create('Unable to initiate IOCTL_DISK_GET_DRIVE_GEOMETRY.');
+
+  if DG.BytesPerSector > 0 then
+    begin
+      result := DG.BytesPerSector;
+    end
+  else result := -1;
+end;
+
 // Returns the exact disk size for BOTH physical disks and logical drives as
 // reported by the Windows API and is used during the imaging stage
 function GetDiskLengthInBytes(hSelectedDisk : THandle) : Int64;
@@ -916,9 +949,15 @@ begin
   ByteSize      := 0;
   BytesReturned := 0;
   // https://msdn.microsoft.com/en-us/library/aa365178%28v=vs.85%29.aspx
-  if not DeviceIOControl(hSelectedDisk, IOCTL_DISK_GET_LENGTH_INFO, nil, 0,
-         @DLength, SizeOf(TDiskLength), BytesReturned, nil) then
-         raise Exception.Create('Unable to initiate IOCTL_DISK_GET_LENGTH_INFO.');
+  if not DeviceIOControl(hSelectedDisk,
+                         IOCTL_DISK_GET_LENGTH_INFO,
+                         nil,
+                         0,
+                         @DLength,
+                         SizeOf(TDiskLength),
+                         BytesReturned,
+                         nil)
+     then raise Exception.Create('Unable to initiate IOCTL_DISK_GET_LENGTH_INFO.');
 
   if DLength.Length > 0 then ByteSize := DLength.Length;
   result := ByteSize;
@@ -1065,7 +1104,7 @@ var
   hSelectedDisk                           : THandle;
   ExactDiskSize, SectorCount, ImageResult,
     SegmentSize, ImageFileSize            : Int64;
-  ImageTypeChoice                         : integer;
+  ImageTypeChoice, ExactSectorSize        : integer;
   slImagingLog                            : TStringList;
   BytesReturned                           : DWORD;
   VerificationHash                        : string;
@@ -1079,6 +1118,7 @@ var
 begin
   BytesReturned   := 0;
   ExactDiskSize   := 0;
+  ExactSectorSize := 0;
   SectorCount     := 0;
   ImageResult     := 0;
   ImageFileSize   := 0;
@@ -1135,14 +1175,19 @@ begin
                  raise Exception.Create('Unable to initiate FSCTL_ALLOW_EXTENDED_DASD_IO.');
         end;
 
-      // Source disk handle are OK. So attempt imaging
+      // Source disk handle is OK. So attempt imaging of it
+
       // First, compute the exact disk size of the disk or volume
-      ExactDiskSize := GetDiskLengthInBytes(hSelectedDisk);
-      // TODO : Call BytesPerSector value as computed by tech specs lookup
-      // With GPT disks, 1024 or 4096 is likely, and CD\DVD is usually 1024
-      // so this is rubbish at the moment!
-      SectorCount   := ExactDiskSize DIV 512;
-      frmYaffi.lbllblTotalBytesSource.Caption := IntToStr(ExactDiskSize);
+      ExactDiskSize   := GetDiskLengthInBytes(hSelectedDisk);
+
+      // Now query the sector size.
+      // 512 bytes is common with MBR but with GPT disks, 1024 or 4096 is likely
+      ExactSectorSize := GetSectorSizeInBytes(hSelectedDisk);
+
+      // Now we can assign a sector count based on sector size and disk size
+      SectorCount   := ExactDiskSize DIV ExactSectorSize;
+
+      frmProgress.lbllblTotalBytesSource.Caption := IntToStr(ExactDiskSize);
 
       // Now image the chosen device, passing the exact size and
       // hash selection and Image name.
@@ -1157,7 +1202,7 @@ begin
 
           If ImageResult = ExactDiskSize then
             begin
-            Label6.Caption := 'Imaged OK. ' + IntToStr(ExactDiskSize)+' bytes captured.';
+            frmProgress.Label6.Caption := 'Imaged OK. ' + IntToStr(ExactDiskSize)+' bytes captured.';
             EndedAt := Now;
             TimeTakenToImage := EndedAt - StartedAt;
 
@@ -1173,7 +1218,7 @@ begin
                     ImageVerified := true;
                     VerificationEndedAt := Now;
                     TimeTakenToVerify   := VerificationEndedAt - VerificationStartedAt;
-                    Label7.Caption := 'Image re-read OK. Verifies. See log file';
+                    frmProgress.Label7.Caption := 'Image re-read OK. Verifies. See log file';
                   end;
               end
               else ShowMessage('E01 Verification Failed.');
@@ -1193,7 +1238,7 @@ begin
 
           If ImageResult = ExactDiskSize then
           begin
-           Label6.Caption := 'Imaged OK. ' + IntToStr(ExactDiskSize)+' bytes captured.';
+           frmProgress.Label6.Caption := 'Imaged OK. ' + IntToStr(ExactDiskSize)+' bytes captured.';
            EndedAt := Now;
            TimeTakenToImage := EndedAt - StartedAt;
 
@@ -1210,7 +1255,7 @@ begin
                   ImageVerified := true;
                   VerificationEndedAt := Now;
                   TimeTakenToVerify   := VerificationEndedAt - VerificationStartedAt;
-                  Label7.Caption := 'Image re-read OK. Verifies. See log file';
+                  frmProgress.Label7.Caption := 'Image re-read OK. Verifies. See log file';
                  end;
              end;
            end
@@ -1351,7 +1396,8 @@ begin
               end
                 else inc(TotalBytesRead, BytesRead);
 
-        frmYaffi.lblTotalBytesRead.Caption := IntToStr(TotalBytesRead);
+        frmProgress.Show;
+        frmProgress.lblTotalBytesRead.Caption := IntToStr(TotalBytesRead);
 
         BytesWritten := fsImageName.Write(Buffer, BytesRead);
         if BytesWritten = -1 then
@@ -1507,7 +1553,8 @@ begin
   TotalBytesRead := 0;
   strMD5Hash     := '';
   strSHA1Hash    := '';
-  frmYaffi.Label7.Caption := ' Verifying DD image...please wait';
+  frmProgress.Show;
+  frmProgress.Label7.Caption := ' Verifying DD image...please wait';
 
   // Initialise new hashing digests
 
@@ -1754,7 +1801,8 @@ begin
                 end;
               if BytesWritten > -1 then inc(TotalBytesWritten, BytesWritten);
             end;
-            frmYaffi.lblTotalBytesRead.Caption := IntToStr(TotalBytesRead);
+            frmProgress.Show;
+            frmProgress.lblTotalBytesRead.Caption := IntToStr(TotalBytesRead);
           // Hash the bytes read and\or written using the algorithm required
           // If the user sel;ected no hashing, break the loop immediately; faster
           if HashChoice = 4 then
@@ -1934,7 +1982,8 @@ begin
      if fLibEWFVerificationInstance.libewf_open(strImageName, LIBEWF_OPEN_READ) = 0 then
      begin
         ImageFileSize := fLibEWFVerificationInstance.libewf_handle_get_media_size();
-         frmYaffi.Label7.Caption := ' Verifying E01 image...please wait';
+        frmProgress.Show;
+        frmProgress.Label7.Caption := ' Verifying E01 image...please wait';
         // If MD5 hash was chosen, compute the MD5 hash of the image
 
         if HashChoice = 1 then
