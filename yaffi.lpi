@@ -66,6 +66,7 @@
         <Filename Value="uprogress.pas"/>
         <IsPartOfProject Value="True"/>
         <ComponentName Value="frmProgress"/>
+        <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="uProgress"/>
       </Unit4>

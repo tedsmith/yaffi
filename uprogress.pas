@@ -5,7 +5,8 @@ unit uProgress;
 interface
 
 uses
-  Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, StdCtrls;
+  Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, StdCtrls,
+  ComCtrls, ExtCtrls;
 
 type
 
@@ -16,8 +17,9 @@ type
     Label6: TLabel;
     Label7: TLabel;
     Label9: TLabel;
-    lbllblTotalBytesSource: TLabel;
+    lblTotalBytesSource: TLabel;
     lblTotalBytesRead: TLabel;
+    ProgressBar1: TProgressBar;
   private
     { private declarations }
   public
@@ -30,6 +32,9 @@ var
 implementation
 
 {$R *.lfm}
+
+{ TfrmProgress }
+
 
 end.
 

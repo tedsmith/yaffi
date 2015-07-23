@@ -1187,7 +1187,7 @@ begin
       // Now we can assign a sector count based on sector size and disk size
       SectorCount   := ExactDiskSize DIV ExactSectorSize;
 
-      frmProgress.lbllblTotalBytesSource.Caption := IntToStr(ExactDiskSize);
+      frmProgress.lblTotalBytesSource.Caption := IntToStr(ExactDiskSize);
 
       // Now image the chosen device, passing the exact size and
       // hash selection and Image name.
