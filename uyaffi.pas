@@ -1345,6 +1345,8 @@ begin
   BytesWritten        := 0;
   TotalBytesRead      := 0;
   TotalBytesWritten   := 0;
+  frmProgress.ProgressBar1.Position := 0;
+  frmProgress.lblTotalBytesSource.Caption:= IntToStr(DiskSize);
 
   try
     // Initialise the hash digests in accordance with the users chosen algorithm
@@ -1397,7 +1399,8 @@ begin
                 else inc(TotalBytesRead, BytesRead);
 
         frmProgress.Show;
-        frmProgress.lblTotalBytesRead.Caption := IntToStr(TotalBytesRead);
+        frmProgress.lblTotalBytesRead.Caption:= IntToStr(TotalBytesRead);
+        frmProgress.ProgressBar1.Position := Trunc((TotalBytesRead/DiskSize)*100);
 
         BytesWritten := fsImageName.Write(Buffer, BytesRead);
         if BytesWritten = -1 then
@@ -1554,7 +1557,9 @@ begin
   strMD5Hash     := '';
   strSHA1Hash    := '';
   frmProgress.Show;
+  frmProgress.ProgressBar1.Position := 0;
   frmProgress.Label7.Caption := ' Verifying DD image...please wait';
+  frmProgress.lblTotalBytesSource.Caption:= IntToStr(ImageFileSize);
 
   // Initialise new hashing digests
 
@@ -1590,6 +1595,9 @@ begin
         begin
           inc(TotalBytesRead, BytesRead);
           MD5Update(MD5ctxImageVerification, Buffer, BytesRead);
+          frmProgress.Show;
+          frmProgress.lblTotalBytesRead.Caption:= IntToStr(TotalBytesRead);
+          frmProgress.ProgressBar1.Position := Trunc((TotalBytesRead/ImageFileSize)*100);
         end;
       until (TotalBytesRead = ImageFileSize) or (frmYaffi.Stop = true);
 
@@ -1619,6 +1627,9 @@ begin
         begin
           inc(TotalBytesRead, BytesRead);
           SHA1Update(SHA1ctxImageVerification, Buffer, BytesRead);
+          frmProgress.Show;
+          frmProgress.lblTotalBytesRead.Caption:= IntToStr(TotalBytesRead);
+          frmProgress.ProgressBar1.Position := Trunc((TotalBytesRead/ImageFileSize)*100);
         end;
       until (TotalBytesRead = ImageFileSize) or (frmYaffi.Stop = true);
       SHA1Final(SHA1ctxImageVerification, SHA1ImageVerificationDigest);
@@ -1648,6 +1659,9 @@ begin
           inc(TotalBytesRead, BytesRead);
           MD5Update(MD5ctxImageVerification, Buffer, BytesRead);
           SHA1Update(SHA1ctxImageVerification, Buffer, BytesRead);
+          frmProgress.Show;
+          frmProgress.lblTotalBytesRead.Caption:= IntToStr(TotalBytesRead);
+          frmProgress.ProgressBar1.Position := Trunc((TotalBytesRead/ImageFileSize)*100);
         end;
       until (TotalBytesRead = ImageFileSize) or (frmYaffi.Stop = true);
 
@@ -1699,6 +1713,8 @@ begin
   TotalBytesRead      := 0;
   TotalBytesWritten   := 0;
   CompressionChoice   := -1;
+  frmProgress.ProgressBar1.Position := 0;
+  frmProgress.lblTotalBytesSource.Caption:= IntToStr(DiskSize);
 
   // Create the libEWF instance and ensure the DLL is found
   fLibEWF := TLibEWF.create;
@@ -1802,7 +1818,8 @@ begin
               if BytesWritten > -1 then inc(TotalBytesWritten, BytesWritten);
             end;
             frmProgress.Show;
-            frmProgress.lblTotalBytesRead.Caption := IntToStr(TotalBytesRead);
+            frmProgress.lblTotalBytesRead.Caption:= IntToStr(TotalBytesRead);
+            frmProgress.ProgressBar1.Position := Trunc((TotalBytesRead/DiskSize)*100);
           // Hash the bytes read and\or written using the algorithm required
           // If the user sel;ected no hashing, break the loop immediately; faster
           if HashChoice = 4 then
@@ -2001,6 +2018,9 @@ begin
             begin
               inc(TotalBytesRead, BytesRead);
               MD5Update(MD5ctxImageVerification, Buffer, BytesRead);
+              frmProgress.Show;
+              frmProgress.lblTotalBytesRead.Caption:= IntToStr(TotalBytesRead);
+              frmProgress.ProgressBar1.Position := Trunc((TotalBytesRead/ImageFileSize)*100);
             end;
             Application.ProcessMessages;
           until (TotalBytesRead = ImageFileSize) or (frmYaffi.Stop = true);
@@ -2030,6 +2050,9 @@ begin
             begin
               inc(TotalBytesRead, BytesRead);
               SHA1Update(SHA1ctxImageVerification, Buffer, BytesRead);
+              frmProgress.Show;
+              frmProgress.lblTotalBytesRead.Caption:= IntToStr(TotalBytesRead);
+              frmProgress.ProgressBar1.Position := Trunc((TotalBytesRead/ImageFileSize)*100);
             end;
             Application.ProcessMessages;
           until (TotalBytesRead = ImageFileSize) or (frmYaffi.Stop = true);
@@ -2060,6 +2083,9 @@ begin
               inc(TotalBytesRead, BytesRead);
               MD5Update(MD5ctxImageVerification, Buffer, BytesRead);
               SHA1Update(SHA1ctxImageVerification, Buffer, BytesRead);
+              frmProgress.Show;
+              frmProgress.lblTotalBytesRead.Caption:= IntToStr(TotalBytesRead);
+              frmProgress.ProgressBar1.Position := Trunc((TotalBytesRead/ImageFileSize)*100);
             end;
             Application.ProcessMessages;
           until (TotalBytesRead = ImageFileSize) or (frmYaffi.Stop = true);

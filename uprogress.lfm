@@ -1,20 +1,21 @@
 object frmProgress: TfrmProgress
-  Left = 879
-  Height = 240
-  Top = 267
-  Width = 320
+  Left = 647
+  Height = 207
+  Top = 272
+  Width = 402
   Caption = 'YAFFI - Progress Window'
-  ClientHeight = 240
-  ClientWidth = 320
+  ClientHeight = 207
+  ClientWidth = 402
+  Position = poDesktopCenter
   LCLVersion = '1.4.0.4'
   object GroupBox1: TGroupBox
     Left = 8
-    Height = 145
+    Height = 177
     Top = 16
-    Width = 305
+    Width = 384
     Caption = 'Progress'
-    ClientHeight = 127
-    ClientWidth = 301
+    ClientHeight = 159
+    ClientWidth = 380
     TabOrder = 0
     object Label7: TLabel
       Left = 8
@@ -27,7 +28,7 @@ object frmProgress: TfrmProgress
     object Label6: TLabel
       Left = 8
       Height = 13
-      Top = 96
+      Top = 128
       Width = 12
       Caption = '...'
       ParentColor = False
@@ -51,7 +52,7 @@ object frmProgress: TfrmProgress
       ParentColor = False
     end
     object lblTotalBytesSource: TLabel
-      Left = 144
+      Left = 136
       Height = 13
       Top = 48
       Width = 12
@@ -59,12 +60,13 @@ object frmProgress: TfrmProgress
       ParentColor = False
     end
     object ProgressBar1: TProgressBar
-      Left = 99
+      Left = 8
       Height = 20
       Top = 83
-      Width = 100
+      Width = 360
       BorderWidth = 1
       TabOrder = 0
+      BarShowText = True
     end
   end
 end
