@@ -24,8 +24,8 @@
         <IsVisibleTab Value="True"/>
         <EditorIndex Value="1"/>
         <WindowIndex Value="1"/>
-        <TopLine Value="2096"/>
-        <CursorPos X="43" Y="2117"/>
+        <TopLine Value="205"/>
+        <CursorPos X="73" Y="240"/>
         <UsageCount Value="200"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
@@ -37,7 +37,7 @@
         <WindowIndex Value="1"/>
         <TopLine Value="446"/>
         <CursorPos Y="463"/>
-        <UsageCount Value="199"/>
+        <UsageCount Value="200"/>
       </Unit2>
       <Unit3>
         <Filename Value="diskspecification.pas"/>
@@ -49,7 +49,7 @@
         <EditorIndex Value="5"/>
         <WindowIndex Value="1"/>
         <CursorPos X="47" Y="22"/>
-        <UsageCount Value="59"/>
+        <UsageCount Value="70"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
       </Unit3>
@@ -62,9 +62,9 @@
         <UnitName Value="uProgress"/>
         <EditorIndex Value="2"/>
         <WindowIndex Value="1"/>
-        <TopLine Value="5"/>
-        <CursorPos X="32" Y="27"/>
-        <UsageCount Value="24"/>
+        <TopLine Value="10"/>
+        <CursorPos X="24" Y="20"/>
+        <UsageCount Value="35"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
       </Unit4>
@@ -73,7 +73,7 @@
         <EditorIndex Value="-1"/>
         <WindowIndex Value="1"/>
         <CursorPos X="16" Y="21"/>
-        <UsageCount Value="19"/>
+        <UsageCount Value="18"/>
       </Unit5>
       <Unit6>
         <Filename Value="delphi-wmi-class-generator-master\units\uWmiDelphiClass.pas"/>
@@ -81,7 +81,7 @@
         <WindowIndex Value="1"/>
         <TopLine Value="1554"/>
         <CursorPos X="26" Y="1571"/>
-        <UsageCount Value="21"/>
+        <UsageCount Value="20"/>
       </Unit6>
       <Unit7>
         <Filename Value="uSystemConfig_V2_LogDisk.pas"/>
@@ -89,7 +89,7 @@
         <WindowIndex Value="-1"/>
         <TopLine Value="-1"/>
         <CursorPos X="-1" Y="-1"/>
-        <UsageCount Value="17"/>
+        <UsageCount Value="16"/>
       </Unit7>
       <Unit8>
         <Filename Value="delphi-wmi-class-generator-master\units\uLazarusIDE.pas"/>
@@ -97,14 +97,14 @@
         <WindowIndex Value="-1"/>
         <TopLine Value="-1"/>
         <CursorPos X="-1" Y="-1"/>
-        <UsageCount Value="17"/>
+        <UsageCount Value="16"/>
       </Unit8>
       <Unit9>
         <Filename Value="uWmiDelphiClass.pas"/>
         <EditorIndex Value="-1"/>
         <WindowIndex Value="1"/>
         <CursorPos X="21" Y="22"/>
-        <UsageCount Value="18"/>
+        <UsageCount Value="17"/>
       </Unit9>
       <Unit10>
         <Filename Value="ewfacquireForFPCAPI\LibEWFUnit.pas"/>
@@ -112,7 +112,7 @@
         <WindowIndex Value="1"/>
         <TopLine Value="403"/>
         <CursorPos X="37" Y="423"/>
-        <UsageCount Value="30"/>
+        <UsageCount Value="29"/>
       </Unit10>
       <Unit11>
         <Filename Value="md5customised.pas"/>
@@ -120,7 +120,7 @@
         <WindowIndex Value="1"/>
         <TopLine Value="461"/>
         <CursorPos Y="479"/>
-        <UsageCount Value="57"/>
+        <UsageCount Value="56"/>
       </Unit11>
       <Unit12>
         <Filename Value="sha1customised.pas"/>
@@ -128,7 +128,7 @@
         <WindowIndex Value="1"/>
         <TopLine Value="329"/>
         <CursorPos Y="363"/>
-        <UsageCount Value="64"/>
+        <UsageCount Value="63"/>
       </Unit12>
       <Unit13>
         <Filename Value="C:\lazarus\fpc\2.6.4\source\rtl\win\wininc\ascfun.inc"/>
@@ -136,7 +136,7 @@
         <WindowIndex Value="1"/>
         <TopLine Value="50"/>
         <CursorPos X="10" Y="68"/>
-        <UsageCount Value="60"/>
+        <UsageCount Value="59"/>
       </Unit13>
       <Unit14>
         <Filename Value="C:\lazarus\fpc\2.6.4\source\rtl\win\wininc\ascdef.inc"/>
@@ -144,7 +144,7 @@
         <WindowIndex Value="1"/>
         <TopLine Value="51"/>
         <CursorPos X="10" Y="69"/>
-        <UsageCount Value="60"/>
+        <UsageCount Value="59"/>
       </Unit14>
       <Unit15>
         <Filename Value="C:\lazarus\fpc\2.6.4\source\rtl\objpas\sysutils\sysstrh.inc"/>
@@ -152,7 +152,7 @@
         <WindowIndex Value="1"/>
         <TopLine Value="107"/>
         <CursorPos X="10" Y="125"/>
-        <UsageCount Value="56"/>
+        <UsageCount Value="55"/>
       </Unit15>
       <Unit16>
         <Filename Value="C:\lazarus\fpc\2.6.4\source\rtl\inc\objpash.inc"/>
@@ -160,7 +160,7 @@
         <WindowIndex Value="1"/>
         <TopLine Value="227"/>
         <CursorPos X="8" Y="244"/>
-        <UsageCount Value="6"/>
+        <UsageCount Value="5"/>
       </Unit16>
       <Unit17>
         <Filename Value="GPTMBR.pas"/>
@@ -168,7 +168,7 @@
         <EditorIndex Value="3"/>
         <WindowIndex Value="1"/>
         <CursorPos X="41" Y="80"/>
-        <UsageCount Value="24"/>
+        <UsageCount Value="29"/>
         <Loaded Value="True"/>
       </Unit17>
       <Unit18>
@@ -176,130 +176,130 @@
         <EditorIndex Value="4"/>
         <WindowIndex Value="1"/>
         <CursorPos X="22" Y="42"/>
-        <UsageCount Value="22"/>
+        <UsageCount Value="27"/>
         <Loaded Value="True"/>
       </Unit18>
     </Units>
     <JumpHistory Count="30" HistoryIndex="29">
       <Position1>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="1245" Column="21" TopLine="1217"/>
+        <Caret Line="109" Column="29" TopLine="81"/>
       </Position1>
       <Position2>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="1246" Column="24" TopLine="1218"/>
+        <Caret Line="303" Column="16" TopLine="274"/>
       </Position2>
       <Position3>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="1250" Column="42" TopLine="1222"/>
+        <Caret Line="306" Column="35" TopLine="277"/>
       </Position3>
       <Position4>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="1257" Column="36" TopLine="1229"/>
+        <Caret Line="1001" Column="20" TopLine="972"/>
       </Position4>
       <Position5>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="1302" Column="20" TopLine="1274"/>
+        <Caret Line="1005" Column="25" TopLine="976"/>
       </Position5>
       <Position6>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="1310" Column="106" TopLine="1282"/>
+        <Caret Line="1141" Column="17" TopLine="1113"/>
       </Position6>
       <Position7>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="1597" Column="11" TopLine="1576"/>
+        <Caret Line="1277" Column="23" TopLine="1249"/>
       </Position7>
       <Position8>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="1405" Column="9" TopLine="1384"/>
+        <Caret Line="1278" Column="23" TopLine="1250"/>
       </Position8>
       <Position9>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="68" Column="13" TopLine="50"/>
+        <Caret Line="71" Column="19" TopLine="53"/>
       </Position9>
       <Position10>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="149" Column="18" TopLine="120"/>
+        <Caret Line="109" Column="29" TopLine="81"/>
       </Position10>
       <Position11>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="159" Column="18" TopLine="130"/>
+        <Caret Line="306" Column="35" TopLine="277"/>
       </Position11>
       <Position12>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="890" Column="20" TopLine="861"/>
+        <Caret Line="1001" Column="20" TopLine="972"/>
       </Position12>
       <Position13>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="922" Column="33" TopLine="894"/>
+        <Caret Line="1005" Column="25" TopLine="976"/>
       </Position13>
       <Position14>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="923" Column="35" TopLine="895"/>
+        <Caret Line="1141" Column="17" TopLine="1113"/>
       </Position14>
       <Position15>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="925" Column="26" TopLine="897"/>
+        <Caret Line="1277" Column="23" TopLine="1249"/>
       </Position15>
       <Position16>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="1114" Column="40" TopLine="1085"/>
+        <Caret Line="1278" Column="23" TopLine="1250"/>
       </Position16>
       <Position17>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="1134" Column="20" TopLine="1106"/>
+        <Caret Line="71" Column="19" TopLine="53"/>
       </Position17>
       <Position18>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="1209" Column="22" TopLine="1181"/>
+        <Caret Line="109" Column="29" TopLine="81"/>
       </Position18>
       <Position19>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="1210" Column="25" TopLine="1182"/>
+        <Caret Line="303" Column="23" TopLine="286"/>
       </Position19>
       <Position20>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="1213" Column="43" TopLine="1185"/>
+        <Caret Line="120" Column="33" TopLine="103"/>
       </Position20>
       <Position21>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="1220" Column="38" TopLine="1192"/>
+        <Caret Line="303" Column="31" TopLine="274"/>
       </Position21>
       <Position22>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="1245" Column="21" TopLine="1217"/>
+        <Caret Line="315" Column="26" TopLine="288"/>
       </Position22>
       <Position23>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="1246" Column="24" TopLine="1218"/>
+        <Caret Line="120" Column="33" TopLine="103"/>
       </Position23>
       <Position24>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="1250" Column="42" TopLine="1222"/>
+        <Caret Line="308" Column="34" TopLine="279"/>
       </Position24>
       <Position25>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="1257" Column="36" TopLine="1229"/>
+        <Caret Line="315" Column="34" TopLine="286"/>
       </Position25>
       <Position26>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="1302" Column="20" TopLine="1274"/>
+        <Caret Line="1675" Column="29" TopLine="1654"/>
       </Position26>
       <Position27>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="1310" Column="106" TopLine="1282"/>
+        <Caret Line="1308" Column="66" TopLine="1291"/>
       </Position27>
       <Position28>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="2051" Column="23" TopLine="2017"/>
+        <Caret Line="1304" Column="24" TopLine="1213"/>
       </Position28>
       <Position29>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="1561" Column="69" TopLine="1549"/>
+        <Caret Line="218" Column="32" TopLine="198"/>
       </Position29>
       <Position30>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="1339" Column="25" TopLine="1338"/>
+        <Caret Line="226" Column="91" TopLine="209"/>
       </Position30>
     </JumpHistory>
   </ProjectSession>

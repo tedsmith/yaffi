@@ -104,7 +104,8 @@ https://s-media-cache-ak0.pinimg.com/236x/66/01/34/660134fcbb68c49d97d24d2b81eb3
 and logo created by layer merging using The GIMP by Ted Smith 
 
 MSVCR100.dll is needed for use with Windows XP (where the DLL may not be present by default) 
-and is part of the Microsoft Windows DLL libraries. 
+and is part of the Microsoft Windows DLL libraries. The one provided with YAFFI is from
+http://www.dll-files.com/dllindex/dll-files.shtml?msvcr100 
 
 LibEWF.dll sourced from http://www.isobuster.com/tips/build_libewf_dll_for_isobuster 
 and built using Borland compiler for use with Delphi and Freepascal, dated 8th June 2014.

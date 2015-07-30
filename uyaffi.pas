@@ -95,6 +95,7 @@ type
     memGeneralCaseNotes: TMemo;
     menShowDiskManager: TMenuItem;
     menShowDiskTechData: TMenuItem;
+    MenuItem1: TMenuItem;
     PopupMenu1: TPopupMenu;
     SaveImageDialog: TSaveDialog;
     TreeView1: TTreeView;
@@ -168,11 +169,14 @@ implementation
 
 // Enable or disable elements depending on the OS hosting the application
 procedure TfrmYaffi.FormCreate(Sender: TObject);
+var
+  MissingFileCount : integer;
 begin
   Stop := false;
+  MissingFileCount := 0;
 
   {$ifdef Windows}
-  // These are the Linux centric elements, so diable them on Windows
+  // These are the Linux centric elements, so disable them on Windows
   cbdisks.Enabled := false;
   cbdisks.Visible := false;
   Label1.Enabled  := false;
@@ -195,6 +199,33 @@ begin
   lt.Visible      := false;
   ledtComputedHashA.Enabled := false;
   ledtComputedHashB.Enabled := false;
+
+  if FileExists('libewf.dll') = false
+    then
+      begin
+        Showmessage('Libewf.dll not found. Only DD imaging will work.');
+        inc(MissingFileCount, 1);
+      end;
+
+  if FileExists('zlib.dll') = false
+    then
+      begin
+        Showmessage('Zlib.dll not found. Any E01 image compression will fail');
+        inc(MissingFileCount, 1);
+      end;
+
+  if FileExists('msvcr100.dll') = false
+    then
+      begin
+        Showmessage('msvcr100.dll not found. May only cause a problem if using Windows XP or earlier');
+        inc(MissingFileCount, 1);
+      end;
+
+  if MissingFileCount = 3 then
+    Showmessage('You are missing three important DLL files.' + #13#10 +
+                'Considering they came zipped with YAFFI, this is perplexing.' + #13#10  +
+                'Whilst continuing is indeed possible, expect problems!');
+
   {$endif Windows}
 
   {$ifdef UNIX}
@@ -202,6 +233,7 @@ begin
   GroupBox1.Enabled := false;
   GroupBox1.Visible := false;
   {$endif}
+
 end;
 
 procedure TfrmYaffi.ledtCaseNameEnter(Sender: TObject);
@@ -298,6 +330,8 @@ begin
   intFreeSpace   := DiskFree(DriveLetterID);
   strFreeSpace   := FormatByteSize(intFreeSpace);
   lblFreeSpaceReceivingDisk.Caption:= '(' + strFreeSpace + ' free.)' ;
+
+  frmYaffi.ComboImageTypeSelect(nil);
 end;
 
 procedure TfrmYaffi.ComboImageTypeSelect(Sender: TObject);
@@ -1002,13 +1036,7 @@ begin
   else if ComboImageType.Text = 'DD' then
    begin
     result := 2;
-   end
-  else
-  begin
-    ShowMessage('Choose Image Type');
-    result := -1;
-    exit;
-  end;
+   end;
 end;
 
 // Assigns an integer for the chosen segment size of the E01 image - either 640Mb, 1.5Gb or 2Gb.
@@ -1187,7 +1215,7 @@ begin
       // Now we can assign a sector count based on sector size and disk size
       SectorCount   := ExactDiskSize DIV ExactSectorSize;
 
-      frmProgress.lblTotalBytesSource.Caption := IntToStr(ExactDiskSize);
+      frmProgress.lblTotalBytesSource.Caption := ' bytes captured of ' + IntToStr(ExactDiskSize);
 
       // Now image the chosen device, passing the exact size and
       // hash selection and Image name.
@@ -1219,6 +1247,7 @@ begin
                     VerificationEndedAt := Now;
                     TimeTakenToVerify   := VerificationEndedAt - VerificationStartedAt;
                     frmProgress.Label7.Caption := 'Image re-read OK. Verifies. See log file';
+                    frmProgress.Label6.Caption := 'Imaged and verified OK. Total time: ' + FormatDateTime('HHH:MM:SS', (TimeTakenToImage + TimeTakenToVerify));
                   end;
               end
               else ShowMessage('E01 Verification Failed.');
@@ -1256,6 +1285,7 @@ begin
                   VerificationEndedAt := Now;
                   TimeTakenToVerify   := VerificationEndedAt - VerificationStartedAt;
                   frmProgress.Label7.Caption := 'Image re-read OK. Verifies. See log file';
+                  frmProgress.Label6.Caption := 'Imaged and verified OK. Total time: ' + FormatDateTime('HHH:MM:SS', (TimeTakenToImage + TimeTakenToVerify));
                  end;
              end;
            end
@@ -1280,9 +1310,6 @@ begin
       try
         slImagingLog := TStringList.Create;
         slImagingLog.Add('Imaging Software: '          + frmYaffi.Caption);
-        slImagingLog.Add('Imaging Started At: '        + FormatDateTime('dd/mm/yy HH:MM:SS', StartedAt));
-        slImagingLog.Add('Imaging Ended At: '          + FormatDateTime('dd/mm/yy HH:MM:SS', EndedAt));
-        slImagingLog.Add('Time Taken to Image: '       + FormatDateTime('HH:MM:SS', TimeTakenToImage));
         slImagingLog.Add('By Examiner: '               + ledtExaminersName.Text);
         slImagingLog.Add('Using operating system: '    + GetOSName);
         slImagingLog.Add('Username: '                  + SysUtils.GetEnvironmentVariable('USERNAME'));
@@ -1295,23 +1322,28 @@ begin
         slImagingLog.Add('Device ID: '                 + SourceDevice);
         slImagingLog.Add('Device Capacity: '           + FormatByteSize(ImageResult) + ' (' + IntToStr(ImageResult) + ' bytes specifically.)');
         slImagingLog.Add('Chosen Hash Algorithm: '     + comboHashChoice.Text);
-        slImagingLog.Add('Hash(es) of source media : ' + ledtComputedHashA.Text + ' ' + ledtComputedHashB.Text);
+        slImagingLog.Add('=======================');
+        slImagingLog.Add('Imaging Started At: '        + FormatDateTime('dd/mm/yy HH:MM:SS', StartedAt));
+        slImagingLog.Add('Imaging Ended At:   '        + FormatDateTime('dd/mm/yy HH:MM:SS', EndedAt));
+        slImagingLog.Add('Time Taken to Image: '       + FormatDateTime('HHH:MM:SS', TimeTakenToImage));
+        slImagingLog.Add('Hash(es) of source media : ' + 'MD5: ' + ledtComputedHashA.Text + ' SHA-1: ' + ledtComputedHashB.Text);
         slImagingLog.Add('Hash of image: MD5: '        + ledtImageHashA.Text);
         slImagingLog.Add('Hash of image: SHA-1: '      + ledtImageHashB.Text);
-
+        slImagingLog.Add('=======================');
         if cbVerify.Checked then
           slImagingLog.Add('Verification enabled');
 
         if ImageVerified = true then
           begin
            slImagingLog.Add('Image Verified Hash: ' + VerificationHash);
-           slImagingLog.Add('Image verification started at: ' + FormatDateTime('dd/mm/yy HH:MM:SS', VerificationStartedAt));
+           slImagingLog.Add('Image verification started at:       ' + FormatDateTime('dd/mm/yy HH:MM:SS', VerificationStartedAt));
            slImagingLog.Add('Image file verification finished at: ' + FormatDateTime('dd/mm/yy HH:MM:SS', VerificationEndedAt));
-           slImagingLog.Add('Time Taken to Verify: '       + FormatDateTime('HH:MM:SS', TimeTakenToVerify));
+           slImagingLog.Add('Time Taken to Verify: '       + FormatDateTime('HHH:MM:SS', TimeTakenToVerify));
           end
         else slImagingLog.Add('Image Verification failed.');
       finally
-        slImagingLog.SaveToFile(IncludeTrailingPathDelimiter(ExtractFilePath(SaveImageDialog.FileName)) + 'ImagingLog.txt');
+        // Save the logfile using the image name as its foundation
+        slImagingLog.SaveToFile(SaveImageDialog.FileName + '.txt');
         slImagingLog.free;
       end;
   end;
@@ -1346,7 +1378,10 @@ begin
   TotalBytesRead      := 0;
   TotalBytesWritten   := 0;
   frmProgress.ProgressBar1.Position := 0;
-  frmProgress.lblTotalBytesSource.Caption:= IntToStr(DiskSize);
+  frmProgress.lblTotalBytesSource.Caption := ' bytes captured of ' + IntToStr(DiskSize);
+  frmProgress.Label7.Caption := ' Capturing DD image...please wait';
+
+  frmProgress.Show;
 
   try
     // Initialise the hash digests in accordance with the users chosen algorithm
@@ -1398,9 +1433,9 @@ begin
               end
                 else inc(TotalBytesRead, BytesRead);
 
-        frmProgress.Show;
         frmProgress.lblTotalBytesRead.Caption:= IntToStr(TotalBytesRead);
         frmProgress.ProgressBar1.Position := Trunc((TotalBytesRead/DiskSize)*100);
+        frmProgress.lblPercent.Caption := ' (' + IntToStr(frmProgress.ProgressBar1.Position) + '%)';
 
         BytesWritten := fsImageName.Write(Buffer, BytesRead);
         if BytesWritten = -1 then
@@ -1559,7 +1594,7 @@ begin
   frmProgress.Show;
   frmProgress.ProgressBar1.Position := 0;
   frmProgress.Label7.Caption := ' Verifying DD image...please wait';
-  frmProgress.lblTotalBytesSource.Caption:= IntToStr(ImageFileSize);
+  frmProgress.lblTotalBytesSource.Caption := ' bytes verified of ' + IntToStr(ImageFileSize);
 
   // Initialise new hashing digests
 
@@ -1595,9 +1630,9 @@ begin
         begin
           inc(TotalBytesRead, BytesRead);
           MD5Update(MD5ctxImageVerification, Buffer, BytesRead);
-          frmProgress.Show;
           frmProgress.lblTotalBytesRead.Caption:= IntToStr(TotalBytesRead);
           frmProgress.ProgressBar1.Position := Trunc((TotalBytesRead/ImageFileSize)*100);
+          frmProgress.lblPercent.Caption := ' (' + IntToStr(frmProgress.ProgressBar1.Position) + '%)';
         end;
       until (TotalBytesRead = ImageFileSize) or (frmYaffi.Stop = true);
 
@@ -1627,9 +1662,9 @@ begin
         begin
           inc(TotalBytesRead, BytesRead);
           SHA1Update(SHA1ctxImageVerification, Buffer, BytesRead);
-          frmProgress.Show;
           frmProgress.lblTotalBytesRead.Caption:= IntToStr(TotalBytesRead);
           frmProgress.ProgressBar1.Position := Trunc((TotalBytesRead/ImageFileSize)*100);
+          frmProgress.lblPercent.Caption := ' (' + IntToStr(frmProgress.ProgressBar1.Position) + '%)';
         end;
       until (TotalBytesRead = ImageFileSize) or (frmYaffi.Stop = true);
       SHA1Final(SHA1ctxImageVerification, SHA1ImageVerificationDigest);
@@ -1659,9 +1694,9 @@ begin
           inc(TotalBytesRead, BytesRead);
           MD5Update(MD5ctxImageVerification, Buffer, BytesRead);
           SHA1Update(SHA1ctxImageVerification, Buffer, BytesRead);
-          frmProgress.Show;
           frmProgress.lblTotalBytesRead.Caption:= IntToStr(TotalBytesRead);
           frmProgress.ProgressBar1.Position := Trunc((TotalBytesRead/ImageFileSize)*100);
+          frmProgress.lblPercent.Caption := ' (' + IntToStr(frmProgress.ProgressBar1.Position) + '%)';
         end;
       until (TotalBytesRead = ImageFileSize) or (frmYaffi.Stop = true);
 
@@ -1714,7 +1749,8 @@ begin
   TotalBytesWritten   := 0;
   CompressionChoice   := -1;
   frmProgress.ProgressBar1.Position := 0;
-  frmProgress.lblTotalBytesSource.Caption:= IntToStr(DiskSize);
+  frmProgress.Label7.Caption := ' Capturing E01 image...please wait';
+  frmProgress.lblTotalBytesSource.Caption := ' bytes captured of ' + IntToStr(DiskSize);
 
   // Create the libEWF instance and ensure the DLL is found
   fLibEWF := TLibEWF.create;
@@ -1784,6 +1820,10 @@ begin
                 begin
                  // No hashing initiliased
                 end;
+
+      // Now show the progress form
+      frmProgress.Show;
+
       // Now to seek to start of device
       FileSeek(hDiskHandle, 0, 0);
         repeat
@@ -1817,9 +1857,11 @@ begin
                 end;
               if BytesWritten > -1 then inc(TotalBytesWritten, BytesWritten);
             end;
-            frmProgress.Show;
+
             frmProgress.lblTotalBytesRead.Caption:= IntToStr(TotalBytesRead);
             frmProgress.ProgressBar1.Position := Trunc((TotalBytesRead/DiskSize)*100);
+            frmProgress.lblPercent.Caption := ' (' + IntToStr(frmProgress.ProgressBar1.Position) + '%)';
+
           // Hash the bytes read and\or written using the algorithm required
           // If the user sel;ected no hashing, break the loop immediately; faster
           if HashChoice = 4 then
@@ -2001,6 +2043,8 @@ begin
         ImageFileSize := fLibEWFVerificationInstance.libewf_handle_get_media_size();
         frmProgress.Show;
         frmProgress.Label7.Caption := ' Verifying E01 image...please wait';
+        frmProgress.lblTotalBytesSource.Caption := ' bytes verified of ' + IntToStr(ImageFileSize);
+
         // If MD5 hash was chosen, compute the MD5 hash of the image
 
         if HashChoice = 1 then
@@ -2018,9 +2062,9 @@ begin
             begin
               inc(TotalBytesRead, BytesRead);
               MD5Update(MD5ctxImageVerification, Buffer, BytesRead);
-              frmProgress.Show;
               frmProgress.lblTotalBytesRead.Caption:= IntToStr(TotalBytesRead);
               frmProgress.ProgressBar1.Position := Trunc((TotalBytesRead/ImageFileSize)*100);
+              frmProgress.lblPercent.Caption := ' (' + IntToStr(frmProgress.ProgressBar1.Position) + '%)';
             end;
             Application.ProcessMessages;
           until (TotalBytesRead = ImageFileSize) or (frmYaffi.Stop = true);
@@ -2050,9 +2094,9 @@ begin
             begin
               inc(TotalBytesRead, BytesRead);
               SHA1Update(SHA1ctxImageVerification, Buffer, BytesRead);
-              frmProgress.Show;
               frmProgress.lblTotalBytesRead.Caption:= IntToStr(TotalBytesRead);
               frmProgress.ProgressBar1.Position := Trunc((TotalBytesRead/ImageFileSize)*100);
+              frmProgress.lblPercent.Caption := ' (' + IntToStr(frmProgress.ProgressBar1.Position) + '%)';
             end;
             Application.ProcessMessages;
           until (TotalBytesRead = ImageFileSize) or (frmYaffi.Stop = true);
@@ -2083,9 +2127,9 @@ begin
               inc(TotalBytesRead, BytesRead);
               MD5Update(MD5ctxImageVerification, Buffer, BytesRead);
               SHA1Update(SHA1ctxImageVerification, Buffer, BytesRead);
-              frmProgress.Show;
               frmProgress.lblTotalBytesRead.Caption:= IntToStr(TotalBytesRead);
               frmProgress.ProgressBar1.Position := Trunc((TotalBytesRead/ImageFileSize)*100);
+              frmProgress.lblPercent.Caption := ' (' + IntToStr(frmProgress.ProgressBar1.Position) + '%)';
             end;
             Application.ProcessMessages;
           until (TotalBytesRead = ImageFileSize) or (frmYaffi.Stop = true);

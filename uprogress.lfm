@@ -1,12 +1,15 @@
 object frmProgress: TfrmProgress
   Left = 647
   Height = 207
+  Hint = 'Close this window if you wish to abort.'
   Top = 272
   Width = 402
   Caption = 'YAFFI - Progress Window'
   ClientHeight = 207
   ClientWidth = 402
+  OnCloseQuery = FormCloseQuery
   Position = poDesktopCenter
+  ShowHint = True
   LCLVersion = '1.4.0.4'
   object GroupBox1: TGroupBox
     Left = 8
@@ -34,7 +37,6 @@ object frmProgress: TfrmProgress
       ParentColor = False
     end
     object lblTotalBytesRead: TLabel
-      AnchorSideRight.Control = Label9
       Left = 8
       Height = 13
       Top = 48
@@ -43,16 +45,10 @@ object frmProgress: TfrmProgress
       Caption = '...'
       ParentColor = False
     end
-    object Label9: TLabel
-      Left = 112
-      Height = 13
-      Top = 48
-      Width = 4
-      Caption = '/'
-      ParentColor = False
-    end
     object lblTotalBytesSource: TLabel
-      Left = 136
+      AnchorSideLeft.Control = lblTotalBytesRead
+      AnchorSideLeft.Side = asrBottom
+      Left = 25
       Height = 13
       Top = 48
       Width = 12
@@ -67,6 +63,16 @@ object frmProgress: TfrmProgress
       BorderWidth = 1
       TabOrder = 0
       BarShowText = True
+    end
+    object lblPercent: TLabel
+      AnchorSideLeft.Control = lblTotalBytesSource
+      AnchorSideLeft.Side = asrBottom
+      Left = 37
+      Height = 13
+      Top = 48
+      Width = 12
+      Caption = '...'
+      ParentColor = False
     end
   end
 end

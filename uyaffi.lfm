@@ -1,11 +1,11 @@
 object frmYaffi: TfrmYaffi
   Left = 407
-  Height = 682
+  Height = 668
   Top = 62
-  Width = 737
+  Width = 732
   Caption = 'YAFFI (Yet Another Free Forensic Imager) by Ted Smith (c) 2015'
-  ClientHeight = 682
-  ClientWidth = 737
+  ClientHeight = 668
+  ClientWidth = 732
   DefaultMonitor = dmDesktop
   OnCreate = FormCreate
   OnShow = btnRefreshDiskListClick
@@ -101,17 +101,17 @@ object frmYaffi: TfrmYaffi
     Left = 16
     Height = 640
     Top = 16
-    Width = 702
+    Width = 704
     Anchors = [akTop, akLeft, akRight]
     Caption = 'Disk Imaging'
     ClientHeight = 622
-    ClientWidth = 698
+    ClientWidth = 700
     TabOrder = 1
     object TreeView1: TTreeView
       Left = 8
       Height = 136
       Top = 8
-      Width = 666
+      Width = 680
       Anchors = [akTop, akLeft, akRight]
       DefaultItemHeight = 16
       PopupMenu = PopupMenu1
@@ -124,7 +124,7 @@ object frmYaffi: TfrmYaffi
       Left = 144
       Height = 21
       Top = 171
-      Width = 530
+      Width = 544
       Anchors = [akTop, akLeft, akRight]
       Color = clGradientInactiveCaption
       EditLabel.AnchorSideLeft.Control = ledtSelectedItem
@@ -134,7 +134,7 @@ object frmYaffi: TfrmYaffi
       EditLabel.Left = 144
       EditLabel.Height = 13
       EditLabel.Top = 155
-      EditLabel.Width = 530
+      EditLabel.Width = 544
       EditLabel.Caption = 'Selected Item:'
       EditLabel.ParentColor = False
       TabOrder = 20
@@ -144,7 +144,7 @@ object frmYaffi: TfrmYaffi
       Left = 144
       Height = 21
       Top = 212
-      Width = 530
+      Width = 544
       Anchors = [akTop, akLeft, akRight]
       Color = clGradientInactiveCaption
       EditLabel.AnchorSideLeft.Control = ledtImageName
@@ -154,7 +154,7 @@ object frmYaffi: TfrmYaffi
       EditLabel.Left = 144
       EditLabel.Height = 13
       EditLabel.Top = 196
-      EditLabel.Width = 530
+      EditLabel.Width = 544
       EditLabel.Caption = 'Image Name and Path'
       EditLabel.ParentColor = False
       TabOrder = 2
@@ -220,13 +220,14 @@ object frmYaffi: TfrmYaffi
       Top = 264
       Width = 120
       ItemHeight = 13
+      ItemIndex = 0
       Items.Strings = (
         'E01'
         'DD'
       )
       OnSelect = ComboImageTypeSelect
       TabOrder = 8
-      Text = 'Choose Image Type'
+      Text = 'E01'
     end
     object btnStartImaging: TButton
       Left = 568
@@ -828,7 +829,6 @@ object frmYaffi: TfrmYaffi
   end
   object SaveImageDialog: TSaveDialog
     Title = 'Save Image As...'
-    DefaultExt = '.dd'
     left = 464
     top = 240
   end
@@ -842,6 +842,10 @@ object frmYaffi: TfrmYaffi
     object menShowDiskTechData: TMenuItem
       Caption = 'Show Disk Technical Data'
       OnClick = GetDiskTechnicalSpecs
+    end
+    object MenuItem1: TMenuItem
+      Caption = 'Image this disk...'
+      OnClick = btnChooseImageNameClick
     end
   end
 end
