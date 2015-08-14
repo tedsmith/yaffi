@@ -9,6 +9,9 @@
       <Title Value="yaffi"/>
       <ResourceType Value="res"/>
       <UseXPManifest Value="True"/>
+      <XPManifest>
+        <ExecutionLevel Value="2"/>
+      </XPManifest>
       <Icon Value="0"/>
     </General>
     <i18n>
@@ -53,6 +56,7 @@
       <Unit2>
         <Filename Value="libEWF-FPC\LibEWFUnit.pas"/>
         <IsPartOfProject Value="True"/>
+        <UnitName Value="LibEWFUnit"/>
       </Unit2>
       <Unit3>
         <Filename Value="diskspecification.pas"/>

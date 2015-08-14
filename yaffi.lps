@@ -4,13 +4,13 @@
     <PathDelim Value="\"/>
     <Version Value="9"/>
     <BuildModes Active="Default"/>
-    <Units Count="19">
+    <Units Count="29">
       <Unit0>
         <Filename Value="yaffi.lpr"/>
         <IsPartOfProject Value="True"/>
         <WindowIndex Value="1"/>
-        <TopLine Value="14"/>
-        <CursorPos Y="46"/>
+        <TopLine Value="8"/>
+        <CursorPos X="12" Y="35"/>
         <UsageCount Value="200"/>
         <Loaded Value="True"/>
       </Unit0>
@@ -24,8 +24,8 @@
         <IsVisibleTab Value="True"/>
         <EditorIndex Value="1"/>
         <WindowIndex Value="1"/>
-        <TopLine Value="205"/>
-        <CursorPos X="73" Y="240"/>
+        <TopLine Value="287"/>
+        <CursorPos X="6" Y="288"/>
         <UsageCount Value="200"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
@@ -33,11 +33,13 @@
       <Unit2>
         <Filename Value="libEWF-FPC\LibEWFUnit.pas"/>
         <IsPartOfProject Value="True"/>
-        <EditorIndex Value="-1"/>
+        <UnitName Value="LibEWFUnit"/>
+        <EditorIndex Value="4"/>
         <WindowIndex Value="1"/>
-        <TopLine Value="446"/>
-        <CursorPos Y="463"/>
+        <TopLine Value="266"/>
+        <CursorPos X="87" Y="291"/>
         <UsageCount Value="200"/>
+        <Loaded Value="True"/>
       </Unit2>
       <Unit3>
         <Filename Value="diskspecification.pas"/>
@@ -46,10 +48,10 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="diskspecification"/>
-        <EditorIndex Value="5"/>
+        <EditorIndex Value="7"/>
         <WindowIndex Value="1"/>
-        <CursorPos X="47" Y="22"/>
-        <UsageCount Value="70"/>
+        <CursorPos X="3" Y="26"/>
+        <UsageCount Value="106"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
       </Unit3>
@@ -60,11 +62,11 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="uProgress"/>
-        <EditorIndex Value="2"/>
+        <EditorIndex Value="5"/>
         <WindowIndex Value="1"/>
-        <TopLine Value="10"/>
+        <TopLine Value="8"/>
         <CursorPos X="24" Y="20"/>
-        <UsageCount Value="35"/>
+        <UsageCount Value="71"/>
         <Loaded Value="True"/>
         <LoadedDesigner Value="True"/>
       </Unit4>
@@ -73,7 +75,7 @@
         <EditorIndex Value="-1"/>
         <WindowIndex Value="1"/>
         <CursorPos X="16" Y="21"/>
-        <UsageCount Value="18"/>
+        <UsageCount Value="14"/>
       </Unit5>
       <Unit6>
         <Filename Value="delphi-wmi-class-generator-master\units\uWmiDelphiClass.pas"/>
@@ -81,7 +83,7 @@
         <WindowIndex Value="1"/>
         <TopLine Value="1554"/>
         <CursorPos X="26" Y="1571"/>
-        <UsageCount Value="20"/>
+        <UsageCount Value="16"/>
       </Unit6>
       <Unit7>
         <Filename Value="uSystemConfig_V2_LogDisk.pas"/>
@@ -89,7 +91,7 @@
         <WindowIndex Value="-1"/>
         <TopLine Value="-1"/>
         <CursorPos X="-1" Y="-1"/>
-        <UsageCount Value="16"/>
+        <UsageCount Value="12"/>
       </Unit7>
       <Unit8>
         <Filename Value="delphi-wmi-class-generator-master\units\uLazarusIDE.pas"/>
@@ -97,14 +99,14 @@
         <WindowIndex Value="-1"/>
         <TopLine Value="-1"/>
         <CursorPos X="-1" Y="-1"/>
-        <UsageCount Value="16"/>
+        <UsageCount Value="12"/>
       </Unit8>
       <Unit9>
         <Filename Value="uWmiDelphiClass.pas"/>
         <EditorIndex Value="-1"/>
         <WindowIndex Value="1"/>
         <CursorPos X="21" Y="22"/>
-        <UsageCount Value="17"/>
+        <UsageCount Value="13"/>
       </Unit9>
       <Unit10>
         <Filename Value="ewfacquireForFPCAPI\LibEWFUnit.pas"/>
@@ -112,23 +114,27 @@
         <WindowIndex Value="1"/>
         <TopLine Value="403"/>
         <CursorPos X="37" Y="423"/>
-        <UsageCount Value="29"/>
+        <UsageCount Value="25"/>
       </Unit10>
       <Unit11>
         <Filename Value="md5customised.pas"/>
-        <EditorIndex Value="-1"/>
+        <UnitName Value="md5customised"/>
+        <EditorIndex Value="3"/>
         <WindowIndex Value="1"/>
-        <TopLine Value="461"/>
-        <CursorPos Y="479"/>
-        <UsageCount Value="56"/>
+        <TopLine Value="604"/>
+        <CursorPos X="15" Y="644"/>
+        <UsageCount Value="58"/>
+        <Loaded Value="True"/>
       </Unit11>
       <Unit12>
         <Filename Value="sha1customised.pas"/>
-        <EditorIndex Value="-1"/>
+        <UnitName Value="sha1Customised"/>
+        <EditorIndex Value="2"/>
         <WindowIndex Value="1"/>
-        <TopLine Value="329"/>
-        <CursorPos Y="363"/>
-        <UsageCount Value="63"/>
+        <TopLine Value="185"/>
+        <CursorPos Y="205"/>
+        <UsageCount Value="60"/>
+        <Loaded Value="True"/>
       </Unit12>
       <Unit13>
         <Filename Value="C:\lazarus\fpc\2.6.4\source\rtl\win\wininc\ascfun.inc"/>
@@ -136,7 +142,7 @@
         <WindowIndex Value="1"/>
         <TopLine Value="50"/>
         <CursorPos X="10" Y="68"/>
-        <UsageCount Value="59"/>
+        <UsageCount Value="55"/>
       </Unit13>
       <Unit14>
         <Filename Value="C:\lazarus\fpc\2.6.4\source\rtl\win\wininc\ascdef.inc"/>
@@ -144,7 +150,7 @@
         <WindowIndex Value="1"/>
         <TopLine Value="51"/>
         <CursorPos X="10" Y="69"/>
-        <UsageCount Value="59"/>
+        <UsageCount Value="55"/>
       </Unit14>
       <Unit15>
         <Filename Value="C:\lazarus\fpc\2.6.4\source\rtl\objpas\sysutils\sysstrh.inc"/>
@@ -152,7 +158,7 @@
         <WindowIndex Value="1"/>
         <TopLine Value="107"/>
         <CursorPos X="10" Y="125"/>
-        <UsageCount Value="55"/>
+        <UsageCount Value="51"/>
       </Unit15>
       <Unit16>
         <Filename Value="C:\lazarus\fpc\2.6.4\source\rtl\inc\objpash.inc"/>
@@ -160,154 +166,233 @@
         <WindowIndex Value="1"/>
         <TopLine Value="227"/>
         <CursorPos X="8" Y="244"/>
-        <UsageCount Value="5"/>
+        <UsageCount Value="1"/>
       </Unit16>
       <Unit17>
         <Filename Value="GPTMBR.pas"/>
         <UnitName Value="GPTMBR"/>
-        <EditorIndex Value="3"/>
+        <EditorIndex Value="6"/>
         <WindowIndex Value="1"/>
-        <CursorPos X="41" Y="80"/>
-        <UsageCount Value="29"/>
+        <TopLine Value="79"/>
+        <CursorPos X="8" Y="79"/>
+        <UsageCount Value="47"/>
         <Loaded Value="True"/>
       </Unit17>
       <Unit18>
         <Filename Value="C:\lazarus\fpc\2.6.4\source\rtl\objpas\sysutils\intfh.inc"/>
-        <EditorIndex Value="4"/>
+        <EditorIndex Value="-1"/>
         <WindowIndex Value="1"/>
         <CursorPos X="22" Y="42"/>
-        <UsageCount Value="27"/>
-        <Loaded Value="True"/>
+        <UsageCount Value="23"/>
       </Unit18>
+      <Unit19>
+        <Filename Value="C:\usr\share\lazarus\1.4.0\lcl\include\customform.inc"/>
+        <EditorIndex Value="-1"/>
+        <WindowIndex Value="1"/>
+        <TopLine Value="2175"/>
+        <CursorPos Y="2196"/>
+        <UsageCount Value="16"/>
+      </Unit19>
+      <Unit20>
+        <Filename Value="C:\usr\share\lazarus\1.4.0\lcl\include\treeview.inc"/>
+        <EditorIndex Value="-1"/>
+        <WindowIndex Value="1"/>
+        <TopLine Value="264"/>
+        <CursorPos Y="297"/>
+        <UsageCount Value="15"/>
+      </Unit20>
+      <Unit21>
+        <Filename Value="C:\usr\share\lazarus\1.4.0\lcl\include\control.inc"/>
+        <EditorIndex Value="-1"/>
+        <WindowIndex Value="1"/>
+        <TopLine Value="4747"/>
+        <CursorPos Y="4765"/>
+        <UsageCount Value="12"/>
+      </Unit21>
+      <Unit22>
+        <Filename Value="C:\usr\share\lazarus\1.4.0\lcl\include\wincontrol.inc"/>
+        <EditorIndex Value="-1"/>
+        <WindowIndex Value="1"/>
+        <TopLine Value="8118"/>
+        <CursorPos Y="8138"/>
+        <UsageCount Value="11"/>
+      </Unit22>
+      <Unit23>
+        <Filename Value="C:\usr\share\lazarus\1.4.0\lcl\interfaces\gtk2\gtk2wsstdctrls.pp"/>
+        <EditorIndex Value="-1"/>
+        <WindowIndex Value="1"/>
+        <TopLine Value="2402"/>
+        <CursorPos Y="2423"/>
+        <UsageCount Value="11"/>
+      </Unit23>
+      <Unit24>
+        <Filename Value="C:\usr\share\lazarus\1.4.0\lcl\include\messagedialogs.inc"/>
+        <EditorIndex Value="-1"/>
+        <WindowIndex Value="1"/>
+        <TopLine Value="178"/>
+        <CursorPos Y="199"/>
+        <UsageCount Value="13"/>
+      </Unit24>
+      <Unit25>
+        <Filename Value="C:\usr\share\lazarus\1.4.0\lcl\include\progressbar.inc"/>
+        <EditorIndex Value="-1"/>
+        <WindowIndex Value="1"/>
+        <TopLine Value="93"/>
+        <CursorPos Y="113"/>
+        <UsageCount Value="11"/>
+      </Unit25>
+      <Unit26>
+        <Filename Value="C:\usr\share\lazarus\1.4.0\lcl\include\application.inc"/>
+        <EditorIndex Value="-1"/>
+        <WindowIndex Value="1"/>
+        <TopLine Value="356"/>
+        <CursorPos Y="381"/>
+        <UsageCount Value="11"/>
+      </Unit26>
+      <Unit27>
+        <Filename Value="C:\usr\share\lazarus\1.4.0\lcl\interfaces\gtk2\gtk2widgetset.inc"/>
+        <EditorIndex Value="-1"/>
+        <WindowIndex Value="1"/>
+        <TopLine Value="2285"/>
+        <CursorPos X="25" Y="2299"/>
+        <UsageCount Value="11"/>
+      </Unit27>
+      <Unit28>
+        <Filename Value="C:\usr\share\lazarus\1.4.0\lcl\lclmessageglue.pas"/>
+        <EditorIndex Value="-1"/>
+        <WindowIndex Value="1"/>
+        <TopLine Value="94"/>
+        <CursorPos Y="114"/>
+        <UsageCount Value="10"/>
+      </Unit28>
     </Units>
-    <JumpHistory Count="30" HistoryIndex="29">
+    <JumpHistory Count="29" HistoryIndex="28">
       <Position1>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="109" Column="29" TopLine="81"/>
+        <Caret Line="1475" TopLine="1443"/>
       </Position1>
       <Position2>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="303" Column="16" TopLine="274"/>
+        <Caret Line="1476" TopLine="1444"/>
       </Position2>
       <Position3>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="306" Column="35" TopLine="277"/>
+        <Caret Line="1476" TopLine="1444"/>
       </Position3>
       <Position4>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="1001" Column="20" TopLine="972"/>
+        <Caret Line="1478" TopLine="1446"/>
       </Position4>
       <Position5>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="1005" Column="25" TopLine="976"/>
+        <Caret Line="1479" TopLine="1447"/>
       </Position5>
       <Position6>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="1141" Column="17" TopLine="1113"/>
+        <Caret Line="1484" TopLine="1452"/>
       </Position6>
       <Position7>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="1277" Column="23" TopLine="1249"/>
+        <Caret Line="1488" TopLine="1456"/>
       </Position7>
       <Position8>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="1278" Column="23" TopLine="1250"/>
+        <Caret Line="1492" TopLine="1460"/>
       </Position8>
       <Position9>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="71" Column="19" TopLine="53"/>
+        <Caret Line="1497" TopLine="1465"/>
       </Position9>
       <Position10>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="109" Column="29" TopLine="81"/>
+        <Caret Line="1499" TopLine="1467"/>
       </Position10>
       <Position11>
-        <Filename Value="UYaffi.pas"/>
-        <Caret Line="306" Column="35" TopLine="277"/>
+        <Filename Value="sha1customised.pas"/>
+        <Caret Line="205" TopLine="185"/>
       </Position11>
       <Position12>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="1001" Column="20" TopLine="972"/>
+        <Caret Line="1500" TopLine="1468"/>
       </Position12>
       <Position13>
-        <Filename Value="UYaffi.pas"/>
-        <Caret Line="1005" Column="25" TopLine="976"/>
+        <Filename Value="sha1customised.pas"/>
+        <Caret Line="205" TopLine="185"/>
       </Position13>
       <Position14>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="1141" Column="17" TopLine="1113"/>
+        <Caret Line="1500" TopLine="1468"/>
       </Position14>
       <Position15>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="1277" Column="23" TopLine="1249"/>
+        <Caret Line="1510" TopLine="1490"/>
       </Position15>
       <Position16>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="1278" Column="23" TopLine="1250"/>
+        <Caret Line="1507" Column="50" TopLine="1489"/>
       </Position16>
       <Position17>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="71" Column="19" TopLine="53"/>
+        <Caret Line="804" TopLine="784"/>
       </Position17>
       <Position18>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="109" Column="29" TopLine="81"/>
+        <Caret Line="1413" TopLine="1392"/>
       </Position18>
       <Position19>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="303" Column="23" TopLine="286"/>
+        <Caret Line="1414" TopLine="1392"/>
       </Position19>
       <Position20>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="120" Column="33" TopLine="103"/>
+        <Caret Line="1514" TopLine="1495"/>
       </Position20>
       <Position21>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="303" Column="31" TopLine="274"/>
+        <Caret Line="1607" TopLine="1587"/>
       </Position21>
       <Position22>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="315" Column="26" TopLine="288"/>
+        <Caret Line="896" TopLine="876"/>
       </Position22>
       <Position23>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="120" Column="33" TopLine="103"/>
+        <Caret Line="828" Column="26" TopLine="789"/>
       </Position23>
       <Position24>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="308" Column="34" TopLine="279"/>
+        <Caret Line="1599" Column="21" TopLine="1576"/>
       </Position24>
       <Position25>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="315" Column="34" TopLine="286"/>
+        <Caret Line="1451" Column="91" TopLine="1440"/>
       </Position25>
       <Position26>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="1675" Column="29" TopLine="1654"/>
+        <Caret Line="1744" Column="54" TopLine="1728"/>
       </Position26>
       <Position27>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="1308" Column="66" TopLine="1291"/>
+        <Caret Line="1070" Column="48" TopLine="1046"/>
       </Position27>
       <Position28>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="1304" Column="24" TopLine="1213"/>
+        <Caret Line="63" Column="51" TopLine="57"/>
       </Position28>
       <Position29>
         <Filename Value="UYaffi.pas"/>
-        <Caret Line="218" Column="32" TopLine="198"/>
+        <Caret Line="1056" Column="49" TopLine="1030"/>
       </Position29>
-      <Position30>
-        <Filename Value="UYaffi.pas"/>
-        <Caret Line="226" Column="91" TopLine="209"/>
-      </Position30>
     </JumpHistory>
   </ProjectSession>
   <Debugging>
-    <Watches Count="1">
+    <Watches Count="2">
       <Item1>
-        <Expression Value="strImageName"/>
+        <Expression Value="bytes"/>
       </Item1>
+      <Item2>
+        <Expression Value="intByteCount"/>
+      </Item2>
     </Watches>
   </Debugging>
 </CONFIG>
