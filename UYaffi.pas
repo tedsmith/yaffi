@@ -1386,7 +1386,7 @@ begin
   // Get all technical specifications about a user selected disk and save it
   DiskInfoProcessUDISKS := TProcess.Create(nil);
   DiskInfoProcessUDISKS.Options := [poWaitOnExit, poUsePipes];
-  DiskInfoProcessUDISKS.CommandLine := 'udisks --show-info /dev/' + frmYaffi.cbdisks.Text;
+  DiskInfoProcessUDISKS.CommandLine := 'udisks --show-info ' + Treeview1.Selected.Text;
   DiskInfoProcessUDISKS.Execute;
 
   diskinfoUDISKS := TStringList.Create;

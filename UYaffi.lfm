@@ -1,7 +1,7 @@
 object frmYaffi: TfrmYaffi
-  Left = 407
+  Left = 519
   Height = 668
-  Top = 62
+  Top = 100
   Width = 732
   Caption = 'YAFFI (Yet Another Free Forensic Imager) by Ted Smith (c) 2015'
   ClientHeight = 668
@@ -111,6 +111,7 @@ object frmYaffi: TfrmYaffi
     object TreeView1: TTreeView
       Left = 8
       Height = 136
+      Hint = 'Left click a disk or drive to image'#10'Right click an entry for other options'
       Top = 8
       Width = 682
       Anchors = [akTop, akLeft, akRight]
