@@ -1071,7 +1071,9 @@ begin
           strDiskSize    := FormatByteSize(intDriveSize);
           intFreeSpace   := DiskFree(DriveLetterID);
           strFreeSpace   := FormatByteSize(intFreeSpace);
-          lblFreeSpaceReceivingDisk.Caption:= '(' + strFreeSpace + ' free.)' ;
+          lblFreeSpaceReceivingDisk.Caption:= '(Free space: ' + strFreeSpace)' ;
+          {$else ifdef UNIX}
+          lblFreeSpaceReceivingDisk.Caption:= ('(Free space: ' + FormatByteSize(DiskFree(AddDisk(ExtractFilePath(SaveImageDialog.Filename)))) + ')');
           {$endif}
           // Auto append DD or E01 extension
           frmYaffi.ComboImageTypeSelect(nil);

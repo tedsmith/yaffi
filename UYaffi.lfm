@@ -111,16 +111,20 @@ object frmYaffi: TfrmYaffi
     object TreeView1: TTreeView
       Left = 8
       Height = 136
-      Hint = 'Left click a disk or drive to image'#10'Right click an entry for other options'
+      Hint = 'Left click a physical disk or logical volume to select it'#10'Right click a selection for other options'
       Top = 8
       Width = 682
       Anchors = [akTop, akLeft, akRight]
       DefaultItemHeight = 18
+      HotTrack = True
+      ParentShowHint = False
       PopupMenu = PopupMenu1
-      ScrollBars = ssAutoVertical
+      ScrollBars = ssAutoBoth
+      ShowHint = True
       SortType = stText
       TabOrder = 0
       OnSelectionChanged = TreeView1SelectionChanged
+      Options = [tvoAutoItemHeight, tvoHideSelection, tvoHotTrack, tvoKeepCollapsedNodes, tvoShowButtons, tvoShowLines, tvoShowRoot, tvoToolTips, tvoThemedDraw]
     end
     object ledtSelectedItem: TLabeledEdit
       Left = 144
