@@ -25,7 +25,6 @@ object frmProgress: TfrmProgress
       Height = 15
       Top = 16
       Width = 12
-      Anchors = [akTop, akLeft, akRight]
       Caption = '...'
       ParentColor = False
     end
