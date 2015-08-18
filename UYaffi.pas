@@ -1071,7 +1071,7 @@ begin
           strDiskSize    := FormatByteSize(intDriveSize);
           intFreeSpace   := DiskFree(DriveLetterID);
           strFreeSpace   := FormatByteSize(intFreeSpace);
-          lblFreeSpaceReceivingDisk.Caption:= '(Free space: ' + strFreeSpace)' ;
+          lblFreeSpaceReceivingDisk.Caption:= '(Free space: ' + strFreeSpace +')';
           {$else ifdef UNIX}
           lblFreeSpaceReceivingDisk.Caption:= ('(Free space: ' + FormatByteSize(DiskFree(AddDisk(ExtractFilePath(SaveImageDialog.Filename)))) + ')');
           {$endif}
