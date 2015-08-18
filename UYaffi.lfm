@@ -29,6 +29,7 @@ object frmYaffi: TfrmYaffi
     Width = 29
     Caption = 'Disk:'
     ParentColor = False
+    Visible = False
   end
   object Label2: TLabel
     Left = 16

@@ -1632,7 +1632,7 @@ var
   SHA1ImageVerificationDigest          : TSHA1Digest;
 
   // a 1Mb buffer for verification.
-  Buffer                               : array [0..1048575] of byte;
+  Buffer                               : array [0..65535] of byte;
   BytesRead                            : integer;
   TotalBytesRead                       : Int64;
 
@@ -2082,7 +2082,7 @@ var
   SHA1ctxImageVerification             : TSHA1Context;
   SHA1ImageVerificationDigest          : TSHA1Digest;
 
-  Buffer                               : array [0..1048575] of byte;
+  Buffer                               : array [0..65535] of byte;
   BytesRead                            : integer;
   TotalBytesRead, ImageFileSize        : Int64;
 
