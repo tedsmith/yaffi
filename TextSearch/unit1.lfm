@@ -1,0 +1,49 @@
+object Form1: TForm1
+  Left = 233
+  Height = 390
+  Top = 154
+  Width = 320
+  Caption = 'Form1'
+  ClientHeight = 390
+  ClientWidth = 320
+  LCLVersion = '1.4.4.0'
+  object Button1: TButton
+    Left = 40
+    Height = 25
+    Top = 61
+    Width = 75
+    Caption = 'Button1'
+    OnClick = Button1Click
+    TabOrder = 0
+  end
+  object Memo1: TMemo
+    Left = 81
+    Height = 90
+    Top = 163
+    Width = 150
+    Lines.Strings = (
+      'Memo1'
+    )
+    TabOrder = 1
+  end
+  object CheckBox1: TCheckBox
+    Left = 81
+    Height = 17
+    Top = 280
+    Width = 73
+    Caption = 'CheckBox1'
+    TabOrder = 2
+  end
+  object CheckBox2: TCheckBox
+    Left = 81
+    Height = 17
+    Top = 324
+    Width = 80
+    Caption = 'Hex Search?'
+    TabOrder = 3
+  end
+  object OpenDialog1: TOpenDialog
+    left = 155
+    top = 68
+  end
+end
