@@ -13,26 +13,36 @@ type
   { TfrmTextSearch }
 
   TfrmTextSearch = class(TForm)
-    btnTextSearchOK: TButton;
+    btnDontUse: TButton;
     btnTextSearchCancel: TButton;
-    CheckBox1: TCheckBox;
-    CheckBox2: TCheckBox;
+    btnTextSearchOK: TButton;
+    cbMatchCase: TCheckBox;
+    cbHexSearch: TCheckBox;
     Memo1: TMemo;
     OpenDialog1: TOpenDialog;
     procedure btnTextSearchCancelClick(Sender: TObject);
-    function ByteArrayToString(const ByteArray: array of Byte): AnsiString;
     procedure btnTextSearchOKClick(Sender: TObject);
+    procedure btnDontUseClick(Sender: TObject);
+    procedure cbHexSearchClick(Sender: TObject);
     procedure Memo1Enter(Sender: TObject);
-    Function PosCaseInsensitive(const AText, ASubText: string): Integer;
-    function IndexOfDWord(const buf: pointer; len:SizeInt; b:DWord {or QWord }):SizeInt;
-  private
+    private
     { private declarations }
   public
-    { public declarations }
+    DoCaseSensitive, DoHexSearch, DoTextOrHexSearch : boolean;
+
   end;
 
 var
   frmTextSearch: TfrmTextSearch;
+  slSearchList : TStringList;
+
+  function GetCaseSensitivityDecision : boolean;
+  function GetHexSearchDecision : boolean;
+  function ByteArrayToString(const ByteArray: array of Byte): AnsiString;
+  function PosCaseInsensitive(const AText, ASubText: string): Integer;
+  function IndexOfDWord(const buf: pointer; len:SizeInt; b:DWord {or QWord }):SizeInt;
+  function Hex2DecBig(const S: string): QWORD;
+  function SearchListToStringList : TStringList;
 
 implementation
 
@@ -40,7 +50,56 @@ implementation
 
 { TfrmTextSearch }
 
-function TfrmTextSearch.ByteArrayToString(const ByteArray: array of Byte): AnsiString;
+
+procedure TfrmTextSearch.btnTextSearchCancelClick(Sender: TObject);
+begin
+  // We know the user does not want to do a search of any kind
+  DoTextOrHexSearch := false;
+  // Hide the form
+  frmTextSearch.Close;
+end;
+
+procedure TfrmTextSearch.btnTextSearchOKClick(Sender: TObject);
+begin
+  // We know the user wants to do a search of some kind
+  DoTextOrHexSearch := true;
+  // Check whether the search is to be case sensitive or not
+  DoCaseSensitive := GetCaseSensitivityDecision;
+  // Check whether the search is to be for hex bytes or not
+  DoHexSearch := GetHexSearchDecision;
+  // Put the content of the memo list into a stringlist
+  slSearchList := SearchListToStringList;
+  // And now hide the form and return user to YAFFI interface
+  frmTextSearch.Hide;
+end;
+
+function GetCaseSensitivityDecision : boolean;
+begin
+  Result := false;
+  if frmTextSearch.cbMatchCase.Checked then result := true;
+end;
+
+function GetHexSearchDecision : boolean;
+begin
+  Result := false;
+  if frmTextSearch.cbHexSearch.Checked then result := true;
+end;
+
+function SearchListToStringList : TStringList;
+var
+  slSearchList : TStringList;
+  i : integer;
+begin
+  i := 0;
+  slSearchList := TStringList.Create;
+  for i := 0 to frmTextSearch.Memo1.Lines.Count -1 do
+   begin
+     slSearchList.Add(frmTextSearch.Memo1.Lines[i]);
+   end;
+  Result := slSearchList;
+end;
+
+function ByteArrayToString(const ByteArray: array of Byte): AnsiString;
 //http://stackoverflow.com/questions/19677946/converting-string-to-byte-array-wont-work
 var
   I: Integer;
@@ -50,14 +109,9 @@ begin
     Result[I] := Chr(ByteArray[I - 1]);
 end;
 
-procedure TfrmTextSearch.btnTextSearchCancelClick(Sender: TObject);
-begin
-  frmTextSearch.Close;
-end;
-
 // IndexOfDWord is a customised version of IndexDWord, supplied to me by my friend Engkin
 // and more optimised for rapid buffer search of 4 or 8 byte values
-function TfrmTextSearch.IndexOfDWord(const buf: pointer; len:SizeInt; b:DWord {or QWord }):SizeInt;
+function IndexOfDWord(const buf: pointer; len:SizeInt; b:DWord {or QWord }):SizeInt;
 var
   p,e:PDWord;
   pb: PByte absolute p;
@@ -90,7 +144,7 @@ end;
 
 // Pos uses AnsiPos internally so bespoke version of Pos this is
 // and used for finding search results when the user asks for no case sensitivity
-Function TfrmTextSearch.PosCaseInsensitive(const AText, ASubText: string): Integer;
+Function PosCaseInsensitive(const AText, ASubText: string): Integer;
 var
   s1, s2 : ansistring;
 begin
@@ -99,7 +153,7 @@ begin
   Result := AnsiPos(s2, s1);
 end;
 
-procedure TfrmTextSearch.btnTextSearchOKClick(Sender: TObject);
+procedure TfrmTextSearch.btnDontUseClick(Sender: TObject);
 var
   fs : TFileStream;
   TotalBytesRead, PositionFoundOnDisk, HexVal : Int64;
@@ -123,8 +177,6 @@ begin
   CaseSensitive := false;
   HexSearch := false;
 
-  if CheckBox1.Checked then CaseSensitive := true else CaseSensitive := false;
-  if CheckBox2.Checked then HexSearch := true else HexSearch := false;
 
   OpenDialog1.Execute;
   fs := TFileStream.Create(OpenDialog1.FileName, fmOpenRead);
@@ -168,7 +220,7 @@ begin
               end;
         end;
     end
-    else if HexSearch = true then
+    else if cbHexSearch.Checked then
       begin
         for i := 0 to Memo1.Lines.Count -1 do
           begin
@@ -185,6 +237,21 @@ begin
   until TotalBytesRead = fs.size;
   ShowMessage(IntToStr(TotalBytesRead) + ' read. Done');
   fs.Free;
+end;
+
+// Uncheck and disable the case sensitivity tick box if hex search chosen
+procedure TfrmTextSearch.cbHexSearchClick(Sender: TObject);
+begin
+  if cbHexSearch.Checked then
+    begin
+      cbMatchCase.Checked := false;
+      cbMatchCase.Enabled := false;
+    end;
+
+  if not cbHexSearch.Checked then
+    begin
+      cbMatchCase.Enabled := true;
+    end;
 end;
 
 procedure TfrmTextSearch.Memo1Enter(Sender: TObject);

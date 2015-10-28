@@ -54,7 +54,8 @@ uses
   {$endif}
     LibEWFUnit, diskspecification, GPTMBR, uProgress, Classes, SysUtils, FileUtil,
     Forms, Controls, Graphics, LazUTF8, strutils,
-    Dialogs, StdCtrls, ComCtrls, ExtCtrls, Menus, sha1Customised, md5Customised;
+    Dialogs, StdCtrls, ComCtrls, ExtCtrls, Menus, sha1Customised,
+    md5Customised, textsearch;
 
 type
 
@@ -65,6 +66,7 @@ type
     btnChooseImageName: TButton;
     btnStartImaging: TButton;
     btnRefreshDiskList: TButton;
+    btnSearchOptions: TButton;
     cbdisks: TComboBox;
     cbVerify: TCheckBox;
     ComboCompression: TComboBox;
@@ -103,6 +105,7 @@ type
 
     // http://forum.lazarus.freepascal.org/index.php/topic,28560.0.html
     procedure btnAbortClick(Sender: TObject);
+    procedure btnSearchOptionsClick(Sender: TObject);
     procedure btnStartImagingClick(Sender: TObject);
     procedure btnRefreshDiskListClick(Sender: TObject);
     procedure btnChooseImageNameClick(Sender: TObject);
@@ -174,6 +177,9 @@ var
   function VerifyE01Image(strImageName : widestring) : string;
   function FormatByteSize(const bytes: QWord): string;
   function ExtractNumbers(s: string): string;
+  function DoCaseSensitiveTextSearchOfBuffer(Buffer : array of byte; TotalBytesRead : Int64; BytesRead : Integer) : Integer;
+  function DoCaseINSensitiveTextSearchOfBuffer(Buffer : array of byte; TotalBytesRead : Int64; BytesRead : Integer) : Integer;
+  function DoHEXSearchOfBuffer(Buffer : array of byte; TotalBytesRead : Int64; BytesRead : Integer) : Integer;
 
 implementation
 
@@ -322,7 +328,10 @@ begin
   end;
 end;
 
-
+procedure TfrmYaffi.btnSearchOptionsClick(Sender: TObject);
+begin
+  frmTextSearch.Show;
+end;
 
 procedure TfrmYaffi.ComboImageTypeSelect(Sender: TObject);
 begin
@@ -350,6 +359,89 @@ end;
 procedure TfrmYaffi.ComboCompressionSelect(Sender: TObject);
 begin
   frmYaffi.InitialiseCompressionChoice(nil);
+end;
+
+// For now, returns -1 if no hits found. 1 otherwise.
+// TODO : Make this return something more useful than 1. It is searching
+// the whole buffer for all the words in the list!!!
+function DoCaseSensitiveTextSearchOfBuffer(Buffer : array of byte; TotalBytesRead : Int64; BytesRead : Integer) : Integer;
+var
+  TextData : ansistring;
+  slOffsetsOfHits : TStringList;
+  i, PositionFoundInBuffer : integer;
+  PositionFoundOnDisk : Int64;
+begin
+  i := 0;
+  PositionFoundInBuffer := 0;
+  PositionFoundOnDisk := 0;
+  slOffsetsOfHits := TStringList.Create;
+  TextData := textsearch.ByteArrayToString(Buffer);
+
+  for i := 0 to textsearch.slSearchList.Count -1 do
+    begin
+      if Pos(Trim(slSearchList.Strings[i]), TextData) > 0 then
+        begin
+          PositionFoundInBuffer := Pos(slSearchList.Strings[i], TextData);
+          PositionFoundOnDisk := (TotalBytesRead - BytesRead) + (PositionFoundInBuffer -1);
+          slOffsetsOfHits.Add(slSearchList.Strings[i] + ' at offset ' + IntToStr(PositionFoundOnDisk));
+          Result := 1;
+        end
+      else Result := -1;
+    end;
+end;
+
+// For now, returns -1 if no hex entries are found. 1 otherwise.
+// TODO : Make this return something more useful than 1. It is searching
+// the whole buffer for all the words in the list!!!
+function DoHEXSearchOfBuffer(Buffer : array of byte; TotalBytesRead : Int64; BytesRead : Integer) : Integer;
+var
+  i, PosInBufferOfHexValue : integer;
+  HexValAsDec : QWORD;
+  PositionFoundOnDisk : Int64;
+begin
+  PositionFoundOnDisk := 0;
+  HexValAsDec := 0;
+  // Loop through the users list of hex entries and search the buffer for each one
+  for i := 0 to textsearch.slSearchList.Count -1 do
+  begin
+    HexValAsDec := textsearch.Hex2DecBig(DelSpace(textsearch.slSearchList[i]));
+    // Search for the integer representation using bespoke, fast, IndexOfDWord function
+    PosInBufferOfHexValue := textsearch.IndexOfDWord(@Buffer[0], Length(Buffer), HexValAsDec); //SwapEndian($4003E369)); //StrToInt('$' + Memo1.Lines[i]));
+    PositionFoundOnDisk := (TotalBytesRead - BytesRead) + PosInBufferOfHexValue;
+    ShowMessage(IntToStr(PositionFoundOnDisk));
+    Result := 1;
+  end;
+  Result := -1;
+end;
+
+// For now, returns -1 if no hits found. 1 otherwise.
+// TODO : Make this return something more useful than 1. It is searching
+// the whole buffer for all the words in the list!!!
+function DoCaseINSensitiveTextSearchOfBuffer(Buffer : array of byte; TotalBytesRead : Int64; BytesRead : Integer) : Integer;
+var
+  TextData : ansistring;
+  slOffsetsOfHits : TStringList;
+  i, PositionFoundInBuffer : integer;
+  PositionFoundOnDisk : Int64;
+begin
+  i := 0;
+  TextData := '';
+  PositionFoundInBuffer := 0;
+  PositionFoundOnDisk := 0;
+  slOffsetsOfHits := TStringList.Create;
+  TextData := textsearch.ByteArrayToString(Buffer);
+
+  for i := 0 to textsearch.slSearchList.Count -1 do
+    begin
+      if textsearch.PosCaseInsensitive(Trim(slSearchList.Strings[i]), TextData) > 0 then
+        begin
+          PositionFoundInBuffer := Pos(slSearchList.Strings[i], TextData);
+          PositionFoundOnDisk := (TotalBytesRead - BytesRead) + (PositionFoundInBuffer -1);
+          slOffsetsOfHits.Add(slSearchList.Strings[i] + ' at offset ' + IntToStr(PositionFoundOnDisk));
+          Result := 1;
+        end
+      else Result := -1;
+    end;
 end;
 
 // Gets variosu disk properties like model, manufacturer etc, for Linux usage
@@ -1421,7 +1513,7 @@ var
   SHA1ctxImage             : TSHA1Context;
   MD5DigestImage           : TMD5Digest;
   SHA1DigestImage          : TSHA1Digest;
-  BytesRead                : integer;
+  HitCount, BytesRead      : integer;
 
   TotalBytesRead, BytesWritten, TotalBytesWritten : Int64;
 
@@ -1521,6 +1613,31 @@ begin
                       SHA1Update(SHA1ctxDisk, Buffer, BytesRead);
                       SHA1Update(SHA1ctxImage, Buffer, BytesWritten);
                     end;
+
+        // Search the buffer for text or hex, if necessary
+        // TODO Make the result more useful than just 1 or -1
+        // It's searching the entire buffer for all the words in the list!!
+
+        if frmTextSearch.DoTextOrHexSearch then
+          begin
+            if textsearch.GetHexSearchDecision then
+              begin
+                HitCount := DoHEXSearchOfBuffer(Buffer, TotalBytesRead, BytesRead);
+                // Do a hex search only with no text search
+              end
+            // otherwise, do a text search
+            else if textsearch.GetCaseSensitivityDecision then
+                begin
+                  // Do a case sensitive search
+                  HitCount := DoCaseSensitiveTextSearchOfBuffer(Buffer, TotalBytesRead, BytesRead);
+                end
+              else
+              begin
+                // Do a case INsensitive search
+                HitCount := DoCaseINSensitiveTextSearchOfBuffer(Buffer, TotalBytesRead, BytesRead);
+              end;
+          end;
+
 
       Application.ProcessMessages;
       until (TotalBytesRead = DiskSize) or (frmYaffi.Stop = true);

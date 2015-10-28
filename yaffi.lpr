@@ -32,9 +32,8 @@ uses
   cthreads,
   {$ENDIF}{$ENDIF}
   Interfaces, // this includes the LCL widgetset
-  Forms, uyaffi,
-  LibEWFUnit, diskspecification, uProgress
-  { you can add units after this };
+  Forms, UYaffi,
+  LibEWFUnit, diskspecification, uProgress, textsearch;
 
 {$R *.res}
 
@@ -44,6 +43,7 @@ begin
   Application.CreateForm(TfrmYAFFI, frmYAFFI);
   Application.CreateForm(TfrmTechSpecs, frmTechSpecs);
   Application.CreateForm(TfrmProgress, frmProgress);
+  Application.CreateForm(TfrmTextSearch, frmTextSearch);
   Application.Run;
 end.
 

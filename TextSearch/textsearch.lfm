@@ -1,19 +1,19 @@
 object frmTextSearch: TfrmTextSearch
-  Left = 749
+  Left = 686
   Height = 390
-  Top = 242
+  Top = 157
   Width = 320
   Caption = 'YAFFI Text Search Facility'
   ClientHeight = 390
   ClientWidth = 320
   LCLVersion = '1.4.4.0'
-  object btnTextSearchOK: TButton
-    Left = 64
+  object btnDontUse: TButton
+    Left = 16
     Height = 25
-    Top = 320
+    Top = 288
     Width = 75
-    Caption = 'OK'
-    OnClick = btnTextSearchOKClick
+    Caption = 'dont use'
+    OnClick = btnDontUseClick
     TabOrder = 0
   end
   object Memo1: TMemo
@@ -30,20 +30,21 @@ object frmTextSearch: TfrmTextSearch
     ScrollBars = ssAutoBoth
     TabOrder = 1
   end
-  object CheckBox1: TCheckBox
+  object cbMatchCase: TCheckBox
     Left = 22
-    Height = 22
+    Height = 17
     Top = 248
-    Width = 98
+    Width = 79
     Caption = 'Match case?'
     TabOrder = 2
   end
-  object CheckBox2: TCheckBox
+  object cbHexSearch: TCheckBox
     Left = 205
-    Height = 22
+    Height = 17
     Top = 248
-    Width = 99
+    Width = 80
     Caption = 'Hex Search?'
+    OnClick = cbHexSearchClick
     TabOrder = 3
   end
   object btnTextSearchCancel: TButton
@@ -54,6 +55,15 @@ object frmTextSearch: TfrmTextSearch
     Caption = 'Cancel'
     OnClick = btnTextSearchCancelClick
     TabOrder = 4
+  end
+  object btnTextSearchOK: TButton
+    Left = 72
+    Height = 25
+    Top = 320
+    Width = 75
+    Caption = 'OK'
+    OnClick = btnTextSearchOKClick
+    TabOrder = 5
   end
   object OpenDialog1: TOpenDialog
     left = 264

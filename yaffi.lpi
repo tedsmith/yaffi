@@ -40,7 +40,7 @@
         <PackageName Value="LCL"/>
       </Item1>
     </RequiredPackages>
-    <Units Count="5">
+    <Units Count="7">
       <Unit0>
         <Filename Value="yaffi.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -51,12 +51,10 @@
         <ComponentName Value="frmYaffi"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
-        <UnitName Value="UYaffi"/>
       </Unit1>
       <Unit2>
         <Filename Value="libEWF-FPC\LibEWFUnit.pas"/>
         <IsPartOfProject Value="True"/>
-        <UnitName Value="LibEWFUnit"/>
       </Unit2>
       <Unit3>
         <Filename Value="diskspecification.pas"/>
@@ -64,7 +62,6 @@
         <ComponentName Value="frmTechSpecs"/>
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
-        <UnitName Value="diskspecification"/>
       </Unit3>
       <Unit4>
         <Filename Value="uprogress.pas"/>
@@ -74,6 +71,17 @@
         <ResourceBaseClass Value="Form"/>
         <UnitName Value="uProgress"/>
       </Unit4>
+      <Unit5>
+        <Filename Value="TextSearch\textsearch.lfm"/>
+        <IsPartOfProject Value="True"/>
+      </Unit5>
+      <Unit6>
+        <Filename Value="TextSearch\textsearch.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="frmTextSearch"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+      </Unit6>
     </Units>
   </ProjectOptions>
   <CompilerOptions>
@@ -84,12 +92,11 @@
     </Target>
     <SearchPaths>
       <IncludeFiles Value="$(ProjOutDir)"/>
-      <OtherUnitFiles Value="libEWF-FPC"/>
+      <OtherUnitFiles Value="libEWF-FPC;TextSearch"/>
       <UnitOutputDirectory Value="lib\$(TargetCPU)-$(TargetOS)"/>
     </SearchPaths>
     <Linking>
       <Debugging>
-        <GenerateDebugInfo Value="False"/>
         <DebugInfoType Value="dsDwarf2Set"/>
       </Debugging>
       <Options>

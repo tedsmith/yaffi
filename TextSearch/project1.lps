@@ -12,6 +12,20 @@
         <Loaded Value="True"/>
       </Unit0>
       <Unit1>
+        <Filename Value="textsearch.pas"/>
+        <IsPartOfProject Value="True"/>
+        <ComponentName Value="frmTextSearch"/>
+        <HasResources Value="True"/>
+        <ResourceBaseClass Value="Form"/>
+        <IsVisibleTab Value="True"/>
+        <EditorIndex Value="1"/>
+        <TopLine Value="213"/>
+        <CursorPos Y="225"/>
+        <UsageCount Value="21"/>
+        <Loaded Value="True"/>
+        <LoadedDesigner Value="True"/>
+      </Unit1>
+      <Unit2>
         <Filename Value="unit1.pas"/>
         <ComponentName Value="frmTextSearch"/>
         <HasResources Value="True"/>
@@ -20,73 +34,59 @@
         <EditorIndex Value="-1"/>
         <CursorPos X="18" Y="9"/>
         <UsageCount Value="34"/>
-        <LoadedDesigner Value="True"/>
-      </Unit1>
-      <Unit2>
+      </Unit2>
+      <Unit3>
         <Filename Value="/usr/share/lazarus/1.4.4/lcl/interfaces/gtk2/gtk2memostrings.inc"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="118"/>
         <CursorPos Y="138"/>
         <UsageCount Value="15"/>
-      </Unit2>
-      <Unit3>
+      </Unit3>
+      <Unit4>
         <Filename Value="/usr/share/lazarus/1.4.4/lcl/include/control.inc"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="2724"/>
         <CursorPos X="9" Y="2734"/>
         <UsageCount Value="12"/>
-      </Unit3>
-      <Unit4>
+      </Unit4>
+      <Unit5>
         <Filename Value="/usr/share/lazarus/1.4.4/lcl/include/messagedialogs.inc"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="193"/>
         <CursorPos Y="207"/>
         <UsageCount Value="12"/>
-      </Unit4>
-      <Unit5>
+      </Unit5>
+      <Unit6>
         <Filename Value="/usr/share/lazarus/1.4.4/components/lazutils/lazlogger.pas"/>
         <UnitName Value="LazLogger"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="750"/>
         <CursorPos Y="765"/>
         <UsageCount Value="12"/>
-      </Unit5>
-      <Unit6>
+      </Unit6>
+      <Unit7>
         <Filename Value="/lazarus/fpc/2.6.4/source/rtl/objpas/strutils.pp"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="217"/>
         <CursorPos Y="228"/>
         <UsageCount Value="11"/>
-      </Unit6>
-      <Unit7>
+      </Unit7>
+      <Unit8>
         <Filename Value="/lazarus/fpc/2.6.4/source/rtl/objpas/sysutils/sysstrh.inc"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="104"/>
         <CursorPos X="10" Y="117"/>
         <UsageCount Value="10"/>
-      </Unit7>
-      <Unit8>
+      </Unit8>
+      <Unit9>
         <Filename Value="/lazarus/fpc/2.6.4/source/rtl/objpas/sysutils/sysstr.inc"/>
         <EditorIndex Value="-1"/>
         <TopLine Value="825"/>
         <CursorPos X="24" Y="836"/>
         <UsageCount Value="10"/>
-      </Unit8>
-      <Unit9>
-        <Filename Value="textsearch.pas"/>
-        <IsPartOfProject Value="True"/>
-        <ComponentName Value="frmTextSearch"/>
-        <HasResources Value="True"/>
-        <ResourceBaseClass Value="Form"/>
-        <IsVisibleTab Value="True"/>
-        <EditorIndex Value="1"/>
-        <CursorPos X="29" Y="15"/>
-        <UsageCount Value="21"/>
-        <Loaded Value="True"/>
-        <LoadedDesigner Value="True"/>
       </Unit9>
     </Units>
-    <JumpHistory Count="6" HistoryIndex="5">
+    <JumpHistory Count="18" HistoryIndex="17">
       <Position1>
         <Filename Value="project1.lpr"/>
       </Position1>
@@ -104,12 +104,71 @@
       </Position4>
       <Position5>
         <Filename Value="textsearch.pas"/>
-        <Caret Line="41" Column="34" TopLine="110"/>
+        <Caret Line="66" Column="61" TopLine="43"/>
       </Position5>
       <Position6>
         <Filename Value="textsearch.pas"/>
-        <Caret Line="66" Column="61" TopLine="43"/>
+        <Caret Line="223" Column="22" TopLine="204"/>
       </Position6>
+      <Position7>
+        <Filename Value="textsearch.pas"/>
+        <Caret Line="20" Column="16" TopLine="7"/>
+      </Position7>
+      <Position8>
+        <Filename Value="textsearch.pas"/>
+        <Caret Line="26" Column="26" TopLine="7"/>
+      </Position8>
+      <Position9>
+        <Filename Value="textsearch.pas"/>
+        <Caret Line="31" Column="52" TopLine="9"/>
+      </Position9>
+      <Position10>
+        <Filename Value="textsearch.pas"/>
+        <Caret Line="40" Column="24" TopLine="18"/>
+      </Position10>
+      <Position11>
+        <Filename Value="textsearch.pas"/>
+        <Caret Line="57" Column="20" TopLine="35"/>
+      </Position11>
+      <Position12>
+        <Filename Value="textsearch.pas"/>
+        <Caret Line="65" Column="20" TopLine="43"/>
+      </Position12>
+      <Position13>
+        <Filename Value="textsearch.pas"/>
+        <Caret Line="69" Column="30" TopLine="47"/>
+      </Position13>
+      <Position14>
+        <Filename Value="textsearch.pas"/>
+        <Caret Line="82" Column="22" TopLine="60"/>
+      </Position14>
+      <Position15>
+        <Filename Value="textsearch.pas"/>
+        <Caret Line="85" Column="31" TopLine="63"/>
+      </Position15>
+      <Position16>
+        <Filename Value="textsearch.pas"/>
+        <Caret Line="167" Column="27" TopLine="145"/>
+      </Position16>
+      <Position17>
+        <Filename Value="textsearch.pas"/>
+        <Caret Line="178" Column="12" TopLine="156"/>
+      </Position17>
+      <Position18>
+        <Filename Value="textsearch.pas"/>
+        <Caret Line="210" Column="49" TopLine="189"/>
+      </Position18>
     </JumpHistory>
   </ProjectSession>
+  <Debugging>
+    <BreakPoints Count="1">
+      <Item1>
+        <Kind Value="bpkSource"/>
+        <WatchScope Value="wpsLocal"/>
+        <WatchKind Value="wpkWrite"/>
+        <Source Value="textsearch.pas"/>
+        <Line Value="225"/>
+      </Item1>
+    </BreakPoints>
+  </Debugging>
 </CONFIG>
