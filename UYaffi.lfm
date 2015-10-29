@@ -240,7 +240,7 @@ object frmYaffi: TfrmYaffi
     object btnStartImaging: TButton
       Left = 568
       Height = 25
-      Top = 480
+      Top = 488
       Width = 120
       Caption = 'Start Imaging'
       OnClick = btnStartImagingClick
@@ -249,7 +249,7 @@ object frmYaffi: TfrmYaffi
     object btnAbort: TButton
       Left = 568
       Height = 25
-      Top = 520
+      Top = 528
       Width = 120
       Caption = 'Abort!'
       OnClick = btnAbortClick
@@ -444,11 +444,27 @@ object frmYaffi: TfrmYaffi
     object btnSearchOptions: TButton
       Left = 568
       Height = 25
+      Hint = 'Press to enable keyword or hex searches'#13#10'during imaging. Naturally, slows imaging a little.'
       Top = 422
       Width = 120
       Caption = 'Search Options...'
       OnClick = btnSearchOptionsClick
+      ParentShowHint = False
+      ShowHint = True
       TabOrder = 21
+    end
+    object toggleSearchMode: TToggleBox
+      Left = 568
+      Height = 23
+      Hint = 'If ON, searches will take place during imaging'#13#10'If OFF, searches will not take place during imaging'
+      Top = 456
+      Width = 122
+      Caption = 'Search Mode: OFF'
+      Color = clRed
+      Enabled = False
+      ParentShowHint = False
+      ShowHint = True
+      TabOrder = 22
     end
   end
   object ImageList1: TImageList

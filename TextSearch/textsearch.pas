@@ -6,9 +6,11 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, StdCtrls,
-  strutils;
+  strutils, LCLIntf;
 
 type
+
+  TCharUpCaseTable = array [Char] of Char;  // For use by InsensPosEx function
 
   { TfrmTextSearch }
 
@@ -35,6 +37,7 @@ type
 var
   frmTextSearch: TfrmTextSearch;
   slSearchList : TStringList;
+  CharUpCaseTable: TCharUpCaseTable;
 
   function GetCaseSensitivityDecision : boolean;
   function GetHexSearchDecision : boolean;
@@ -43,18 +46,26 @@ var
   function IndexOfDWord(const buf: pointer; len:SizeInt; b:DWord {or QWord }):SizeInt;
   function Hex2DecBig(const S: string): QWORD;
   function SearchListToStringList : TStringList;
+  procedure InitCharUpCaseTable(var Table: TCharUpCaseTable);
+  function InsensPosEx(const SubStr, S: string; Offset: Integer = 1): Integer;
+
 
 implementation
+
+uses uYaffi;
 
 {$R *.lfm}
 
 { TfrmTextSearch }
 
-
 procedure TfrmTextSearch.btnTextSearchCancelClick(Sender: TObject);
 begin
   // We know the user does not want to do a search of any kind
   DoTextOrHexSearch := false;
+  // Set the search mode in main YAFFI interface to disabled
+   frmYaffi.toggleSearchMode.State := cbUnChecked;
+   frmYaffi.toggleSearchMode.Enabled := false;
+   frmYaffi.toggleSearchMode.Caption := 'Search Mode: OFF';
   // Hide the form
   frmTextSearch.Close;
 end;
@@ -69,6 +80,10 @@ begin
   DoHexSearch := GetHexSearchDecision;
   // Put the content of the memo list into a stringlist
   slSearchList := SearchListToStringList;
+  // Set the search mode in main YAFFI interface to enabled
+  frmYaffi.toggleSearchMode.State := cbChecked;
+  frmYaffi.toggleSearchMode.Enabled := true;
+  frmYaffi.toggleSearchMode.Caption := 'Search Mode: ON';
   // And now hide the form and return user to YAFFI interface
   frmTextSearch.Hide;
 end;
@@ -150,6 +165,48 @@ begin
   s1 := AnsiUppercase(ASubText);
   s2 :=    AnsiUppercase(AText);
   Result := AnsiPos(s2, s1);
+end;
+
+// Used by InsesnPosEx for conducting case insensitive searches of buffer
+// From http://stackoverflow.com/a/1554544
+procedure InitCharUpCaseTable(var Table: TCharUpCaseTable);
+var
+  n: cardinal;
+begin
+  for n := 0 to Length(Table) - 1 do
+    Table[Char(n)] := Char(n);
+  CharUpperBuff(@Table, Length(Table));   // CharUpperBuff is from LCLIntf unit
+end;
+
+// InsensPosEx is a fast case insensitive search function ported from Delphi by
+// the LCLIntf unit allowing a starting offset to be specified.
+// Used to repeat check a buffer for extra hits of the term, rather than moving
+// on after PosCaseInsensitive finds the first hit
+// From http://stackoverflow.com/a/1554544
+function InsensPosEx(const SubStr, S: string; Offset: Integer = 1): Integer;
+var
+  n              :integer;
+  SubStrLength   :integer;
+  SLength        :integer;
+label
+  Fail;
+begin
+  SLength := length(s);
+  if (SLength > 0) and (Offset > 0) then
+    begin
+    SubStrLength := length(SubStr);
+    result := Offset;
+    while SubStrLength <= SLength - result + 1 do
+      begin
+        for n := 1 to SubStrLength do
+          if CharUpCaseTable[SubStr[n]] <> CharUpCaseTable[s[result + n - 1]] then
+            goto Fail;
+        exit;
+  Fail:
+        inc(result);
+      end;
+    end;
+  result := 0;
 end;
 
 procedure TfrmTextSearch.btnDontUseClick(Sender: TObject);
@@ -257,6 +314,12 @@ procedure TfrmTextSearch.Memo1Enter(Sender: TObject);
 begin
   Memo1.Clear;
 end;
+
+
+initialization
+  // Used to initialise the upper case table as used by InsensPosEx
+  // http://stackoverflow.com/a/1554544
+  InitCharUpCaseTable(CharUpCaseTable);
 
 end.
 

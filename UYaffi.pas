@@ -101,6 +101,7 @@ type
     MenuItem1: TMenuItem;
     PopupMenu1: TPopupMenu;
     SaveImageDialog: TSaveDialog;
+    toggleSearchMode: TToggleBox;
     TreeView1: TTreeView;
 
     // http://forum.lazarus.freepascal.org/index.php/topic,28560.0.html
@@ -441,15 +442,13 @@ begin
           slOffsetsOfHits.Add(slSearchList.Strings[i] + ' at offset ' + IntToStr(PositionFoundOnDisk));
 
           // Check the buffer again, from the point the first hit was found, for any more hits
-          // TODO : Make a case insensitive version of PosEx! Like PosCaseInsensitive but with offset inclusion
-          {if PosEx(slSearchList.Strings[i], TextData, PositionFoundInBuffer) > 0 then
+          if textsearch.InsensPosEx(slSearchList.Strings[i], TextData, PositionFoundInBuffer) > 0 then
             repeat
-              PositionFoundInBuffer := PosEx(slSearchList.Strings[i], TextData, PositionFoundInBuffer);
+              PositionFoundInBuffer := textsearch.InsensPosEx(slSearchList.Strings[i], TextData, PositionFoundInBuffer);
               PositionFoundOnDisk := (TotalBytesRead - BytesRead) + (PositionFoundInBuffer -1);
               inc(PositionFoundInBuffer, 1);
               slOffsetsOfHits.Add(slSearchList.Strings[i] + ' at offset ' + IntToStr(PositionFoundOnDisk));
-            until PosEx(slSearchList.Strings[i], TextData, PositionFoundInBuffer) = 0;
-           }
+            until textsearch.InsensPosEx(slSearchList.Strings[i], TextData, PositionFoundInBuffer) = 0;
           Result := 1;
           // TODO : RETURN slOffsetsOfHits or save it somewhere!!
           end
@@ -1564,7 +1563,7 @@ var
   SHA1ctxImage             : TSHA1Context;
   MD5DigestImage           : TMD5Digest;
   SHA1DigestImage          : TSHA1Digest;
-  HitCount, BytesRead      : integer;
+  Hit, HitCount, BytesRead      : integer;
 
   TotalBytesRead, BytesWritten, TotalBytesWritten : Int64;
 
@@ -1573,6 +1572,8 @@ begin
   BytesWritten        := 0;
   TotalBytesRead      := 0;
   TotalBytesWritten   := 0;
+  Hit                 := 0;
+  HitCount            := 0;
   frmProgress.ProgressBar1.Position := 0;
   frmProgress.lblTotalBytesSource.Caption := ' bytes captured of ' + IntToStr(DiskSize);
   frmProgress.Label7.Caption := ' Capturing DD image...please wait';
@@ -1666,26 +1667,29 @@ begin
                     end;
 
         // Search the buffer for text or hex, if necessary
-        // TODO Make the result more useful than just 1 or -1
+        // TODO Make the result more useful than just hit count
         // It's searching the entire buffer for all the words in the list!!
 
         if frmTextSearch.DoTextOrHexSearch then
           begin
             if textsearch.GetHexSearchDecision then
               begin
-                HitCount := DoHEXSearchOfBuffer(Buffer, TotalBytesRead, BytesRead);
+                Hit := DoHEXSearchOfBuffer(Buffer, TotalBytesRead, BytesRead);
+                if Hit = 1 then inc(HitCount, 1);
                 // Do a hex search only with no text search
               end
             // otherwise, do a text search
             else if textsearch.GetCaseSensitivityDecision then
                 begin
                   // Do a case sensitive search
-                  HitCount := DoCaseSensitiveTextSearchOfBuffer(Buffer, TotalBytesRead, BytesRead);
+                  Hit := DoCaseSensitiveTextSearchOfBuffer(Buffer, TotalBytesRead, BytesRead);
+                  if Hit = 1 then inc(HitCount, 1);
                 end
               else
               begin
                 // Do a case INsensitive search
-                HitCount := DoCaseINSensitiveTextSearchOfBuffer(Buffer, TotalBytesRead, BytesRead);
+                Hit := DoCaseINSensitiveTextSearchOfBuffer(Buffer, TotalBytesRead, BytesRead);
+                if Hit = 1 then inc(HitCount, 1);
               end;
           end;
 
