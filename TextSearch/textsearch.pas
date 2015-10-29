@@ -87,7 +87,6 @@ end;
 
 function SearchListToStringList : TStringList;
 var
-  slSearchList : TStringList;
   i : integer;
 begin
   i := 0;

@@ -112,6 +112,7 @@ type
     procedure ComboCompressionSelect(Sender: TObject);
     procedure ComboImageTypeSelect(Sender: TObject);
     procedure ComboSegmentSizeSelect(Sender: TObject);
+    procedure FormClose(Sender: TObject; var CloseAction: TCloseAction);
     procedure FormCreate(Sender: TObject);
     procedure ledtCaseNameEnter(Sender: TObject);
     procedure ledtExaminersNameEnter(Sender: TObject);
@@ -177,9 +178,9 @@ var
   function VerifyE01Image(strImageName : widestring) : string;
   function FormatByteSize(const bytes: QWord): string;
   function ExtractNumbers(s: string): string;
-  function DoCaseSensitiveTextSearchOfBuffer(Buffer : array of byte; TotalBytesRead : Int64; BytesRead : Integer) : Integer;
+  function DoCaseSensitiveTextSearchOfBuffer  (Buffer : array of byte; TotalBytesRead : Int64; BytesRead : Integer) : Integer;
   function DoCaseINSensitiveTextSearchOfBuffer(Buffer : array of byte; TotalBytesRead : Int64; BytesRead : Integer) : Integer;
-  function DoHEXSearchOfBuffer(Buffer : array of byte; TotalBytesRead : Int64; BytesRead : Integer) : Integer;
+  function DoHEXSearchOfBuffer                (Buffer : array of byte; TotalBytesRead : Int64; BytesRead : Integer) : Integer;
 
 implementation
 
@@ -355,6 +356,11 @@ begin
   frmYaffi.InitialiseSegmentSize(nil);
 end;
 
+procedure TfrmYaffi.FormClose(Sender: TObject; var CloseAction: TCloseAction);
+begin
+  if assigned(slSearchList) then slSearchList.Free;
+end;
+
 
 procedure TfrmYaffi.ComboCompressionSelect(Sender: TObject);
 begin
@@ -366,28 +372,90 @@ end;
 // the whole buffer for all the words in the list!!!
 function DoCaseSensitiveTextSearchOfBuffer(Buffer : array of byte; TotalBytesRead : Int64; BytesRead : Integer) : Integer;
 var
-  TextData : ansistring;
-  slOffsetsOfHits : TStringList;
+  TextData                 : ansistring;
+  slOffsetsOfHits          : TStringList;
   i, PositionFoundInBuffer : integer;
-  PositionFoundOnDisk : Int64;
+  PositionFoundOnDisk      : Int64;
 begin
-  i := 0;
-  PositionFoundInBuffer := 0;
-  PositionFoundOnDisk := 0;
-  slOffsetsOfHits := TStringList.Create;
+  i                        := 0;
+  PositionFoundInBuffer    := 0;
+  PositionFoundOnDisk      := 0;
+  slOffsetsOfHits          := TStringList.Create;
+
+  // Convert the binary byte array to an array of chars for searching in
   TextData := textsearch.ByteArrayToString(Buffer);
 
-  for i := 0 to textsearch.slSearchList.Count -1 do
+  // Now search the array of chars case sensitively
+  for i := 0 to slSearchList.Count -1 do
     begin
       if Pos(Trim(slSearchList.Strings[i]), TextData) > 0 then
         begin
           PositionFoundInBuffer := Pos(slSearchList.Strings[i], TextData);
           PositionFoundOnDisk := (TotalBytesRead - BytesRead) + (PositionFoundInBuffer -1);
           slOffsetsOfHits.Add(slSearchList.Strings[i] + ' at offset ' + IntToStr(PositionFoundOnDisk));
+
+          // Check the buffer again, from the point the first hit was found, for any more hits
+          if PosEx(slSearchList.Strings[i], TextData, PositionFoundInBuffer) > 0 then
+            repeat
+              PositionFoundInBuffer := PosEx(slSearchList.Strings[i], TextData, PositionFoundInBuffer);
+              PositionFoundOnDisk := (TotalBytesRead - BytesRead) + (PositionFoundInBuffer -1);
+              inc(PositionFoundInBuffer, 1);
+              slOffsetsOfHits.Add(slSearchList.Strings[i] + ' at offset ' + IntToStr(PositionFoundOnDisk));
+              until PosEx(slSearchList.Strings[i], TextData, PositionFoundInBuffer) = 0;
+          // TODO : RETURN slOffsetsOfHits or save it somewhere!!
           Result := 1;
         end
       else Result := -1;
     end;
+  slOffsetsOfHits.free;
+end;
+
+
+// For now, returns -1 if no hits found. 1 otherwise.
+// TODO : Make this return something more useful than 1. It is searching
+// the whole buffer for all the words in the list!!!
+function DoCaseINSensitiveTextSearchOfBuffer(Buffer : array of byte; TotalBytesRead : Int64; BytesRead : Integer) : Integer;
+var
+  TextData                 : ansistring;
+  slOffsetsOfHits          : TStringList;
+  i, PositionFoundInBuffer : integer;
+  PositionFoundOnDisk      : Int64;
+
+begin
+  i                        := 0;
+  TextData                 := '';
+  PositionFoundInBuffer    := 0;
+  PositionFoundOnDisk      := 0;
+  slOffsetsOfHits          := TStringList.Create;
+
+  // Convert the binary byte array to an array of chars for searching in
+  TextData := textsearch.ByteArrayToString(Buffer);
+
+   // Now search the array of chars case INsensitively
+  for i := 0 to slSearchList.Count -1 do
+    begin
+      if textsearch.PosCaseInsensitive(Trim(slSearchList.Strings[i]), TextData) > 0 then
+        begin
+          PositionFoundInBuffer := PosCaseInsensitive(slSearchList.Strings[i], TextData);
+          PositionFoundOnDisk := (TotalBytesRead - BytesRead) + (PositionFoundInBuffer -1);
+          slOffsetsOfHits.Add(slSearchList.Strings[i] + ' at offset ' + IntToStr(PositionFoundOnDisk));
+
+          // Check the buffer again, from the point the first hit was found, for any more hits
+          // TODO : Make a case insensitive version of PosEx! Like PosCaseInsensitive but with offset inclusion
+          {if PosEx(slSearchList.Strings[i], TextData, PositionFoundInBuffer) > 0 then
+            repeat
+              PositionFoundInBuffer := PosEx(slSearchList.Strings[i], TextData, PositionFoundInBuffer);
+              PositionFoundOnDisk := (TotalBytesRead - BytesRead) + (PositionFoundInBuffer -1);
+              inc(PositionFoundInBuffer, 1);
+              slOffsetsOfHits.Add(slSearchList.Strings[i] + ' at offset ' + IntToStr(PositionFoundOnDisk));
+            until PosEx(slSearchList.Strings[i], TextData, PositionFoundInBuffer) = 0;
+           }
+          Result := 1;
+          // TODO : RETURN slOffsetsOfHits or save it somewhere!!
+          end
+      else Result := -1;
+    end;
+  slOffsetsOfHits.Free;
 end;
 
 // For now, returns -1 if no hex entries are found. 1 otherwise.
@@ -395,55 +463,38 @@ end;
 // the whole buffer for all the words in the list!!!
 function DoHEXSearchOfBuffer(Buffer : array of byte; TotalBytesRead : Int64; BytesRead : Integer) : Integer;
 var
+  strHexVal                : ansistring;
   i, PosInBufferOfHexValue : integer;
-  HexValAsDec : QWORD;
-  PositionFoundOnDisk : Int64;
+  intHexValAsDec           : QWORD;
+  PositionFoundOnDisk      : Int64;
+  slOffsetsOfHits          : TStringList;
+
 begin
-  PositionFoundOnDisk := 0;
-  HexValAsDec := 0;
+  Result                   := -1;
+  PositionFoundOnDisk      := 0;
+  intHexValAsDec           := 0;
+  slOffsetsOfHits          := TStringList.Create;
+
   // Loop through the users list of hex entries and search the buffer for each one
-  for i := 0 to textsearch.slSearchList.Count -1 do
+  for i := 0 to slSearchList.Count -1 do
   begin
-    HexValAsDec := textsearch.Hex2DecBig(DelSpace(textsearch.slSearchList[i]));
+    // Format the hex strings in the user list (remove spaces, add a $ before it etc)
+    strHexVal := DelSpace(slSearchList[i]);
+    intHexValAsDec := textsearch.Hex2DecBig(strHexVal);
+
     // Search for the integer representation using bespoke, fast, IndexOfDWord function
-    PosInBufferOfHexValue := textsearch.IndexOfDWord(@Buffer[0], Length(Buffer), HexValAsDec); //SwapEndian($4003E369)); //StrToInt('$' + Memo1.Lines[i]));
-    PositionFoundOnDisk := (TotalBytesRead - BytesRead) + PosInBufferOfHexValue;
-    ShowMessage(IntToStr(PositionFoundOnDisk));
-    Result := 1;
+    PosInBufferOfHexValue := textsearch.IndexOfDWord(@Buffer[0], Length(Buffer), SwapEndian(intHexValAsDec)); //SwapEndian($4003E369)); //StrToInt('$' + Memo1.Lines[i]));
+    // If it was found, detail the find
+    if PosInBufferOfHexValue > -1 then
+      begin
+        PositionFoundOnDisk := (TotalBytesRead - BytesRead) + PosInBufferOfHexValue;
+        slOffsetsOfHits.Add(slSearchList.Strings[i] + ' at offset ' + IntToStr(PositionFoundOnDisk));
+        ShowMessage(slOffsetsOfHits.Text);
+        Result := 1;
+      end;
   end;
-  Result := -1;
+   slOffsetsOfHits.free;
 end;
-
-// For now, returns -1 if no hits found. 1 otherwise.
-// TODO : Make this return something more useful than 1. It is searching
-// the whole buffer for all the words in the list!!!
-function DoCaseINSensitiveTextSearchOfBuffer(Buffer : array of byte; TotalBytesRead : Int64; BytesRead : Integer) : Integer;
-var
-  TextData : ansistring;
-  slOffsetsOfHits : TStringList;
-  i, PositionFoundInBuffer : integer;
-  PositionFoundOnDisk : Int64;
-begin
-  i := 0;
-  TextData := '';
-  PositionFoundInBuffer := 0;
-  PositionFoundOnDisk := 0;
-  slOffsetsOfHits := TStringList.Create;
-  TextData := textsearch.ByteArrayToString(Buffer);
-
-  for i := 0 to textsearch.slSearchList.Count -1 do
-    begin
-      if textsearch.PosCaseInsensitive(Trim(slSearchList.Strings[i]), TextData) > 0 then
-        begin
-          PositionFoundInBuffer := Pos(slSearchList.Strings[i], TextData);
-          PositionFoundOnDisk := (TotalBytesRead - BytesRead) + (PositionFoundInBuffer -1);
-          slOffsetsOfHits.Add(slSearchList.Strings[i] + ' at offset ' + IntToStr(PositionFoundOnDisk));
-          Result := 1;
-        end
-      else Result := -1;
-    end;
-end;
-
 // Gets variosu disk properties like model, manufacturer etc, for Linux usage
 // Returns a concatanated string for display in the Treeview
 function GetDiskLabels(DiskDevName : string) : string;

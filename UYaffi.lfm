@@ -7,6 +7,7 @@ object frmYaffi: TfrmYaffi
   ClientHeight = 668
   ClientWidth = 732
   DefaultMonitor = dmDesktop
+  OnClose = FormClose
   OnCreate = FormCreate
   OnShow = btnRefreshDiskListClick
   Position = poDesktopCenter
