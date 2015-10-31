@@ -1,16 +1,16 @@
 object frmTextSearch: TfrmTextSearch
   Left = 686
-  Height = 390
+  Height = 342
   Top = 157
   Width = 320
   Caption = 'YAFFI Text Search Facility'
-  ClientHeight = 390
+  ClientHeight = 342
   ClientWidth = 320
   LCLVersion = '1.4.4.0'
   object Memo1: TMemo
     Left = 22
     Height = 178
-    Top = 40
+    Top = 56
     Width = 282
     Anchors = [akTop, akLeft, akRight]
     Lines.Strings = (
@@ -22,17 +22,17 @@ object frmTextSearch: TfrmTextSearch
     TabOrder = 0
   end
   object cbMatchCase: TCheckBox
-    Left = 22
+    Left = 64
     Height = 17
-    Top = 248
+    Top = 256
     Width = 79
     Caption = 'Match case?'
     TabOrder = 1
   end
   object cbHexSearch: TCheckBox
-    Left = 205
+    Left = 176
     Height = 17
-    Top = 248
+    Top = 256
     Width = 80
     Caption = 'Hex Search?'
     OnClick = cbHexSearchClick
@@ -41,20 +41,28 @@ object frmTextSearch: TfrmTextSearch
   object btnTextSearchCancel: TButton
     Left = 176
     Height = 25
-    Top = 320
+    Top = 288
     Width = 75
     Caption = 'Cancel'
     OnClick = btnTextSearchCancelClick
     TabOrder = 3
   end
   object btnTextSearchOK: TButton
-    Left = 72
+    Left = 64
     Height = 25
-    Top = 320
+    Top = 288
     Width = 75
     Caption = 'OK'
     OnClick = btnTextSearchOKClick
     TabOrder = 4
+  end
+  object Label1: TLabel
+    Left = 22
+    Height = 26
+    Top = 16
+    Width = 208
+    Caption = 'Enter keyword below, one per line'#13#10'Enter hex with or without spaces, no prefix'
+    ParentColor = False
   end
   object OpenDialog1: TOpenDialog
     left = 264

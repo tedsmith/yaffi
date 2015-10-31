@@ -19,6 +19,7 @@ type
     btnTextSearchOK: TButton;
     cbMatchCase: TCheckBox;
     cbHexSearch: TCheckBox;
+    Label1: TLabel;
     Memo1: TMemo;
     OpenDialog1: TOpenDialog;
     procedure btnTextSearchCancelClick(Sender: TObject);

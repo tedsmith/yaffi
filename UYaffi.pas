@@ -341,9 +341,9 @@ procedure TfrmYaffi.ComboImageTypeSelect(Sender: TObject);
 begin
   if frmYaffi.InitialiseImageType(nil) = 1 then
   begin
-  ledtImageName.Text := ChangeFileExt(ledtImageName.Text, '.E01');
-  ComboCompression.Enabled := true;
-  ComboSegmentSize.Enabled := true;
+    ledtImageName.Text       := ChangeFileExt(ledtImageName.Text, '.E01');
+    ComboCompression.Enabled := true;
+    ComboSegmentSize.Enabled := true;
   end;
 
   if frmYaffi.InitialiseImageType(nil) = 2 then
@@ -800,7 +800,6 @@ var
     TimeTakenToImage, TimeTakenToVerify   : TDateTime;
 
   fsImageName : TFileStream;
-  SystemFileName : string;
 
 begin
   BytesReturned   := 0;
@@ -834,6 +833,21 @@ begin
   ImageTypeChoice := frmYaffi.InitialiseImageType(nil);
   if ImageTypeChoice = -1 then abort;
 
+  // Avoid overwriting an existing image if the user just presses start again
+  // after already running an image
+  // TODO : For some weird reason, this returns true for DD images even though the file
+  // doesnt exist yet? But for the E01 images, it works as expected
+  {
+  if FileExists(strImageName) then
+  begin
+    ShowMessage(strImageName + ' already exists. Delete it first.');
+    ComboImageType.Enabled   := true;
+    comboHashChoice.Enabled  := true;
+    ComboSegmentSize.Enabled := true;
+    ComboCompression.Enabled := true;
+    Abort;
+  end;
+  }
   // Create handle to source disk. Abort if fails
   {$ifdef Windows}
   hSelectedDisk := CreateFileW(PWideChar(SourceDevice),
@@ -912,6 +926,7 @@ begin
             TimeTakenToImage := EndedAt - StartedAt;
 
             // Verify the E01 image, if desired by the user
+
             if (cbVerify.Checked) and (ImageResult > -1) then
               begin
                 VerificationStartedAt := Now;
@@ -938,6 +953,14 @@ begin
           StartedAt := Now;
           // Create a filestream for the output image file
           fsImageName := TFileStream.Create(Trim(ledtImageName.Text), fmCreate);
+
+          // Avoid overwriting an existing image if the user just presses start again
+          // after already pressing it once
+          if FileExists(fsImageName.FileName) then
+          begin
+            ShowMessage(fsImageName.FileName + ' already exists. Delete it first.');
+            Abort;
+          end;
 
           // Image hSelectedDisk to fsImageName, returning the number of bytes read
           ImageResult := ImageDiskDD(hSelectedDisk, ExactDiskSize, HashChoice, fsImageName);
@@ -1259,32 +1282,21 @@ begin
 // Assigns numeric value to hash algorithm choice to make if else statements used later, faster
 function TfrmYaffi.InitialiseHashChoice(Sender : TObject) : Integer;
 begin
-
   if comboHashChoice.Text = 'MD5' then
-   begin
-     result := 1;
-   end
+    begin
+      result := 1;
+    end
   else if comboHashChoice.Text = 'SHA-1' then
-   begin
-    result := 2;
-   end
+    begin
+      result := 2;
+    end
   else if comboHashChoice.Text = 'MD5 & SHA-1' then
-   begin
-    result := 3;
-   end
-  else if comboHashChoice.Text = 'Use None' then
-   begin
-    result := 4;
-   end
-  else
-  begin
-    ShowMessage('Choose Hash Algorithm');
-    result := -1;
-    exit;
-  end;
+    begin
+      result := 3;
+    end;
 end;
 
-// Assigns an integer for the chose image format - either E01 (1) or DD (2).
+// Assigns an integer for the chosen image format - either E01 (1) or DD (2).
 // -1 if none chosen
 function TfrmYaffi.InitialiseImageType(Sender : TObject) : Integer;
 begin
@@ -1350,6 +1362,7 @@ result := -1;
   else
     begin
       ShowMessage('Compression level not specified, so set to "Low (Fast)"');
+      ComboCompression.Text := 'Low (Fast)';
       result := -1;
     end;
 end;
@@ -1776,7 +1789,7 @@ begin
                  frmYAffi.ledtComputedHashA.Visible := true;
                  frmYAffi.ledtComputedHashB.Enabled := true;
                  frmYAffi.ledtComputedHashB.Visible := true;
-
+                 frmProgress.lblStatus.Caption      := 'No verification conducted';
                  frmYaffi.ledtImageHashA.Enabled    := false;
                  frmYaffi.ledtImageHashA.Visible    := false;
                  frmYaffi.ledtImageHashB.Enabled    := false;
@@ -1811,7 +1824,8 @@ begin
   strSHA1Hash    := '';
   frmProgress.Show;
   frmProgress.ProgressBar1.Position := 0;
-  frmProgress.lblStatus.Caption := ' Verifying DD image...please wait';
+  if frmyaffi.cbVerify.checked then
+    frmProgress.lblStatus.Caption := ' Verifying DD image...please wait';
   frmProgress.lblTotalBytesSource.Caption := ' bytes verified of ' + IntToStr(ImageFileSize);
 
   // Initialise new hashing digests
@@ -2253,6 +2267,7 @@ begin
                   begin
                    frmYaffi.ledtComputedHashA.Text := Uppercase('No hash computed');
                    frmYaffi.ledtComputedHashB.Text := Uppercase('No hash computed');
+                   frmProgress.lblStatus.Caption   := 'No verification conducted';
                    frmYaffi.ledtImageHashA.Enabled := false;
                    frmYaffi.ledtImageHashA.Visible := false;
                    frmYaffi.ledtImageHashB.Enabled := false;
@@ -2315,7 +2330,8 @@ begin
      begin
         ImageFileSize := fLibEWFVerificationInstance.libewf_handle_get_media_size();
         frmProgress.Show;
-        frmProgress.lblStatus.Caption := ' Verifying E01 image...please wait';
+        if frmyaffi.cbVerify.checked then
+          frmProgress.lblStatus.Caption := ' Verifying E01 image...please wait';
         frmProgress.lblTotalBytesSource.Caption := ' bytes verified of ' + IntToStr(ImageFileSize);
 
         // If MD5 hash was chosen, compute the MD5 hash of the image

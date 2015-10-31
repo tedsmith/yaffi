@@ -213,14 +213,14 @@ object frmYaffi: TfrmYaffi
       Top = 306
       Width = 120
       ItemHeight = 13
+      ItemIndex = 1
       Items.Strings = (
         'MD5'
         'SHA-1'
         'MD5 & SHA-1'
-        'Use None'
       )
       TabOrder = 10
-      Text = 'Choose Hash'
+      Text = 'SHA-1'
     end
     object ComboImageType: TComboBox
       Left = 568
