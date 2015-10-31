@@ -45,5 +45,6 @@ begin
   Application.CreateForm(TfrmProgress, frmProgress);
   Application.CreateForm(TfrmTextSearch, frmTextSearch);
   Application.Run;
+
 end.
 

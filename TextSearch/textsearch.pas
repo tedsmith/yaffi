@@ -15,7 +15,6 @@ type
   { TfrmTextSearch }
 
   TfrmTextSearch = class(TForm)
-    btnDontUse: TButton;
     btnTextSearchCancel: TButton;
     btnTextSearchOK: TButton;
     cbMatchCase: TCheckBox;
@@ -24,7 +23,6 @@ type
     OpenDialog1: TOpenDialog;
     procedure btnTextSearchCancelClick(Sender: TObject);
     procedure btnTextSearchOKClick(Sender: TObject);
-    procedure btnDontUseClick(Sender: TObject);
     procedure cbHexSearchClick(Sender: TObject);
     procedure Memo1Enter(Sender: TObject);
     private
@@ -84,6 +82,7 @@ begin
   frmYaffi.toggleSearchMode.State := cbChecked;
   frmYaffi.toggleSearchMode.Enabled := true;
   frmYaffi.toggleSearchMode.Caption := 'Search Mode: ON';
+  ShowMessage('Search hit data will be saved to ' + (frmYaffi.SaveImageDialog.FileName + '_SearchHits.txt'));
   // And now hide the form and return user to YAFFI interface
   frmTextSearch.Hide;
 end;
@@ -209,6 +208,38 @@ begin
   result := 0;
 end;
 
+// Uncheck and disable the case sensitivity tick box if hex search chosen
+procedure TfrmTextSearch.cbHexSearchClick(Sender: TObject);
+begin
+  if cbHexSearch.Checked then
+    begin
+      cbMatchCase.Checked := false;
+      cbMatchCase.Enabled := false;
+    end;
+
+  if not cbHexSearch.Checked then
+    begin
+      cbMatchCase.Enabled := true;
+    end;
+end;
+
+procedure TfrmTextSearch.Memo1Enter(Sender: TObject);
+begin
+  Memo1.Clear;
+end;
+
+
+initialization
+  // Used to initialise the upper case table as used by InsensPosEx
+  // http://stackoverflow.com/a/1554544
+  InitCharUpCaseTable(CharUpCaseTable);
+
+end.
+
+{ Old code, initially developed just to see how best to parse. Keep for a bit
+  just in case its helpful }
+
+  {
 procedure TfrmTextSearch.btnDontUseClick(Sender: TObject);
 var
   fs : TFileStream;
@@ -294,32 +325,4 @@ begin
   ShowMessage(IntToStr(TotalBytesRead) + ' read. Done');
   fs.Free;
 end;
-
-// Uncheck and disable the case sensitivity tick box if hex search chosen
-procedure TfrmTextSearch.cbHexSearchClick(Sender: TObject);
-begin
-  if cbHexSearch.Checked then
-    begin
-      cbMatchCase.Checked := false;
-      cbMatchCase.Enabled := false;
-    end;
-
-  if not cbHexSearch.Checked then
-    begin
-      cbMatchCase.Enabled := true;
-    end;
-end;
-
-procedure TfrmTextSearch.Memo1Enter(Sender: TObject);
-begin
-  Memo1.Clear;
-end;
-
-
-initialization
-  // Used to initialise the upper case table as used by InsensPosEx
-  // http://stackoverflow.com/a/1554544
-  InitCharUpCaseTable(CharUpCaseTable);
-
-end.
-
+}

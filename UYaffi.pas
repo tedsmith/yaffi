@@ -142,7 +142,7 @@ var
   frmYaffi: TfrmYaffi;
   PhyDiskNode, PartitionNoNode, DriveLetterNode           : TTreeNode;
   HashChoice : integer;
-
+  slOffsetsOfHits          : TStringList;
 
   {$ifdef Windows}
   // These four functions are needed for traversing the attached disks in Windows.
@@ -200,6 +200,8 @@ begin
 
   ledtComputedHashA.Enabled := false;
   ledtComputedHashB.Enabled := false;
+
+  slOffsetsOfHits           := TStringList.Create;
 
   {$ifdef Windows}
   // These are the Linux centric elements, so disable them on Windows
@@ -360,6 +362,7 @@ end;
 procedure TfrmYaffi.FormClose(Sender: TObject; var CloseAction: TCloseAction);
 begin
   if assigned(slSearchList) then slSearchList.Free;
+  if assigned(slOffsetsOfHits) then slOffsetsOfHits.Free;
 end;
 
 
@@ -369,19 +372,16 @@ begin
 end;
 
 // For now, returns -1 if no hits found. 1 otherwise.
-// TODO : Make this return something more useful than 1. It is searching
-// the whole buffer for all the words in the list!!!
 function DoCaseSensitiveTextSearchOfBuffer(Buffer : array of byte; TotalBytesRead : Int64; BytesRead : Integer) : Integer;
 var
   TextData                 : ansistring;
-  slOffsetsOfHits          : TStringList;
-  i, PositionFoundInBuffer : integer;
+  i, Counter, PositionFoundInBuffer : integer;
   PositionFoundOnDisk      : Int64;
 begin
   i                        := 0;
+  Counter                  := 0;
   PositionFoundInBuffer    := 0;
   PositionFoundOnDisk      := 0;
-  slOffsetsOfHits          := TStringList.Create;
 
   // Convert the binary byte array to an array of chars for searching in
   TextData := textsearch.ByteArrayToString(Buffer);
@@ -394,40 +394,36 @@ begin
           PositionFoundInBuffer := Pos(slSearchList.Strings[i], TextData);
           PositionFoundOnDisk := (TotalBytesRead - BytesRead) + (PositionFoundInBuffer -1);
           slOffsetsOfHits.Add(slSearchList.Strings[i] + ' at offset ' + IntToStr(PositionFoundOnDisk));
-
+          Counter := 1;
           // Check the buffer again, from the point the first hit was found, for any more hits
-          if PosEx(slSearchList.Strings[i], TextData, PositionFoundInBuffer) > 0 then
+          if PosEx(slSearchList.Strings[i], TextData, (PositionFoundInBuffer + Length(slSearchList.Strings[i]))) > 0 then
             repeat
-              PositionFoundInBuffer := PosEx(slSearchList.Strings[i], TextData, PositionFoundInBuffer);
+              PositionFoundInBuffer := PosEx(slSearchList.Strings[i], TextData, (PositionFoundInBuffer + Length(slSearchList.Strings[i])));
               PositionFoundOnDisk := (TotalBytesRead - BytesRead) + (PositionFoundInBuffer -1);
               inc(PositionFoundInBuffer, 1);
+              inc(Counter, 1);
               slOffsetsOfHits.Add(slSearchList.Strings[i] + ' at offset ' + IntToStr(PositionFoundOnDisk));
               until PosEx(slSearchList.Strings[i], TextData, PositionFoundInBuffer) = 0;
-          // TODO : RETURN slOffsetsOfHits or save it somewhere!!
-          Result := 1;
+          Result := Counter;
         end
       else Result := -1;
     end;
-  slOffsetsOfHits.free;
 end;
 
 
 // For now, returns -1 if no hits found. 1 otherwise.
-// TODO : Make this return something more useful than 1. It is searching
-// the whole buffer for all the words in the list!!!
 function DoCaseINSensitiveTextSearchOfBuffer(Buffer : array of byte; TotalBytesRead : Int64; BytesRead : Integer) : Integer;
 var
-  TextData                 : ansistring;
-  slOffsetsOfHits          : TStringList;
-  i, PositionFoundInBuffer : integer;
-  PositionFoundOnDisk      : Int64;
+  TextData                          : ansistring;
+  i, Counter, PositionFoundInBuffer : integer;
+  PositionFoundOnDisk               : Int64;
 
 begin
   i                        := 0;
   TextData                 := '';
   PositionFoundInBuffer    := 0;
   PositionFoundOnDisk      := 0;
-  slOffsetsOfHits          := TStringList.Create;
+  Counter                  := 0;
 
   // Convert the binary byte array to an array of chars for searching in
   TextData := textsearch.ByteArrayToString(Buffer);
@@ -440,40 +436,36 @@ begin
           PositionFoundInBuffer := PosCaseInsensitive(slSearchList.Strings[i], TextData);
           PositionFoundOnDisk := (TotalBytesRead - BytesRead) + (PositionFoundInBuffer -1);
           slOffsetsOfHits.Add(slSearchList.Strings[i] + ' at offset ' + IntToStr(PositionFoundOnDisk));
-
+          Counter := 1;
           // Check the buffer again, from the point the first hit was found, for any more hits
-          if textsearch.InsensPosEx(slSearchList.Strings[i], TextData, PositionFoundInBuffer) > 0 then
+          if textsearch.InsensPosEx(slSearchList.Strings[i], TextData, (PositionFoundInBuffer + Length(slSearchList.Strings[i]))) > 0 then
             repeat
-              PositionFoundInBuffer := textsearch.InsensPosEx(slSearchList.Strings[i], TextData, PositionFoundInBuffer);
+              PositionFoundInBuffer := textsearch.InsensPosEx(slSearchList.Strings[i], TextData, (PositionFoundInBuffer + Length(slSearchList.Strings[i])));
               PositionFoundOnDisk := (TotalBytesRead - BytesRead) + (PositionFoundInBuffer -1);
               inc(PositionFoundInBuffer, 1);
+              inc(Counter, 1);
               slOffsetsOfHits.Add(slSearchList.Strings[i] + ' at offset ' + IntToStr(PositionFoundOnDisk));
             until textsearch.InsensPosEx(slSearchList.Strings[i], TextData, PositionFoundInBuffer) = 0;
-          Result := 1;
-          // TODO : RETURN slOffsetsOfHits or save it somewhere!!
+          Result := Counter;
           end
       else Result := -1;
     end;
-  slOffsetsOfHits.Free;
+
 end;
 
 // For now, returns -1 if no hex entries are found. 1 otherwise.
-// TODO : Make this return something more useful than 1. It is searching
-// the whole buffer for all the words in the list!!!
 function DoHEXSearchOfBuffer(Buffer : array of byte; TotalBytesRead : Int64; BytesRead : Integer) : Integer;
 var
   strHexVal                : ansistring;
-  i, PosInBufferOfHexValue : integer;
+  i, Counter, PosInBufferOfHexValue : integer;
   intHexValAsDec           : QWORD;
   PositionFoundOnDisk      : Int64;
-  slOffsetsOfHits          : TStringList;
 
 begin
   Result                   := -1;
   PositionFoundOnDisk      := 0;
   intHexValAsDec           := 0;
-  slOffsetsOfHits          := TStringList.Create;
-
+  Counter                  := 0;
   // Loop through the users list of hex entries and search the buffer for each one
   for i := 0 to slSearchList.Count -1 do
   begin
@@ -488,11 +480,10 @@ begin
       begin
         PositionFoundOnDisk := (TotalBytesRead - BytesRead) + PosInBufferOfHexValue;
         slOffsetsOfHits.Add(slSearchList.Strings[i] + ' at offset ' + IntToStr(PositionFoundOnDisk));
-        ShowMessage(slOffsetsOfHits.Text);
-        Result := 1;
+        inc(Counter, 1);
+        Result := Counter;
       end;
   end;
-   slOffsetsOfHits.free;
 end;
 // Gets variosu disk properties like model, manufacturer etc, for Linux usage
 // Returns a concatanated string for display in the Treeview
@@ -916,7 +907,7 @@ begin
 
           If ImageResult = ExactDiskSize then
             begin
-            frmProgress.Label6.Caption := 'Imaged OK. ' + IntToStr(ExactDiskSize)+' bytes captured.';
+            frmProgress.lblStatus.Caption := 'Imaged OK. ' + IntToStr(ExactDiskSize)+' bytes captured.';
             EndedAt := Now;
             TimeTakenToImage := EndedAt - StartedAt;
 
@@ -932,8 +923,8 @@ begin
                     ImageVerified := true;
                     VerificationEndedAt := Now;
                     TimeTakenToVerify   := VerificationEndedAt - VerificationStartedAt;
-                    frmProgress.Label7.Caption := 'Image re-read OK. Verifies. See log file';
-                    frmProgress.Label6.Caption := 'Imaged and verified OK. Total time: ' + FormatDateTime('HHH:MM:SS', (TimeTakenToImage + TimeTakenToVerify));
+                    frmProgress.lblStatus.Caption := 'Image re-read OK. Verifies. See log file';
+                    frmProgress.lblResult.Caption := 'Imaged and verified OK. Total time: ' + FormatDateTime('HHH:MM:SS', (TimeTakenToImage + TimeTakenToVerify));
                   end;
               end
               else ShowMessage('E01 Verification Failed.');
@@ -953,7 +944,7 @@ begin
 
           If ImageResult = ExactDiskSize then
           begin
-           frmProgress.Label6.Caption := 'Imaged OK. ' + IntToStr(ExactDiskSize)+' bytes captured.';
+           frmProgress.lblResult.Caption := 'Imaged OK. ' + IntToStr(ExactDiskSize)+' bytes captured.';
            EndedAt := Now;
            TimeTakenToImage := EndedAt - StartedAt;
            Application.ProcessMessages;
@@ -971,8 +962,8 @@ begin
                   ImageVerified := true;
                   VerificationEndedAt := Now;
                   TimeTakenToVerify   := VerificationEndedAt - VerificationStartedAt;
-                  frmProgress.Label7.Caption := 'Image re-read OK. Verifies. See log file';
-                  frmProgress.Label6.Caption := 'Imaged and verified OK. Total time: ' + FormatDateTime('HHH:MM:SS', (TimeTakenToImage + TimeTakenToVerify));
+                  frmProgress.lblStatus.Caption := 'Image re-read OK. Verifies. See log file';
+                  frmProgress.lblResult.Caption := 'Imaged and verified OK. Total time: ' + FormatDateTime('HHH:MM:SS', (TimeTakenToImage + TimeTakenToVerify));
                  end;
              end;
            end
@@ -1038,6 +1029,8 @@ begin
         // Save the logfile using the image name as its foundation
         slImagingLog.SaveToFile(SaveImageDialog.FileName + '.txt');
         slImagingLog.free;
+        slOffsetsOfHits.SaveToFile(SaveImageDialog.FileName + '_SearchHits.txt');
+        // slOffsetsOfHits is freed on form closure
       end;
   end;
   Application.ProcessMessages;
@@ -1576,7 +1569,7 @@ begin
   HitCount            := 0;
   frmProgress.ProgressBar1.Position := 0;
   frmProgress.lblTotalBytesSource.Caption := ' bytes captured of ' + IntToStr(DiskSize);
-  frmProgress.Label7.Caption := ' Capturing DD image...please wait';
+  frmProgress.lblStatus.Caption := ' Capturing DD image...please wait';
 
   frmProgress.Show;
 
@@ -1667,36 +1660,36 @@ begin
                     end;
 
         // Search the buffer for text or hex, if necessary
-        // TODO Make the result more useful than just hit count
-        // It's searching the entire buffer for all the words in the list!!
 
         if frmTextSearch.DoTextOrHexSearch then
           begin
             if textsearch.GetHexSearchDecision then
               begin
-                Hit := DoHEXSearchOfBuffer(Buffer, TotalBytesRead, BytesRead);
-                if Hit = 1 then inc(HitCount, 1);
                 // Do a hex search only with no text search
+                Hit := DoHEXSearchOfBuffer(Buffer, TotalBytesRead, BytesRead);
+                if Hit > -1 then inc(HitCount, Hit);
               end
             // otherwise, do a text search
             else if textsearch.GetCaseSensitivityDecision then
                 begin
                   // Do a case sensitive search
                   Hit := DoCaseSensitiveTextSearchOfBuffer(Buffer, TotalBytesRead, BytesRead);
-                  if Hit = 1 then inc(HitCount, 1);
+                  if Hit > -1 then inc(HitCount, Hit);
                 end
               else
-              begin
-                // Do a case INsensitive search
-                Hit := DoCaseINSensitiveTextSearchOfBuffer(Buffer, TotalBytesRead, BytesRead);
-                if Hit = 1 then inc(HitCount, 1);
-              end;
+                begin
+                  // Do a case INsensitive search
+                  Hit := DoCaseINSensitiveTextSearchOfBuffer(Buffer, TotalBytesRead, BytesRead);
+                  if Hit > -1 then inc(HitCount, Hit);
+                end;
           end;
-
-
       Application.ProcessMessages;
       until (TotalBytesRead = DiskSize) or (frmYaffi.Stop = true);
   finally
+    // Save the search hit count, if needed
+    if slOffsetsOfHits.Count > 0 then
+      sloffsetsOfHits.Add('Total search count = ' + IntToStr(HitCount));
+
     // Compute the final hashes of disk and image
     if HashChoice = 1 then
       begin
@@ -1818,7 +1811,7 @@ begin
   strSHA1Hash    := '';
   frmProgress.Show;
   frmProgress.ProgressBar1.Position := 0;
-  frmProgress.Label7.Caption := ' Verifying DD image...please wait';
+  frmProgress.lblStatus.Caption := ' Verifying DD image...please wait';
   frmProgress.lblTotalBytesSource.Caption := ' bytes verified of ' + IntToStr(ImageFileSize);
 
   // Initialise new hashing digests
@@ -1962,7 +1955,7 @@ var
   MD5DigestImage           : TMD5Digest;
   SHA1DigestImage          : TSHA1Digest;
 
-  BytesRead, CompressionChoice, i : integer;
+  BytesRead, CompressionChoice, i, Hit, HitCount : integer;
 
   LogicalOrPhysical : string;
 
@@ -1976,9 +1969,11 @@ begin
   TotalBytesRead      := 0;
   TotalBytesWritten   := 0;
   i                   := 0;
+  Hit                 := 0;
+  HitCount            := 0;
   CompressionChoice   := -1;
   frmProgress.ProgressBar1.Position := 0;
-  frmProgress.Label7.Caption := ' Capturing E01 image...please wait';
+  frmProgress.lblStatus.Caption := ' Capturing E01 image...please wait';
   frmProgress.lblTotalBytesSource.Caption := ' bytes captured of ' + IntToStr(DiskSize);
 
   // Create the libEWF instance and ensure the DLL is found
@@ -2137,9 +2132,36 @@ begin
                         SHA1Update(SHA1ctxImage, Buffer, BytesWritten);
                       end;
 
+        // Search the buffer for text or hex, if necessary
+
+        if frmTextSearch.DoTextOrHexSearch then
+          begin
+            if textsearch.GetHexSearchDecision then
+              begin
+                // Do a hex search only with no text search
+                Hit := DoHEXSearchOfBuffer(Buffer, TotalBytesRead, BytesRead);
+                if Hit > -1 then inc(HitCount, Hit);
+              end
+            // otherwise, do a text search
+            else if textsearch.GetCaseSensitivityDecision then
+                begin
+                  // Do a case sensitive search
+                  Hit := DoCaseSensitiveTextSearchOfBuffer(Buffer, TotalBytesRead, BytesRead);
+                  if Hit > -1 then inc(HitCount, Hit);
+                end
+              else
+                begin
+                  // Do a case INsensitive search
+                  Hit := DoCaseINSensitiveTextSearchOfBuffer(Buffer, TotalBytesRead, BytesRead);
+                  if Hit > -1 then inc(HitCount, Hit);
+                end;
+           end;
         Application.ProcessMessages;
         until (TotalBytesRead = DiskSize) or (frmYaffi.Stop = true);// or (frmYAFFI.Stop = true);
     finally
+      // Save the search hit count, if needed
+      if slOffsetsOfHits.Count > 0 then
+        sloffsetsOfHits.Add('Total search count = ' + IntToStr(HitCount));
       // Compute the final hashes of disk and image
       if HashChoice = 1 then
         begin
@@ -2293,7 +2315,7 @@ begin
      begin
         ImageFileSize := fLibEWFVerificationInstance.libewf_handle_get_media_size();
         frmProgress.Show;
-        frmProgress.Label7.Caption := ' Verifying E01 image...please wait';
+        frmProgress.lblStatus.Caption := ' Verifying E01 image...please wait';
         frmProgress.lblTotalBytesSource.Caption := ' bytes verified of ' + IntToStr(ImageFileSize);
 
         // If MD5 hash was chosen, compute the MD5 hash of the image

@@ -337,7 +337,7 @@ object frmYaffi: TfrmYaffi
     object cbVerify: TCheckBox
       Left = 568
       Height = 17
-      Hint = 'Tick to have the image verified after writing. '#13#10'Arguably totally pointless; a process that dates '#13#10'back to a time when we wrote images to tape. '#13#10'But people still seem to bang on about it.'
+      Hint = 'Tick to have the image verified after writing. '#13#10'Arguably fairly pointless when imaging to'#13#10'disk; it''s a process that dates back to a time '#13#10'when we wrote images to tape. But people '#13#10'still seem to yawn on about it.'
       Top = 288
       Width = 53
       Alignment = taLeftJustify

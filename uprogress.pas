@@ -15,8 +15,8 @@ type
   TfrmProgress = class(TForm)
     GroupBox1: TGroupBox;
     lblPercent: TLabel;
-    Label6: TLabel;
-    Label7: TLabel;
+    lblResult: TLabel;
+    lblStatus: TLabel;
     lblTotalBytesSource: TLabel;
     lblTotalBytesRead: TLabel;
     ProgressBar1: TProgressBar;
@@ -41,7 +41,7 @@ uses
 
 procedure TfrmProgress.FormCloseQuery(Sender: TObject; var CanClose: boolean);
 begin
-  Label7.Caption:= 'Aborting...';
+  lblStatus.Caption:= 'Aborting...';
   frmYaffi.Stop:= true;
 end;
 

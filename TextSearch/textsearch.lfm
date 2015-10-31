@@ -7,15 +7,6 @@ object frmTextSearch: TfrmTextSearch
   ClientHeight = 390
   ClientWidth = 320
   LCLVersion = '1.4.4.0'
-  object btnDontUse: TButton
-    Left = 16
-    Height = 25
-    Top = 288
-    Width = 75
-    Caption = 'dont use'
-    OnClick = btnDontUseClick
-    TabOrder = 0
-  end
   object Memo1: TMemo
     Left = 22
     Height = 178
@@ -28,7 +19,7 @@ object frmTextSearch: TfrmTextSearch
     )
     OnEnter = Memo1Enter
     ScrollBars = ssAutoBoth
-    TabOrder = 1
+    TabOrder = 0
   end
   object cbMatchCase: TCheckBox
     Left = 22
@@ -36,7 +27,7 @@ object frmTextSearch: TfrmTextSearch
     Top = 248
     Width = 79
     Caption = 'Match case?'
-    TabOrder = 2
+    TabOrder = 1
   end
   object cbHexSearch: TCheckBox
     Left = 205
@@ -45,7 +36,7 @@ object frmTextSearch: TfrmTextSearch
     Width = 80
     Caption = 'Hex Search?'
     OnClick = cbHexSearchClick
-    TabOrder = 3
+    TabOrder = 2
   end
   object btnTextSearchCancel: TButton
     Left = 176
@@ -54,7 +45,7 @@ object frmTextSearch: TfrmTextSearch
     Width = 75
     Caption = 'Cancel'
     OnClick = btnTextSearchCancelClick
-    TabOrder = 4
+    TabOrder = 3
   end
   object btnTextSearchOK: TButton
     Left = 72
@@ -63,7 +54,7 @@ object frmTextSearch: TfrmTextSearch
     Width = 75
     Caption = 'OK'
     OnClick = btnTextSearchOKClick
-    TabOrder = 5
+    TabOrder = 4
   end
   object OpenDialog1: TOpenDialog
     left = 264
