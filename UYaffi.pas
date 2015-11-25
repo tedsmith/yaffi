@@ -1448,6 +1448,11 @@ begin
       SelectedDisk := Trim(Copy(TreeView1.Selected.Text, 0, 19));
       // First, determine if it a MBR or GPT partitioned disk. Call GPTMBR unit...
       MBRorGPT := MBR_or_GPT(SelectedDisk);
+      if Pos('GPT', MBRorGPT) > 0 then
+        begin
+          // Pull out the GUID type and look it up in the system type table
+        end;
+
       // Now ensure the disk string is suitable for WMI and and so on
       SelectedDisk := ANSIToUTF8(Trim(StringReplace(SelectedDisk,'\','\\',[rfReplaceAll])));
       // Years from now, when this makes no sense, just remember that WMI wants a widestring!!!!
@@ -1489,7 +1494,7 @@ begin
           slDiskSpecs := TStringList.Create;
           slDiskSpecs.Add('Disk ID: '          + DiskName);
           slDiskSpecs.Add('Bytes per Sector: ' + IntToStr(BytesPerSector));
-          slDiskSpecs.Add('Desription: '       + Description);
+          slDiskSpecs.Add('Description: '      + Description);
           slDiskSpecs.Add('Interface type: '   + InterfaceType);
           slDiskSpecs.Add('Model: '            + Model);
           //slDiskSpecs.Add('Manufacturer: '     + Manufacturer);
