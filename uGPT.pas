@@ -15,12 +15,13 @@ uses
   SysUtils;
   {$endif}
 type
-
+  // Ref http://lockandcode.com/wp-content/uploads/2012/05/LockCode-Computer-Forensic-Examiner-Quick-Reference-Guide-Version-2.0-Sample.pdf
+  // https://en.wikipedia.org/wiki/GUID_Partition_Table
   // the first 512 byte Protected MBR that came when GPT was introduced
   // At offset 446 starts some of the GPT data. The MBR data that preseeds it is not needed
   TProtectiveMBR = record
       StartOfSector : array [0..445] of byte; // The first 446 bytes are MBR specific. Ignore
-      BootIndicator : byte;                   // One hex byte
+      BootIndicator : byte;                   // One byte 8-bit integer
       StartingHead : byte;                    // One hex byte
       StartingSector : byte;                  // One hex byte
       StartingCylinder : byte;                // One hex byte
@@ -58,8 +59,9 @@ type
       StartingLBA : Int64;                        // 8 byte integer
       EndingLBA : Int64;                          // 8 byte integer
       AttributeBits : array [0..7] of byte;       // 8 byte hex string
-      PartitionName : array [0..35] of widechar;  // 36 byte Unicode string
-      EndOfSector : array [0..419] of byte;       // assuming 512 sector size, the first records = 92 bytes. So 420 left as padding
+      PartitionName : array [0..71] of widechar;  // 36 byte Unicode string
+      // THis sums o 128 bytes
+      EndOfSector : array [0..383] of byte;       // assuming 512 sector size, the first records = 128 bytes. So 384 left as padding
   end;
 
 // QueryGPT parses GPT disks, if GPT disks are detected. It calls
@@ -69,11 +71,43 @@ function QueryGPT(SelectedDisk : widestring; ExactSectorSize : Integer) : ansist
 function ReadProtectiveMBR(Drive : THandle; ExactSectorSize : Integer) : ansistring;
 function ReadGUIDPartitionTableHeader(Drive : THandle; ExactSectorSize : Integer) : ansistring;
 function LoadPartitionGUIDTypes() : TStringList;
+function FormatByteSize(const bytes: QWord): string;
 
 implementation
 
 var
 slGUIDList : TStringList;
+
+// Returns a human readable view of the number of bytes as Mb, Gb Tb, etc
+function FormatByteSize(const bytes: QWord): string;
+var
+  B: byte;
+  KB: word;
+  MB: QWord;
+  GB: QWord;
+  TB: QWord;
+begin
+
+  B  := 1; //byte
+  KB := 1024 * B; //kilobyte
+  MB := 1024 * KB; //megabyte
+  GB := 1024 * MB; //gigabyte
+  TB := 1024 * GB; //terabyte
+
+  if bytes > TB then
+    result := FormatFloat('#.## TiB', bytes / TB)
+  else
+    if bytes > GB then
+      result := FormatFloat('#.## GiB', bytes / GB)
+    else
+      if bytes > MB then
+        result := FormatFloat('#.## MiB', bytes / MB)
+      else
+        if bytes > KB then
+          result := FormatFloat('#.## KiB', bytes / KB)
+        else
+          result := FormatFloat('#.## bytes', bytes) ;
+end;
 
 // Read in the Protective MBR - the kind created by GPT disks, not normal MBRs
 function ReadProtectiveMBR(Drive : THandle; ExactSectorSize : Integer) : ansistring;
@@ -96,16 +130,18 @@ begin
       BytesRead := FileRead(Drive, ProtectiveMBR, 512);
       if BytesRead > -1 then
           begin
-            tmp :=' Boot ID : '            + IntToHex(ProtectiveMBR.BootIndicator,2) +
-                  ', Starting Head : '     + IntToHex(ProtectiveMBR.StartingHead, 2) +
-                  ', Starting Sector : '   + IntToHex(ProtectiveMBR.StartingSector, 2) +
-                  ', Starting Cylinder : ' + IntToHex(ProtectiveMBR.StartingCylinder, 2) +
-                  ', System ID : '         + IntToHex(ProtectiveMBR.SystemID,2) +
-                  ', Ending Head : '       + IntToHex(ProtectiveMBR.EndingHead, 2) +
-                  ', Ending Sector : '     + IntToHex(ProtectiveMBR.EndingSector, 2) +
-                  ', Ending Cylinder : '   + IntToHex(ProtectiveMBR.EndingCylinder, 2) +
-                  ', Size in LBA : '       + IntToStr(ProtectiveMBR.SizeInLBA) +
-                  ', Start LBA : '         + IntToStr(ProtectiveMBR.StartLBA);
+            tmp :=' Protective MBR Table Reports: ' + #13#10 +
+                  '  Boot ID : '            + IntToStr(ProtectiveMBR.BootIndicator) + #13#10 +
+                  ' Starting Head : '     + IntToHex(ProtectiveMBR.StartingHead, 2) + #13#10 +
+                  ' Starting Sector : '   + IntToHex(ProtectiveMBR.StartingSector, 2) + #13#10 +
+                  ' Starting Cylinder : ' + IntToHex(ProtectiveMBR.StartingCylinder, 2) + #13#10 +
+                  ' System ID : '         + IntToHex(ProtectiveMBR.SystemID,2) + #13#10 +
+                  ' Ending Head : '       + IntToHex(ProtectiveMBR.EndingHead, 2) + #13#10 +
+                  ' Ending Sector : '     + IntToHex(ProtectiveMBR.EndingSector, 2) + #13#10 +
+                  ' Ending Cylinder : '   + IntToHex(ProtectiveMBR.EndingCylinder, 2) + #13#10 +
+                  ' Start LBA : '         + IntToStr(ProtectiveMBR.StartLBA) + #13#10 +
+                  ' Size in LBA : '       + IntToStr(ProtectiveMBR.SizeInLBA) + #13#10 +
+                  ' =================================================================' + #13#10;
           result := tmp;
           end
       else RaiseLastOSError; // BytesRead = -1
@@ -169,20 +205,21 @@ begin
           SizeOfPartitionEntry   := IntToStr(GUIDPartitionTableHeader.SizeOfPartitionEntry);
           PartitionEntryCRC32    := IntToHex(GUIDPartitionTableHeader.PartitionEntryArrayCRC32, 2);
 
-
-          result := ('Signature : '           + Signature             +
-                  ', Rev No : '               + RevisionNo            +
-                  ', Header Size : '          + HeaderSize            +
-                  ', Header CRC32 : '         + HeaderCRC32           +
-                  ', Primary LBA : '          + PrimaryLBA            +
-                  ', Backup LBA : '           + BackupLBA             +
-                  ', First Useable LBA : '    + FirstUseableLBA       +
-                  ', Last Useable LBA : '     + LastUsableLBA         +
-                  ', Disk GUID : '            + DiskGUID              +
-                  ', Partition Entry LBA : '  + PartitionEntryLBA     +
-                  ', Max No of Partitions : ' + MaxPossiblePartitions +
-                  ', Partition Entry Size : ' + SizeOfPartitionEntry  +
-                  ', Partition Entry CRC32 : '+ PartitionEntryCRC32)  ;
+          result := ('GPT Partition Table Header Reads: '             + #13#10 +
+                  ' Signature : '            + Signature             + #13#10 +
+                  ' Rev No : '               + RevisionNo            + #13#10 +
+                  ' Header Size : '          + HeaderSize            + #13#10 +
+                  ' Header CRC32 : '         + HeaderCRC32           + #13#10 +
+                  ' Primary LBA : '          + PrimaryLBA            + #13#10 +
+                  ' Backup LBA : '           + BackupLBA             + #13#10 +
+                  ' First Useable LBA : '    + FirstUseableLBA       + #13#10 +
+                  ' Last Useable LBA : '     + LastUsableLBA         + #13#10 +
+                  ' Disk GUID : '            + DiskGUID              + #13#10 +
+                  ' Partition Entry LBA : '  + PartitionEntryLBA     + #13#10 +
+                  ' Max No of Partitions : ' + MaxPossiblePartitions + #13#10 +
+                  ' Partition Entry Size : ' + SizeOfPartitionEntry  + #13#10 +
+                  ' Partition Entry CRC32 : '+ PartitionEntryCRC32   + #13#10 +
+                  '=================================================================' + #13#10);
         end
       else
       begin
@@ -205,9 +242,10 @@ const
 var
   GUIDPartitionTableEntry : TGUIDPartitionTableEntry;
   i, indx, BytesRead, DiskPos, ExtractFrom : integer;
+  VolSize : Int64;
   slGUIDList : TStringList;
   PartitionName, PartitionTypeGUIDFormatted, UniquePartitionGUIDFormatted, StartingLBA, EndingLBA,
-    AttributeBits, GUIDLabel : ansistring;
+    AttributeBits, GUIDLabel, strVolSize : ansistring;
 begin
     PartitionTypeGUIDFormatted := '';
     UniquePartitionGUIDFormatted := '';
@@ -219,6 +257,7 @@ begin
     DiskPos := -1;
     i := 0;
     indx := -1;
+    VolSize := -1;
 
     //FileSeek(Drive, 0, 0);
     // Move read point to offset 1024, i.e. offset zero of sector three (if 512 byte sector aligned)
@@ -277,12 +316,18 @@ begin
 
             PartitionName := WideCharToString(@GUIDPartitionTableEntry.PartitionName);
 
-            result := ('Partition Type GUID : ' + PartitionTypeGUIDFormatted   +
-                    ', UniquePartitionGUID  : ' + UniquePartitionGUIDFormatted +
-                    ', Starting LBA : '         + StartingLBA         +
-                    ', Ending LBA : '           + EndingLBA           +
-                    ', Attribute Bits : '       + AttributeBits       +
-                    ', Partition Name : '       + PartitionName);
+            VolSize := ((GUIDPartitionTableEntry.EndingLBA - GUIDPartitionTableEntry.StartingLBA) + 1) * ExactSectorSize;
+            strVolSize := FormatByteSize(VolSize) + ' ' + IntToStr(VolSize) + ' bytes.';
+
+            result := ('Partition Table Entry reads : '               + #13#10 +
+                    ' Partition Type GUID : '    + PartitionTypeGUIDFormatted   + #13#10 +
+                    ' UniquePartitionGUID  : ' + UniquePartitionGUIDFormatted +  #13#10 +
+                    ' Starting LBA : '         + StartingLBA         +  #13#10 +
+                    ' Ending LBA : '           + EndingLBA           +  #13#10 +
+                    ' Size : '                 + strVolSize          +  #13#10 +
+                    ' Attribute Bits : '       + AttributeBits       +  #13#10 +
+                    ' Partition Name : '       + PartitionName       +  #13#10 +
+                    ' =================================================================');
           end
         else
         begin
