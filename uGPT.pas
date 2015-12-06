@@ -29,30 +29,32 @@ type
       EndingHead : byte;                      // One hex byte
       EndingSector : byte;                    // One hex byte
       EndingCylinder : byte;                  // One hex byte
-      StartLBA : integer;                     // 4 byte integer
-      SizeInLBA : integer;                    // 4 byte integer
+      StartLBA : longword;                     // 4 byte integer
+      SizeInLBA : longword;                    // 4 byte integer
       EndOfSector : array [0..49] of byte     // The last 50 bytes. Ignore
   end;
 
   TGUIDPartitionTableHeader = record
       Signature : array [0..7] of byte;       // 8 hex digits, starting 0x45 and ending 0x54
       RevisionNo : array [0..3] of byte;      // 4 hex bytes
-      HeaderSize : integer;                   // 32-bit 4 byte integer, and should equal 92
-      HeaderCRC32 : integer;                  // to be displayed as hex but a 4 byte integer
-      EmptyData : integer;                    // 4 bytes to be ignored
+      HeaderSize : longword;                   // 32-bit 4 byte integer, and should equal 92
+      HeaderCRC32 : longword;                  // to be displayed as hex but a 4 byte integer
+      EmptyData : integer;                    // 4 bytes padding
       PrimaryLBA : Int64;                     // 8 byte integer that should equal 1
       BackupLBA : Int64;                      // 8 byte integer
       FirstUseableLBA : Int64;                // 8 bytes
       LastUseableLBA : Int64;                 // 8 bytes
       DiskGUID : array [0..15] of byte;       // 16 hex values
       PartitionEntryLBA : Int64;              // Should equal 2
-      MaxPossiblePartitions : integer;        // 4 bytes
-      SizeOfPartitionEntry : integer;         // 4 bytes
-      PartitionEntryArrayCRC32 : integer;     // 4 bytes displayed as hex
+      MaxPossiblePartitions : longword;        // 4 bytes
+      SizeOfPartitionEntry : longword;         // 4 bytes
+      PartitionEntryArrayCRC32 : longword;     // 4 bytes displayed as hex
       // 92 bytes to here. Remaining sector size is 420
       EndOfSector : array [0..419] of byte;   // Ignore
   end;
 
+  // Somehow, this class needs to be replicated up to potentiall 128 times for each
+  // GPT disk, because currently, onlt the first partition table can be read.
   TGUIDPartitionTableEntry = record
       PartitionTypeGUID : TGUID;                  //array [0..15] of byte;   // 16 byte hex string
       UniquePartitionGUID : TGUID;                // array [0..15] of byte; // 16 byte hex string
@@ -60,7 +62,7 @@ type
       EndingLBA : Int64;                          // 8 byte integer
       AttributeBits : array [0..7] of byte;       // 8 byte hex string
       PartitionName : array [0..71] of widechar;  // 36 byte Unicode string
-      // THis sums o 128 bytes
+      // This sums to 128 bytes - the size of a GPT partition table entry
       EndOfSector : array [0..383] of byte;       // assuming 512 sector size, the first records = 128 bytes. So 384 left as padding
   end;
 
@@ -241,6 +243,7 @@ const
 
 var
   GUIDPartitionTableEntry : TGUIDPartitionTableEntry;
+  GUIDPartitionTableEntryCopy : TGUIDPartitionTableEntry absolute GUIDPartitionTableEntry;
   i, indx, BytesRead, DiskPos, ExtractFrom : integer;
   VolSize : Int64;
   slGUIDList : TStringList;
@@ -261,7 +264,7 @@ begin
 
     //FileSeek(Drive, 0, 0);
     // Move read point to offset 1024, i.e. offset zero of sector three (if 512 byte sector aligned)
-    DiskPos := FileSeek(Drive, 1024, fsFromBeginning);    //1535
+    DiskPos := FileSeek(Drive, 1024, fsFromBeginning);
 
     if DiskPos > -1 then
       begin
