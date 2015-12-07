@@ -17,53 +17,55 @@ uses
 type
   // Ref http://lockandcode.com/wp-content/uploads/2012/05/LockCode-Computer-Forensic-Examiner-Quick-Reference-Guide-Version-2.0-Sample.pdf
   // https://en.wikipedia.org/wiki/GUID_Partition_Table
+  // http://thestarman.narod.ru/asm/mbr/GPT.htm
+  //
   // the first 512 byte Protected MBR that came when GPT was introduced
   // At offset 446 starts some of the GPT data. The MBR data that preseeds it is not needed
-  TProtectiveMBR = record
-      StartOfSector : array [0..445] of byte; // The first 446 bytes are MBR specific. Ignore
-      BootIndicator : byte;                   // One byte 8-bit integer
-      StartingHead : byte;                    // One hex byte
-      StartingSector : byte;                  // One hex byte
-      StartingCylinder : byte;                // One hex byte
-      SystemID : byte;                        // One hex byte. Should be 0xEE for GPT
-      EndingHead : byte;                      // One hex byte
-      EndingSector : byte;                    // One hex byte
-      EndingCylinder : byte;                  // One hex byte
-      StartLBA : longword;                     // 4 byte integer
-      SizeInLBA : longword;                    // 4 byte integer
-      EndOfSector : array [0..49] of byte     // The last 50 bytes. Ignore
+  TProtectiveMBR = packed record
+      StartOfSector    : array [0..445] of byte; // The first 446 bytes are MBR specific. Ignore
+      BootIndicator    : byte;                   // One byte 8-bit integer
+      StartingHead     : byte;                   // One hex byte
+      StartingSector   : byte;                   // One hex byte
+      StartingCylinder : byte;                   // One hex byte
+      SystemID         : byte;                   // One hex byte. Should be 0xEE for GPT
+      EndingHead       : byte;                   // One hex byte
+      EndingSector     : byte;                   // One hex byte
+      EndingCylinder   : byte;                   // One hex byte
+      StartLBA         : longword;               // 4 byte integer
+      SizeInLBA        : longword;               // 4 byte integer
+      EndOfSector      : array [0..49] of byte   // The last 50 bytes. Ignore
   end;
 
-  TGUIDPartitionTableHeader = record
-      Signature : array [0..7] of byte;       // 8 hex digits, starting 0x45 and ending 0x54
-      RevisionNo : array [0..3] of byte;      // 4 hex bytes
-      HeaderSize : longword;                   // 32-bit 4 byte integer, and should equal 92
-      HeaderCRC32 : longword;                  // to be displayed as hex but a 4 byte integer
-      EmptyData : integer;                    // 4 bytes padding
-      PrimaryLBA : Int64;                     // 8 byte integer that should equal 1
-      BackupLBA : Int64;                      // 8 byte integer
-      FirstUseableLBA : Int64;                // 8 bytes
-      LastUseableLBA : Int64;                 // 8 bytes
-      DiskGUID : array [0..15] of byte;       // 16 hex values
-      PartitionEntryLBA : Int64;              // Should equal 2
-      MaxPossiblePartitions : longword;        // 4 bytes
-      SizeOfPartitionEntry : longword;         // 4 bytes
-      PartitionEntryArrayCRC32 : longword;     // 4 bytes displayed as hex
+  TGUIDPartitionTableHeader = packed record
+      Signature                : array [0..7] of byte; // 8 hex digits, starting 0x45 and ending 0x54
+      RevisionNo               : array [0..3] of byte; // 4 hex bytes
+      HeaderSize               : longword;             // 32-bit 4 byte integer, and should equal 92
+      HeaderCRC32              : longword;             // to be displayed as hex but a 4 byte integer
+      EmptyData                : integer;              // 4 bytes padding
+      PrimaryLBA               : Int64;                // 8 byte integer that should equal 1
+      BackupLBA                : Int64;                // 8 byte integer
+      FirstUseableLBA          : Int64;                // 8 bytes
+      LastUseableLBA           : Int64;                // 8 bytes
+      DiskGUID                 : array [0..15] of byte;// 16 hex values
+      PartitionEntryLBA        : Int64;                // Should equal 2
+      MaxPossiblePartitions    : longword;             // 4 bytes
+      SizeOfPartitionEntry     : longword;             // 4 bytes
+      PartitionEntryArrayCRC32 : longword;             // 4 bytes displayed as hex
       // 92 bytes to here. Remaining sector size is 420
-      EndOfSector : array [0..419] of byte;   // Ignore
+      EndOfSector              : array [0..419] of byte;// Ignore
   end;
 
   // Somehow, this class needs to be replicated up to potentiall 128 times for each
   // GPT disk, because currently, onlt the first partition table can be read.
-  TGUIDPartitionTableEntry = record
-      PartitionTypeGUID : TGUID;                  //array [0..15] of byte;   // 16 byte hex string
-      UniquePartitionGUID : TGUID;                // array [0..15] of byte; // 16 byte hex string
-      StartingLBA : Int64;                        // 8 byte integer
-      EndingLBA : Int64;                          // 8 byte integer
-      AttributeBits : array [0..7] of byte;       // 8 byte hex string
-      PartitionName : array [0..71] of widechar;  // 36 byte Unicode string
+  TGUIDPartitionTableEntry = packed record
+      PartitionTypeGUID    : TGUID;                    //array [0..15] of byte;   // 16 byte hex string
+      UniquePartitionGUID  : TGUID;                    // array [0..15] of byte; // 16 byte hex string
+      StartingLBA          : Int64;                    // 8 byte integer
+      EndingLBA            : Int64;                    // 8 byte integer
+      AttributeBits        : array [0..7] of byte;     // 8 byte hex string
+      PartitionName        : array [0..71] of widechar;// 36 byte Unicode string
       // This sums to 128 bytes - the size of a GPT partition table entry
-      EndOfSector : array [0..383] of byte;       // assuming 512 sector size, the first records = 128 bytes. So 384 left as padding
+      EndOfSector          : array [0..383] of byte;   // assuming 512 sector size, the first records = 128 bytes. So 384 left as padding
   end;
 
 // QueryGPT parses GPT disks, if GPT disks are detected. It calls
