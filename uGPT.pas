@@ -55,8 +55,11 @@ type
       EndOfSector              : array [0..419] of byte;// Ignore
   end;
 
-  // Somehow, this class needs to be replicated up to potentiall 128 times for each
-  // GPT disk, because currently, onlt the first partition table can be read.
+  // This class was superseeded by the memory stream technique, because it was
+  // flawed in that only one partition table entry could be traversed.
+  // The others ended up in EndOfSector.
+  // Retained in commented out code though as its a useful breakdown reference
+  {
   TGUIDPartitionTableEntry = packed record
       PartitionTypeGUID    : TGUID;                    //array [0..15] of byte;   // 16 byte hex string
       UniquePartitionGUID  : TGUID;                    // array [0..15] of byte; // 16 byte hex string
@@ -67,13 +70,17 @@ type
       // This sums to 128 bytes - the size of a GPT partition table entry
       EndOfSector          : array [0..383] of byte;   // assuming 512 sector size, the first records = 128 bytes. So 384 left as padding
   end;
+  }
 
-// QueryGPT parses GPT disks, if GPT disks are detected. It calls
-// ReadProtectiveMBR, ReadGUIDPartitionTableHeader and LoadPartitionGUIDTypes
-// which does the GUID Type lookups.
 function QueryGPT(SelectedDisk : widestring; ExactSectorSize : Integer) : ansistring;
 function ReadProtectiveMBR(Drive : THandle; ExactSectorSize : Integer) : ansistring;
 function ReadGUIDPartitionTableHeader(Drive : THandle; ExactSectorSize : Integer) : ansistring;
+function TraverseEachPartitionTableEntry(Buffer : array of byte) : ansistring;
+function GetGUIDTypeID (TablePortion : TMemoryStream; Position : LongWord) : TGUID;
+function GetUniquePartitionGUID (TablePortion : TMemoryStream; Position : LongWord) : TGUID;
+function GetPartitionAttributes(TablePortion : TMemoryStream; Position : Longword) : string;
+function GetPartitionLabel(TablePortion : TMemoryStream; Position : Longword) : string;
+function CreatorLookup(TypeGUID : TGUID) : string;
 function LoadPartitionGUIDTypes() : TStringList;
 function FormatByteSize(const bytes: QWord): string;
 
@@ -160,7 +167,7 @@ var
 
   i, BytesRead, DiskPos : integer;
 
-  Tmp, Signature, RevisionNo, DiskGUID, HeaderSize, HeaderCRC32, PrimaryLBA,
+  Signature, RevisionNo, DiskGUID, HeaderSize, HeaderCRC32, PrimaryLBA,
     BackupLBA, FirstUseableLBA, LastUsableLBA, PartitionEntryLBA,
     MaxPossiblePartitions, SizeOfPartitionEntry, PartitionEntryCRC32 : ansistring;
 begin
@@ -238,108 +245,281 @@ begin
   end;
 end;
 
-// Lookup the data in the third part of the GPT - the partition table entry itself
-function ReadGUIDPartitionTableEntry(Drive : THandle; ExactSectorSize : Integer) : ansistring;
+// The next few functions are specific to the main GPT Partition Table Entry list
+
+// GetGUIDTypeID looks up the first 16 bytes; the GUID Type identifier
+// It is later looked up against a list of known GUIDs for various sytems
+
+function GetGUIDTypeID (TablePortion : TMemoryStream; Position : LongWord) : TGUID;
+var
+  GUID1 : TGUID;
+  Data4Array : array [0..7] of byte;
+  i : integer;
+  begin
+    i := 0;
+    GUID1.Data1:=  TablePortion.ReadDWord;   // First 4 bytes of GUID
+    GUID1.Data2 := TablePortion.ReadWord;   // Bytes 5 & 6
+    GUID1.Data3 := TablePortion.ReadWord;   // Bytes 7 & 8
+
+    FillChar(Data4Array, 8, 0);
+    for i := 0 to 7 do
+    begin
+      Data4Array[i] := TablePortion.ReadByte;
+    end;
+    if SizeOf(Data4Array) = 8 then
+      begin
+        GUID1.Data4 := Data4Array;
+      end;
+    result := GUID1;
+  end;
+
+// GetUniquePartitionGUID gets the next 16 bytes; the unique GUID identifier for the partition
+function GetUniquePartitionGUID(TablePortion : TmemoryStream; Position : Longword) : TGUID;
+var
+  GUID2 : TGUID;
+  Data4Array : array [0..7] of byte;
+  i : integer;
+begin
+  i := 0;
+  GUID2.Data1 := TablePortion.ReadDWord;   // First 4 bytes of GUID
+  GUID2.Data2 := TablePortion.ReadWord;   // Bytes 5 & 6
+  GUID2.Data3 := TablePortion.ReadWord;   // Bytes 7 & 8
+
+  FillChar(Data4Array, 8, 0);
+  for i := 0 to 7 do
+  begin
+    Data4Array[i] := TablePortion.ReadByte;
+  end;
+  if SizeOf(Data4Array) = 8 then
+    begin
+      GUID2.Data4 := Data4Array;
+    end;
+  result := GUID2;
+end;
+
+// GetPartitionAttributes looks up the 8 byte hex attributes
+// TODO : Drill down further to bit level lookups
+function GetPartitionAttributes(TablePortion : TMemoryStream; Position : Longword) : string;
+var
+  i, j : integer;
+  AttributeBits : array [0..7] of byte;
+  strAttributeBits : string;
+begin
+  strAttributeBits := '';
+  for i := 0 to 7 do
+    begin
+      AttributeBits[i] := TablePortion.ReadByte;
+    end;
+    if SizeOf(AttributeBits) > 0 then
+      for j := 0 to 7 do
+      begin
+        strAttributeBits := strAttributeBits + ' ' + IntToHex(AttributeBits[j], 2);
+      end;
+    result := strAttributeBits;
+end;
+
+// Gets the Unicode partition label. Commonly it is the Microsoft label, which is
+// ironic given that they seldom follow the specifications exactly!
+function GetPartitionLabel(TablePortion : TMemoryStream; Position : Longword) : string;
+var
+  PartitionLabel: array [0..71] of byte;
+  i : integer;
+  strPartitionLabel : ansistring;
+begin
+  i := 0;
+  strPartitionLabel := '';
+  // The name is 72 byte Unicode value, so each char is 2 bytes.
+  // So itterate 36 times, reading in two byte pairs
+  for i := 0 to 71 do
+  begin
+    // Read in two byte Unicode pairings for 72 bytes
+    PartitionLabel[i] := TablePortion.ReadByte;
+  end;
+  if SizeOf(PartitionLabel) > 0 then
+    begin
+      strPartitionLabel := WideCharToString(@PartitionLabel);
+    end;
+result := strPartitionLabel;
+end;
+
+// Lookup the TypeGUID against the creator list. Often the values will mirror
+// each other, but not always. Useful to alert as to the prescence of VMFS, dm-crypt etc
+function CreatorLookup(TypeGUID : TGUID) : string;
 const
   StdWordDelimsCustom = [','] + Brackets;
-
 var
-  GUIDPartitionTableEntry : TGUIDPartitionTableEntry;
-  GUIDPartitionTableEntryCopy : TGUIDPartitionTableEntry absolute GUIDPartitionTableEntry;
-  i, indx, BytesRead, DiskPos, ExtractFrom : integer;
-  VolSize : Int64;
-  slGUIDList : TStringList;
-  PartitionName, PartitionTypeGUIDFormatted, UniquePartitionGUIDFormatted, StartingLBA, EndingLBA,
-    AttributeBits, GUIDLabel, strVolSize : ansistring;
+  i, indx, ExtractFrom : integer;
+  strGUID, GUIDLabel, CreatorLabel : string;
 begin
-    PartitionTypeGUIDFormatted := '';
-    UniquePartitionGUIDFormatted := '';
-    StartingLBA := '';
-    EndingLBA := '';
-    AttributeBits := '';
+  indx := 0;
+  i := 0;
+  slGUIDList := LoadPartitionGUIDTypes();
+  strGUID := GuidToString(TypeGUID);
+  for i := 0 to slGUIDList.Count -1 do
+    begin
+     indx := Pos(strGUID, slGUIDList.Strings[i]);
+     if indx > 0 then
+       begin
+         // Extract the first portion of the line containing the GUID, which will be the creator label
+         ExtractFrom := 1;
+         GUIDLabel := ExtractSubStr(slGUIDList.Strings[i], ExtractFrom, StdWordDelimsCustom);
+         CreatorLabel := GUIDLabel;
+       end;
+    end;
+  slGUIDList.Free;
+  result := CreatorLabel;
+end;
+
+// TraverseEachPartitionTableEntry : The main traverser. It takes the buffer
+// read from the start of the disk, navigates to sector 3 (usually offset 1024
+// but will be higher with disks using non-512 byte sector sizes) and then
+// traverses 4Kb pulling out any GPT partition tables it finds. It returns
+// a string list (of sorts) with all the entries
+function TraverseEachPartitionTableEntry(Buffer : array of byte) : ansistring;
+{
+    PartitionTypeGUID    : TGUID;                    //array [0..15] of byte;   // 16 byte hex string
+    UniquePartitionGUID  : TGUID;                    // array [0..15] of byte; // 16 byte hex string
+    StartingLBA          : Int64;                    // 8 byte integer
+    EndingLBA            : Int64;                    // 8 byte integer
+    AttributeBits        : array [0..7] of byte;     // 8 byte hex string
+    PartitionName        : array [0..71] of widechar;// 36 byte Unicode string
+    // This sums to 128 bytes - the size of a GPT partition table entry
+    EndOfSector          : array [0..383] of byte;
+}
+var
+  TablePortion : TMemoryStream;
+  strStartingLBA, strEndingLBA, strAttributeBits, strPartitionLabel,
+    strGUID1, strGUID2, strCreatorLabel: ansistring;
+  intStartingLBA, intEndingLBA : Int64;
+  ReturnData : TStringList;
+  Tmp, Tmp2 : TGUID; // temp GUID values, just do reverse lookup checks
+  i, ZeroesCountedInGUID1 : integer;
+
+begin
+  i := 0;
+  ZeroesCountedInGUID1 := 0;
+  intStartingLBA := 0;
+  intEndingLBA := 0;
+
+  TablePortion := TMemoryStream.Create;
+  TablePortion.WriteBuffer(Buffer, SizeOf(Buffer));
+  // For now, move position to start of sector 3 if 512 byte sector aligned
+  // TODO : once all OK, change to ExactSectorSize * 3
+  TablePortion.Position := 1024;
+
+  ReturnData := TStringList.Create;
+
+  while TablePortion.Position < 4096 do
+  repeat
+    strGUID1 := '';
+    strGUID2 := '';
+    strAttributeBits := '';
+
+    strGUID1 := GUIDToString(GetGUIDTypeID(TablePortion, TablePortion.Position)); // GUIDToString doesn't return false on failure so we cant check
+    strCreatorLabel := CreatorLookup(StringToGUID(strGUID1));
+
+    if TryStringToGUID(strGUID1, tmp) = true then  // TryStringToGUID does return false though if invalid
+      begin
+        // Study the GUID string to see if loads of the hex bytes are consecutive zeroes
+        // If they are, probably false, because GUIDs don't have dozens pof 0x00 pairs
+        for i := 0 to Length(strGUID1) do
+        begin
+          if (strGUID1[i] = '0') and (strGUID1[i+1] = '0') then
+            begin
+              inc(ZeroesCountedInGUID1, 1);
+            end;
+        end;
+        if ZeroesCountedInGUID1 > 8 then
+          begin
+            // The GUID is garbage. Move the pointer forward 16 bytes
+            TablePortion.Position := TablePortion.Position + 16;
+          end
+        else
+          begin
+          // First 16 bytes are a valid GUID so now lets check the second, the unique partition GUID
+          strGUID2 := GUIDToString(GetUniquePartitionGUID(TablePortion, TablePortion.Position));
+
+          if TryStringToGUID(strGUID2, tmp2) = true then
+            begin
+              // First 32 bytes are valid GUIDs so work out start and end LBA offsets
+              intStartingLBA := TablePortion.ReadQWord;
+              strStartingLBA := IntToStr(intStartingLBA);
+
+              intEndingLBA :=  TablePortion.ReadQWord;
+              strEndingLBA := IntToStr(intEndingLBA);
+
+              strAttributeBits := GetPartitionAttributes(TablePortion, TablePortion.Position);
+
+              strPartitionLabel := GetPartitionLabel(TablePortion, TablePortion.Position);
+
+              // To here should be 128 bytes, so Position should be 128 bytes further than where
+              // it started
+
+              // Populate the string list with the results
+              ReturnData.Add(strGUID1);
+              ReturnData.Add(strGUID2);
+              ReturnData.Add('Starting LBA : ' + strStartingLBA);
+              ReturnData.Add('Ending LBA : ' + strEndingLBA);
+              ReturnData.Add('Attribute Flags : ' + strAttributeBits);
+              ReturnData.Add('Partition Label : ' + strPartitionLabel);
+              ReturnData.Add('Creator Label : ' + strCreatorLabel);
+              ReturnData.Add('===================================');
+            end; // The first and second GUIDs were valid
+        end; // The first GUID was valid but contained too many zeroes, thus invalid
+      end // The first GUID was invalid
+    else
+    begin
+      TablePortion.Position := TablePortion.Position + 16 // move forward 16 bytes and re-scan
+    end;
+  until TablePortion.Position = 4096; // 512 byte sector sizes are still the norm
+                                      // so this should catch 1K, 2K and 4K sector sizes too
+                                      // and the GPT structure typically occupies the first 34 sectors
+  result := ReturnData.Text;
+
+  ReturnData.Free;
+  TablePortion.free;
+end;
+
+// Lookup the data in the third part of the GPT - the partition table entry itself
+function ReadGUIDPartitionTableEntry(Drive : THandle; ExactSectorSize : Integer) : ansistring;
+var
+  BytesRead, DiskPos : integer;
+  GPTData : TStringList;
+  Buffer : array [0..4095] of byte;
+begin
     result := 'false';
     BytesRead := -1;
     DiskPos := -1;
-    i := 0;
-    indx := -1;
-    VolSize := -1;
 
-    //FileSeek(Drive, 0, 0);
     // Move read point to offset 1024, i.e. offset zero of sector three (if 512 byte sector aligned)
     DiskPos := FileSeek(Drive, 1024, fsFromBeginning);
 
+    // If seek was successfull:
     if DiskPos > -1 then
       begin
-        FillChar(GUIDPartitionTableEntry, SizeOf(GUIDPartitionTableEntry), 0);
+        FillChar(Buffer, SizeOf(Buffer), 0);
         // TODO implement IOCTL_DISK_GET_DRIVE_GEOMETRY to lookup bytes per sector
         // because FileRead is sector aligned, so you must read complete sectors
-        BytesRead := FileRead(Drive, GUIDPartitionTableEntry, 512);
-
+        // If Disk Read was OK:
+        DiskPos := FileSeek(Drive, 0, fsFromBeginning);
+        BytesRead := FileRead(Drive, Buffer, 4096);
         if BytesRead > -1 then
-          begin
-            {for i := 0 to 15 do
-            begin
-               PartitionTypeGUID := PartitionTypeGUID + IntToHex(GUIDPartitionTableEntry.PartitionTypeGUID[i], 1);
-            end;}
-
-            // Generate formatted version of the GPT Partition Type GUID value
-            // (this is what uniquely identifies the creator of the GPT disk)
-            PartitionTypeGUIDFormatted := GUIDTOString(GUIDPartitionTableEntry.PartitionTypeGUID);
-            // If the GUID is the right length and formatted properly (32 hex values with hypens and curly braces),
-            // then look up the creator label
-            if Length(PartitionTypeGUIDFormatted) = 38 then
-              begin
-                indx := 0;
-                slGUIDList := LoadPartitionGUIDTypes();
-                for i := 0 to slGUIDList.Count -1 do
-                begin
-                  indx := Pos(PartitionTypeGUIDFormatted, slGUIDList.Strings[i]);
-                  if indx > 0 then
-                    begin
-                      // Extract the first portion of the line containing the GUID, which will be the creator label
-                      ExtractFrom := 1;
-                      GUIDLabel := ExtractSubStr(slGUIDList.Strings[i], ExtractFrom, StdWordDelimsCustom);
-                      PartitionTypeGUIDFormatted := PartitionTypeGUIDFormatted + ' (creator label: ' + GUIDLabel + ')';
-                    end;
-                end;
-                slGUIDList.Free;
-              end;
-
-            {for i := 0 to 15 do
-            begin
-              //UniquePartitionGUID := UniquePartitionGUID + IntToHex(GUIDPartitionTableEntry.UniquePartitionGUID[i], 1);
-            end;}
-            UniquePartitionGUIDFormatted := GUIDToString(GUIDPartitionTableEntry.UniquePartitionGUID);
-
-            StartingLBA     := IntToStr(GUIDPartitionTableEntry.StartingLBA);
-            EndingLBA       := IntToStr(GUIDPartitionTableEntry.EndingLBA);
-
-            for i := 0 to 7 do
-            begin
-              AttributeBits  := AttributeBits + IntToHex(GUIDPartitionTableEntry.AttributeBits[i], 1);
-            end;
-
-            PartitionName := WideCharToString(@GUIDPartitionTableEntry.PartitionName);
-
-            VolSize := ((GUIDPartitionTableEntry.EndingLBA - GUIDPartitionTableEntry.StartingLBA) + 1) * ExactSectorSize;
-            strVolSize := FormatByteSize(VolSize) + ' ' + IntToStr(VolSize) + ' bytes.';
-
-            result := ('Partition Table Entry reads : '               + #13#10 +
-                    ' Partition Type GUID : '    + PartitionTypeGUIDFormatted   + #13#10 +
-                    ' UniquePartitionGUID  : ' + UniquePartitionGUIDFormatted +  #13#10 +
-                    ' Starting LBA : '         + StartingLBA         +  #13#10 +
-                    ' Ending LBA : '           + EndingLBA           +  #13#10 +
-                    ' Size : '                 + strVolSize          +  #13#10 +
-                    ' Attribute Bits : '       + AttributeBits       +  #13#10 +
-                    ' Partition Name : '       + PartitionName       +  #13#10 +
-                    ' =================================================================');
-          end
-        else
         begin
-          result := 'false';
-          RaiseLastOSError; // BytesRead = -1
-        end;
-      end
+          try
+            GPTData := TStringList.Create;
+            GPTData.Add('GPT Partition Table Entries:');
+            GPTData.AddStrings(TraverseEachPartitionTableEntry(Buffer));
+          finally
+            result := GPTData.Text;
+            GPTData.free;
+          end;
+        end // End of BytesRead
+        else
+          begin
+            result := 'false';
+            RaiseLastOSError; // BytesRead = -1
+          end;
+      end // End of seek if
     else
     begin
       result := 'false';
