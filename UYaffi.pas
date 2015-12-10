@@ -52,7 +52,7 @@ uses
     Process, Windows, ActiveX, ComObj, Variants,
     win32proc, // for the OS name detection : http://free-pascal-lazarus.989080.n3.nabble.com/Lazarus-WindowsVersion-td4032307.html
   {$endif}
-    LibEWFUnit, diskspecification, GPTMBR, uProgress, Classes, SysUtils, FileUtil,
+    LibEWFUnit, diskspecification, GPTMBR, uGPT, uProgress, Classes, SysUtils, FileUtil,
     Forms, Controls, Graphics, LazUTF8, strutils,
     Dialogs, StdCtrls, ComCtrls, ExtCtrls, Menus, sha1Customised,
     md5Customised, textsearch;
@@ -1407,7 +1407,7 @@ var
     WinDiskSignature, TotalHeads, TracksPerCylinder : integer;
 
   Description, InterfaceType, Model, SerialNumber,
-    Status, DiskName, WinDiskSignatureHex, MBRorGPT: string;
+    Status, DiskName, WinDiskSignatureHex, MBRorGPT, GPTData: ansistring;
 
   SelectedDisk : widestring;
 
@@ -1438,7 +1438,7 @@ begin
   SerialNumber     := '';
   SelectedDisk     := '';
   Partitions       := 0;
-
+  GPTData          := '';
   frmTechSpecs.Memo1.Clear;
 
   if Pos('\\.\PHYSICALDRIVE', TreeView1.Selected.Text) > 0 then
@@ -1450,7 +1450,7 @@ begin
       MBRorGPT := MBR_or_GPT(SelectedDisk);
       if Pos('GPT', MBRorGPT) > 0 then
         begin
-          // Pull out the GUID type and look it up in the system type table
+          GPTData := QueryGPT(SelectedDisk, 512); // TODO : Change to do a sector size lookup here
         end;
 
       // Now ensure the disk string is suitable for WMI and and so on
@@ -1511,8 +1511,12 @@ begin
           slDiskSpecs.Add('Sectors per Track: ' + IntToStr(SectorsPerTrack));
           slDiskSpecs.Add('Tracks per Cylinder: ' + IntToStr(TracksPerCylinder));
           slDiskSpecs.Add('Default Block Size: ' + IntToStr(DefaultBlockSize));
-
+          slDiskSpecs.Add('= = = = = = = = = = = = = = = = = = =');
+          slDiskSpecs.Add('GPT Partition Data (if found) : ');
+          slDiskSpecs.Add('  ');
+          slDiskSpecs.Add(GPTData);
           result := 1;
+
           frmTechSpecs.Memo1.Lines.AddText(slDiskSpecs.Text);
           frmTechSpecs.Show;
           slDiskSpecs.Free;

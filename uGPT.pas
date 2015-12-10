@@ -88,6 +88,7 @@ implementation
 
 var
 slGUIDList : TStringList;
+intPartitionTableEntryLBA : longword;
 
 // Returns a human readable view of the number of bytes as Mb, Gb Tb, etc
 function FormatByteSize(const bytes: QWord): string;
@@ -118,131 +119,6 @@ begin
           result := FormatFloat('#.## KiB', bytes / KB)
         else
           result := FormatFloat('#.## bytes', bytes) ;
-end;
-
-// Read in the Protective MBR - the kind created by GPT disks, not normal MBRs
-function ReadProtectiveMBR(Drive : THandle; ExactSectorSize : Integer) : ansistring;
-var
-  BytesRead, DiskPos : integer;
-  ProtectiveMBR : TProtectiveMBR;
-  Tmp : ansistring;
-begin
-  result := 'Failed';
-  BytesRead := -1;
-  DiskPos := -1;
-
-  DiskPos := FileSeek(Drive, 0, fsFromBeginning);
-
-  if DiskPos > -1 then
-    begin
-      FillChar(ProtectiveMBR, SizeOf(ProtectiveMBR), 0);
-      // TODO implement IOCTL_DISK_GET_DRIVE_GEOMETRY to lookup bytes per sector
-      // because FileRead is sector aligned, so you must read complete sectors
-      BytesRead := FileRead(Drive, ProtectiveMBR, 512);
-      if BytesRead > -1 then
-          begin
-            tmp :=' Protective MBR Table Reports: ' + #13#10 +
-                  '  Boot ID : '            + IntToStr(ProtectiveMBR.BootIndicator) + #13#10 +
-                  ' Starting Head : '     + IntToHex(ProtectiveMBR.StartingHead, 2) + #13#10 +
-                  ' Starting Sector : '   + IntToHex(ProtectiveMBR.StartingSector, 2) + #13#10 +
-                  ' Starting Cylinder : ' + IntToHex(ProtectiveMBR.StartingCylinder, 2) + #13#10 +
-                  ' System ID : '         + IntToHex(ProtectiveMBR.SystemID,2) + #13#10 +
-                  ' Ending Head : '       + IntToHex(ProtectiveMBR.EndingHead, 2) + #13#10 +
-                  ' Ending Sector : '     + IntToHex(ProtectiveMBR.EndingSector, 2) + #13#10 +
-                  ' Ending Cylinder : '   + IntToHex(ProtectiveMBR.EndingCylinder, 2) + #13#10 +
-                  ' Start LBA : '         + IntToStr(ProtectiveMBR.StartLBA) + #13#10 +
-                  ' Size in LBA : '       + IntToStr(ProtectiveMBR.SizeInLBA) + #13#10 +
-                  ' =================================================================' + #13#10;
-          result := tmp;
-          end
-      else RaiseLastOSError; // BytesRead = -1
-    end
-  else RaiseLastOSError; // DiskPos = -1
-end;
-
-// Read in the GUID Partition Table Header
-function ReadGUIDPartitionTableHeader(Drive : THandle; ExactSectorSize : Integer) : ansistring;
-var
-  GUIDPartitionTableHeader : TGUIDPartitionTableHeader;
-
-  i, BytesRead, DiskPos : integer;
-
-  Signature, RevisionNo, DiskGUID, HeaderSize, HeaderCRC32, PrimaryLBA,
-    BackupLBA, FirstUseableLBA, LastUsableLBA, PartitionEntryLBA,
-    MaxPossiblePartitions, SizeOfPartitionEntry, PartitionEntryCRC32 : ansistring;
-begin
-  result := 'false';
-  BytesRead := -1;
-  DiskPos := -1;
-  i := 0;
-
-  // Move read point to offset 512, i.e. offset zero of sector two (if 512 byte sector aligned)
-  DiskPos := FileSeek(Drive, 512, fsFromBeginning);
-
-  if DiskPos > -1 then
-    begin
-      FillChar(GUIDPartitionTableHeader, SizeOf(GUIDPartitionTableHeader), 0);
-      // TODO implement IOCTL_DISK_GET_DRIVE_GEOMETRY to lookup bytes per sector
-      // because FileRead is sector aligned, so you must read complete sectors
-      BytesRead := FileRead(Drive, GUIDPartitionTableHeader, 512);
-
-      if BytesRead > -1 then
-        begin
-
-          for i := 0 to 7 do
-          begin
-            Signature := Signature + IntToHex(GUIDPartitionTableHeader.Signature[i], 2);
-          end;
-
-          for i := 0 to 3 do
-          begin
-            RevisionNo := RevisionNo + IntToHex(GUIDPartitionTableHeader.RevisionNo[i], 2);
-          end;
-
-          HeaderSize      := IntToStr(GUIDPartitionTableHeader.HeaderSize);
-          HeaderCRC32     := IntToHex(GUIDPartitionTableHeader.HeaderCRC32, 2);
-          PrimaryLBA      := IntToStr(GUIDPartitionTableHeader.PrimaryLBA);
-          BackupLBA       := IntToStr(GUIDPartitionTableHeader.BackupLBA);
-          FirstUseableLBA := IntToStr(GUIDPartitionTableHeader.FirstUseableLBA);
-          LastUsableLBA   := IntToStr(GUIDPartitionTableHeader.LastUseableLBA);
-
-          for i := 0 to 15 do
-          begin
-            DiskGUID := DiskGUID + IntToHex(GUIDPartitionTableHeader.DiskGUID[i], 2);
-          end;
-
-          PartitionEntryLBA      := IntToStr(GUIDPartitionTableHeader.PartitionEntryLBA);
-          MaxPossiblePartitions  := IntToStr(GUIDPartitionTableHeader.MaxPossiblePartitions);
-          SizeOfPartitionEntry   := IntToStr(GUIDPartitionTableHeader.SizeOfPartitionEntry);
-          PartitionEntryCRC32    := IntToHex(GUIDPartitionTableHeader.PartitionEntryArrayCRC32, 2);
-
-          result := ('GPT Partition Table Header Reads: '             + #13#10 +
-                  ' Signature : '            + Signature             + #13#10 +
-                  ' Rev No : '               + RevisionNo            + #13#10 +
-                  ' Header Size : '          + HeaderSize            + #13#10 +
-                  ' Header CRC32 : '         + HeaderCRC32           + #13#10 +
-                  ' Primary LBA : '          + PrimaryLBA            + #13#10 +
-                  ' Backup LBA : '           + BackupLBA             + #13#10 +
-                  ' First Useable LBA : '    + FirstUseableLBA       + #13#10 +
-                  ' Last Useable LBA : '     + LastUsableLBA         + #13#10 +
-                  ' Disk GUID : '            + DiskGUID              + #13#10 +
-                  ' Partition Entry LBA : '  + PartitionEntryLBA     + #13#10 +
-                  ' Max No of Partitions : ' + MaxPossiblePartitions + #13#10 +
-                  ' Partition Entry Size : ' + SizeOfPartitionEntry  + #13#10 +
-                  ' Partition Entry CRC32 : '+ PartitionEntryCRC32   + #13#10 +
-                  '=================================================================' + #13#10);
-        end
-      else
-      begin
-        result := 'false';
-        RaiseLastOSError; // BytesRead = -1
-      end;
-    end
-  else
-  begin
-    result := 'false';
-    RaiseLastOSError; // DiskPos = -1
-  end;
 end;
 
 // The next few functions are specific to the main GPT Partition Table Entry list
@@ -370,163 +246,6 @@ begin
   result := CreatorLabel;
 end;
 
-// TraverseEachPartitionTableEntry : The main traverser. It takes the buffer
-// read from the start of the disk, navigates to sector 3 (usually offset 1024
-// but will be higher with disks using non-512 byte sector sizes) and then
-// traverses 4Kb pulling out any GPT partition tables it finds. It returns
-// a string list (of sorts) with all the entries
-function TraverseEachPartitionTableEntry(Buffer : array of byte) : ansistring;
-{
-    PartitionTypeGUID    : TGUID;                    //array [0..15] of byte;   // 16 byte hex string
-    UniquePartitionGUID  : TGUID;                    // array [0..15] of byte; // 16 byte hex string
-    StartingLBA          : Int64;                    // 8 byte integer
-    EndingLBA            : Int64;                    // 8 byte integer
-    AttributeBits        : array [0..7] of byte;     // 8 byte hex string
-    PartitionName        : array [0..71] of widechar;// 36 byte Unicode string
-    // This sums to 128 bytes - the size of a GPT partition table entry
-    EndOfSector          : array [0..383] of byte;
-}
-var
-  TablePortion : TMemoryStream;
-  strStartingLBA, strEndingLBA, strAttributeBits, strPartitionLabel,
-    strGUID1, strGUID2, strCreatorLabel: ansistring;
-  intStartingLBA, intEndingLBA : Int64;
-  ReturnData : TStringList;
-  Tmp, Tmp2 : TGUID; // temp GUID values, just do reverse lookup checks
-  i, ZeroesCountedInGUID1 : integer;
-
-begin
-  i := 0;
-  ZeroesCountedInGUID1 := 0;
-  intStartingLBA := 0;
-  intEndingLBA := 0;
-
-  TablePortion := TMemoryStream.Create;
-  TablePortion.WriteBuffer(Buffer, SizeOf(Buffer));
-  // For now, move position to start of sector 3 if 512 byte sector aligned
-  // TODO : once all OK, change to ExactSectorSize * 3
-  TablePortion.Position := 1024;
-
-  ReturnData := TStringList.Create;
-
-  while TablePortion.Position < 4096 do
-  repeat
-    strGUID1 := '';
-    strGUID2 := '';
-    strAttributeBits := '';
-
-    strGUID1 := GUIDToString(GetGUIDTypeID(TablePortion, TablePortion.Position)); // GUIDToString doesn't return false on failure so we cant check
-    strCreatorLabel := CreatorLookup(StringToGUID(strGUID1));
-
-    if TryStringToGUID(strGUID1, tmp) = true then  // TryStringToGUID does return false though if invalid
-      begin
-        // Study the GUID string to see if loads of the hex bytes are consecutive zeroes
-        // If they are, probably false, because GUIDs don't have dozens pof 0x00 pairs
-        for i := 0 to Length(strGUID1) do
-        begin
-          if (strGUID1[i] = '0') and (strGUID1[i+1] = '0') then
-            begin
-              inc(ZeroesCountedInGUID1, 1);
-            end;
-        end;
-        if ZeroesCountedInGUID1 > 8 then
-          begin
-            // The GUID is garbage. Move the pointer forward 16 bytes
-            TablePortion.Position := TablePortion.Position + 16;
-          end
-        else
-          begin
-          // First 16 bytes are a valid GUID so now lets check the second, the unique partition GUID
-          strGUID2 := GUIDToString(GetUniquePartitionGUID(TablePortion, TablePortion.Position));
-
-          if TryStringToGUID(strGUID2, tmp2) = true then
-            begin
-              // First 32 bytes are valid GUIDs so work out start and end LBA offsets
-              intStartingLBA := TablePortion.ReadQWord;
-              strStartingLBA := IntToStr(intStartingLBA);
-
-              intEndingLBA :=  TablePortion.ReadQWord;
-              strEndingLBA := IntToStr(intEndingLBA);
-
-              strAttributeBits := GetPartitionAttributes(TablePortion, TablePortion.Position);
-
-              strPartitionLabel := GetPartitionLabel(TablePortion, TablePortion.Position);
-
-              // To here should be 128 bytes, so Position should be 128 bytes further than where
-              // it started
-
-              // Populate the string list with the results
-              ReturnData.Add(strGUID1);
-              ReturnData.Add(strGUID2);
-              ReturnData.Add('Starting LBA : ' + strStartingLBA);
-              ReturnData.Add('Ending LBA : ' + strEndingLBA);
-              ReturnData.Add('Attribute Flags : ' + strAttributeBits);
-              ReturnData.Add('Partition Label : ' + strPartitionLabel);
-              ReturnData.Add('Creator Label : ' + strCreatorLabel);
-              ReturnData.Add('===================================');
-            end; // The first and second GUIDs were valid
-        end; // The first GUID was valid but contained too many zeroes, thus invalid
-      end // The first GUID was invalid
-    else
-    begin
-      TablePortion.Position := TablePortion.Position + 16 // move forward 16 bytes and re-scan
-    end;
-  until TablePortion.Position = 4096; // 512 byte sector sizes are still the norm
-                                      // so this should catch 1K, 2K and 4K sector sizes too
-                                      // and the GPT structure typically occupies the first 34 sectors
-  result := ReturnData.Text;
-
-  ReturnData.Free;
-  TablePortion.free;
-end;
-
-// Lookup the data in the third part of the GPT - the partition table entry itself
-function ReadGUIDPartitionTableEntry(Drive : THandle; ExactSectorSize : Integer) : ansistring;
-var
-  BytesRead, DiskPos : integer;
-  GPTData : TStringList;
-  Buffer : array [0..4095] of byte;
-begin
-    result := 'false';
-    BytesRead := -1;
-    DiskPos := -1;
-
-    // Move read point to offset 1024, i.e. offset zero of sector three (if 512 byte sector aligned)
-    DiskPos := FileSeek(Drive, 1024, fsFromBeginning);
-
-    // If seek was successfull:
-    if DiskPos > -1 then
-      begin
-        FillChar(Buffer, SizeOf(Buffer), 0);
-        // TODO implement IOCTL_DISK_GET_DRIVE_GEOMETRY to lookup bytes per sector
-        // because FileRead is sector aligned, so you must read complete sectors
-        // If Disk Read was OK:
-        DiskPos := FileSeek(Drive, 0, fsFromBeginning);
-        BytesRead := FileRead(Drive, Buffer, 4096);
-        if BytesRead > -1 then
-        begin
-          try
-            GPTData := TStringList.Create;
-            GPTData.Add('GPT Partition Table Entries:');
-            GPTData.AddStrings(TraverseEachPartitionTableEntry(Buffer));
-          finally
-            result := GPTData.Text;
-            GPTData.free;
-          end;
-        end // End of BytesRead
-        else
-          begin
-            result := 'false';
-            RaiseLastOSError; // BytesRead = -1
-          end;
-      end // End of seek if
-    else
-    begin
-      result := 'false';
-      RaiseLastOSError; // DiskPos = -1
-    end;
-  end;
-
 // LoadPartitionGUIDTypes returns a sorted String List of known GUID Partition types
 // and is used to lookup the creating system, e.g. VMFS is VMWare FileSystem
 function LoadPartitionGUIDTypes() : TStringList;
@@ -622,6 +341,304 @@ function LoadPartitionGUIDTypes() : TStringList;
     end;
   end;
 
+// SECTOR 0 Traversal
+// Read in the Protective MBR - the kind created by GPT disks, not normal MBRs
+function ReadProtectiveMBR(Drive : THandle; ExactSectorSize : Integer) : ansistring;
+var
+  BytesRead, DiskPos : integer;
+  ProtectiveMBR : TProtectiveMBR;
+  Tmp : ansistring;
+begin
+  result := 'Failed';
+  BytesRead := -1;
+  DiskPos := -1;
+
+  DiskPos := FileSeek(Drive, 0, fsFromBeginning);
+
+  if DiskPos > -1 then
+    begin
+      FillChar(ProtectiveMBR, SizeOf(ProtectiveMBR), 0);
+      // TODO implement IOCTL_DISK_GET_DRIVE_GEOMETRY to lookup bytes per sector
+      // because FileRead is sector aligned, so you must read complete sectors
+      BytesRead := FileRead(Drive, ProtectiveMBR, 512);
+      if BytesRead > -1 then
+          begin
+            tmp :=' Protective MBR Table Reports: ' + #13#10 +
+                  '  Boot ID : '            + IntToStr(ProtectiveMBR.BootIndicator) + #13#10 +
+                  ' Starting Head : '     + IntToHex(ProtectiveMBR.StartingHead, 2) + #13#10 +
+                  ' Starting Sector : '   + IntToHex(ProtectiveMBR.StartingSector, 2) + #13#10 +
+                  ' Starting Cylinder : ' + IntToHex(ProtectiveMBR.StartingCylinder, 2) + #13#10 +
+                  ' System ID : '         + IntToHex(ProtectiveMBR.SystemID,2) + #13#10 +
+                  ' Ending Head : '       + IntToHex(ProtectiveMBR.EndingHead, 2) + #13#10 +
+                  ' Ending Sector : '     + IntToHex(ProtectiveMBR.EndingSector, 2) + #13#10 +
+                  ' Ending Cylinder : '   + IntToHex(ProtectiveMBR.EndingCylinder, 2) + #13#10 +
+                  ' Start LBA : '         + IntToStr(ProtectiveMBR.StartLBA) + #13#10 +
+                  ' Size in LBA : '       + IntToStr(ProtectiveMBR.SizeInLBA) + #13#10 +
+                  ' =================================================================' + #13#10;
+          result := tmp;
+          end
+      else RaiseLastOSError; // BytesRead = -1
+    end
+  else RaiseLastOSError; // DiskPos = -1
+end;
+
+// SECTOR 1 Traversal
+// Read in the GUID Partition Table Header
+function ReadGUIDPartitionTableHeader(Drive : THandle; ExactSectorSize : Integer) : ansistring;
+var
+  GUIDPartitionTableHeader : TGUIDPartitionTableHeader;
+
+  i, BytesRead, DiskPos : integer;
+
+  Signature, RevisionNo, DiskGUID, HeaderSize, HeaderCRC32, PrimaryLBA,
+    BackupLBA, FirstUseableLBA, LastUsableLBA, PartitionEntryLBA,
+    MaxPossiblePartitions, SizeOfPartitionEntry, PartitionEntryCRC32 : ansistring;
+begin
+  result := 'false';
+  BytesRead := -1;
+  DiskPos := -1;
+  i := 0;
+
+  // Move read point to offset 512, i.e. offset zero of sector two (if 512 byte sector aligned)
+  DiskPos := FileSeek(Drive, 512, fsFromBeginning);
+
+  if DiskPos > -1 then
+    begin
+      FillChar(GUIDPartitionTableHeader, SizeOf(GUIDPartitionTableHeader), 0);
+      // TODO implement IOCTL_DISK_GET_DRIVE_GEOMETRY to lookup bytes per sector
+      // because FileRead is sector aligned, so you must read complete sectors
+      BytesRead := FileRead(Drive, GUIDPartitionTableHeader, 512);
+
+      if BytesRead > -1 then
+        begin
+
+          for i := 0 to 7 do
+          begin
+            Signature := Signature + IntToHex(GUIDPartitionTableHeader.Signature[i], 2);
+          end;
+
+          for i := 0 to 3 do
+          begin
+            RevisionNo := RevisionNo + IntToHex(GUIDPartitionTableHeader.RevisionNo[i], 2);
+          end;
+
+          HeaderSize      := IntToStr(GUIDPartitionTableHeader.HeaderSize);
+          HeaderCRC32     := IntToHex(GUIDPartitionTableHeader.HeaderCRC32, 2);
+          PrimaryLBA      := IntToStr(GUIDPartitionTableHeader.PrimaryLBA);
+          BackupLBA       := IntToStr(GUIDPartitionTableHeader.BackupLBA);
+          FirstUseableLBA := IntToStr(GUIDPartitionTableHeader.FirstUseableLBA);
+          LastUsableLBA   := IntToStr(GUIDPartitionTableHeader.LastUseableLBA);
+
+          for i := 0 to 15 do
+          begin
+            DiskGUID := DiskGUID + IntToHex(GUIDPartitionTableHeader.DiskGUID[i], 2);
+          end;
+
+          // Store the Partition Table offset in a global var, to be used by other funcs
+          // This is needed to locate the partition table list, just in case the
+          // location is not the usual LBA of '2'. Mostly, it will be '2', i.e. sector 3
+          intPartitionTableEntryLBA := GUIDPartitionTableHeader.PartitionEntryLBA;
+
+          PartitionEntryLBA      := IntToStr(GUIDPartitionTableHeader.PartitionEntryLBA);
+          MaxPossiblePartitions  := IntToStr(GUIDPartitionTableHeader.MaxPossiblePartitions);
+          SizeOfPartitionEntry   := IntToStr(GUIDPartitionTableHeader.SizeOfPartitionEntry);
+          PartitionEntryCRC32    := IntToHex(GUIDPartitionTableHeader.PartitionEntryArrayCRC32, 2);
+
+          result := (' GPT Partition Table Header Reads: '           + #13#10 +
+                  ' Signature : '            + Signature             + #13#10 +
+                  ' Rev No : '               + RevisionNo            + #13#10 +
+                  ' Header Size : '          + HeaderSize            + #13#10 +
+                  ' Header CRC32 : '         + HeaderCRC32           + #13#10 +
+                  ' Primary LBA : '          + PrimaryLBA            + #13#10 +
+                  ' Backup LBA : '           + BackupLBA             + #13#10 +
+                  ' First Useable LBA : '    + FirstUseableLBA       + #13#10 +
+                  ' Last Useable LBA : '     + LastUsableLBA         + #13#10 +
+                  ' Disk GUID : '            + DiskGUID              + #13#10 +
+                  ' Partition Entry LBA : '  + PartitionEntryLBA     + #13#10 +
+                  ' Max No of Partitions : ' + MaxPossiblePartitions + #13#10 +
+                  ' Partition Entry Size : ' + SizeOfPartitionEntry  + #13#10 +
+                  ' Partition Entry CRC32 : '+ PartitionEntryCRC32   + #13#10 +
+                  '=================================================================' + #13#10);
+        end
+      else
+      begin
+        result := 'false';
+        RaiseLastOSError; // BytesRead = -1
+      end;
+    end
+  else
+  begin
+    result := 'false';
+    RaiseLastOSError; // DiskPos = -1
+  end;
+end;
+
+// SECTOR 2 Traversal
+// Lookup the data in the third part of the GPT - the partition table entry itself
+function ReadGUIDPartitionTableEntry(Drive : THandle; ExactSectorSize : Integer) : ansistring;
+var
+  BytesRead, DiskPos : integer;
+  GPTData : TStringList;
+  Buffer : array [0..4095] of byte;
+begin
+    result := 'false';
+    BytesRead := -1;
+    DiskPos := -1;
+
+    // Move read point to offset 1024, i.e. offset zero of sector three (if 512 byte sector aligned)
+    DiskPos := FileSeek(Drive, 1024, fsFromBeginning);
+
+    // If seek was successfull:
+    if DiskPos > -1 then
+      begin
+        FillChar(Buffer, SizeOf(Buffer), 0);
+        // TODO implement IOCTL_DISK_GET_DRIVE_GEOMETRY to lookup bytes per sector
+        // because FileRead is sector aligned, so you must read complete sectors
+        // If Disk Read was OK:
+        DiskPos := FileSeek(Drive, intPartitionTableEntryLBA * ExactSectorSize, fsFromBeginning);
+        BytesRead := FileRead(Drive, Buffer, 4096);
+        if BytesRead > -1 then
+        begin
+          try
+            GPTData := TStringList.Create;
+            GPTData.Add('GPT Partition Table Entries:');
+            GPTData.AddStrings(TraverseEachPartitionTableEntry(Buffer));
+          finally
+            result := GPTData.Text;
+            GPTData.free;
+          end;
+        end // End of BytesRead
+        else
+          begin
+            result := 'false';
+            RaiseLastOSError; // BytesRead = -1
+          end;
+      end // End of seek if
+    else
+    begin
+      result := 'false';
+      RaiseLastOSError; // DiskPos = -1
+    end;
+  end;
+
+// TraverseEachPartitionTableEntry : The main traverser. It takes the buffer
+// read from the start of the disk, navigates to sector 3 (usually offset 1024
+// but will be higher with disks using non-512 byte sector sizes) and then
+// traverses 4Kb pulling out any GPT partition tables it finds. It returns
+// a string list (of sorts) with all the entries
+function TraverseEachPartitionTableEntry(Buffer : array of byte) : ansistring;
+{
+    PartitionTypeGUID    : TGUID;                    //array [0..15] of byte;   // 16 byte hex string
+    UniquePartitionGUID  : TGUID;                    // array [0..15] of byte; // 16 byte hex string
+    StartingLBA          : Int64;                    // 8 byte integer
+    EndingLBA            : Int64;                    // 8 byte integer
+    AttributeBits        : array [0..7] of byte;     // 8 byte hex string
+    PartitionName        : array [0..71] of widechar;// 36 byte Unicode string
+    // This sums to 128 bytes - the size of a GPT partition table entry
+    EndOfSector          : array [0..383] of byte; // THis will contains other tables!
+}
+var
+  TablePortion : TMemoryStream;
+  strStartingLBA, strEndingLBA, strAttributeBits, strPartitionLabel,
+    strGUID1, strGUID2, strCreatorLabel, strPartSize: ansistring;
+  intStartingLBA, intEndingLBA, PartSize : Int64;
+  ReturnData : TStringList;
+  Tmp, Tmp2 : TGUID; // temp GUID values, just do reverse lookup checks
+  i, ZeroesCountedInGUID1 : integer;
+
+begin
+  i := 0;
+  ZeroesCountedInGUID1 := 0;
+  intStartingLBA := 0;
+  intEndingLBA := 0;
+  PartSize := 0;
+
+  TablePortion := TMemoryStream.Create;
+  TablePortion.WriteBuffer(Buffer, SizeOf(Buffer));
+  // Given that the disk position is set to the Partition Table Entry LBA value
+  // in earlier functions, the passed memory stream should be 4Kb in size, starting from
+  // the beginning of the GPT Partition Table list. So we'll start from the start of
+  // the memory stream
+  TablePortion.Position := 0;
+
+  ReturnData := TStringList.Create;
+
+  while TablePortion.Position < 4096 do
+  repeat
+    strGUID1 := '';
+    strGUID2 := '';
+    strAttributeBits := '';
+
+    strGUID1 := GUIDToString(GetGUIDTypeID(TablePortion, TablePortion.Position)); // GUIDToString doesn't return false on failure so we cant check
+    strCreatorLabel := CreatorLookup(StringToGUID(strGUID1));
+
+    if TryStringToGUID(strGUID1, tmp) = true then  // TryStringToGUID does return false though if invalid
+      begin
+        // Study the GUID string to see if lots of the hex bytes are consecutive zeroes
+        // If they are, probably a false GUID, because valid GUIDs don't have dozens of 0x00 pairs
+        for i := 0 to Length(strGUID1) do
+        begin
+          if (strGUID1[i] = '0') and (strGUID1[i+1] = '0') then
+            begin
+              inc(ZeroesCountedInGUID1, 1);
+            end;
+        end;
+        if ZeroesCountedInGUID1 > 8 then
+          begin
+            // The GUID is probably garbage if more than half of it are 0x00.
+            // So move the pointer forward 16 bytes and re-scan
+            TablePortion.Position := TablePortion.Position + 16;
+          end
+        else
+          begin
+          // First 16 bytes are a valid GUID so now lets check the second, the unique partition GUID
+          strGUID2 := GUIDToString(GetUniquePartitionGUID(TablePortion, TablePortion.Position));
+
+          if TryStringToGUID(strGUID2, tmp2) = true then
+            begin
+              // First 32 bytes are valid GUIDs so work out start and end LBA offsets
+              intStartingLBA := TablePortion.ReadQWord;
+              strStartingLBA := IntToStr(intStartingLBA);
+
+              intEndingLBA :=  TablePortion.ReadQWord;
+              strEndingLBA := IntToStr(intEndingLBA);
+
+              PartSize := (intEndingLBA - intStartingLBA) * 512;
+              strPartSize := FormatByteSize(PartSize) + '  (' + IntToStr(PartSize) + ' bytes)';
+
+              strAttributeBits := GetPartitionAttributes(TablePortion, TablePortion.Position);
+
+              strPartitionLabel := GetPartitionLabel(TablePortion, TablePortion.Position);
+
+              // To here should be 128 bytes, so Position should be 128 bytes further than where
+              // it started
+
+              // Populate the string list with the results
+              ReturnData.Add(strGUID1);
+              ReturnData.Add(strGUID2);
+              ReturnData.Add('Starting LBA : ' + strStartingLBA);
+              ReturnData.Add('Ending LBA : ' + strEndingLBA);
+              ReturnData.Add('Size: ' + strPartSize);
+              ReturnData.Add('Attribute Flags : ' + strAttributeBits);
+              ReturnData.Add('Partition Label : ' + strPartitionLabel);
+              ReturnData.Add('Creator Label : ' + strCreatorLabel);
+              ReturnData.Add('===================================');
+            end; // The first and second GUIDs were valid
+        end; // The first GUID was valid but contained too many zeroes, thus invalid
+      end // The first GUID was invalid
+    else
+    begin
+      TablePortion.Position := TablePortion.Position + 16 // move forward 16 bytes and re-scan
+    end;
+  until TablePortion.Position = 4096; // 512 byte sector sizes are still the norm
+                                      // so this should catch 1K, 2K and 4K sector sizes too
+                                      // and the GPT structure typically occupies the first 34 sectors
+  result := ReturnData.Text;
+
+  ReturnData.Free;
+  TablePortion.free;
+end;
+
 // Returns the partitioning style of a physical disk by utilising sector 0
 // offset 446 for MBR or offset 38 of sector 1 for GPT. Returns resulting
 // text string and Windows signature
@@ -634,12 +651,14 @@ var
 begin
   result := '';
   Drive := SelectedDisk;
-  // This particular handle assignment does not require admin rights as it allows
-  // simply to query the device attributes without accessing actual disk data as such
 
+  // Assign handle to the disk, opening in Read Only mode
   hDevice := FileOpen(PWideChar(Drive), fmOpenRead);
   {
   The handle below is Windows specific. No good for cross platform.
+  This particular handle assignment does not require admin rights as it allows
+  simply to query the device attributes without accessing actual disk data as such
+
   hDevice := CreateFileW(PWideChar(Drive),
                              FILE_READ_DATA,
                              FILE_SHARE_READ AND FILE_SHARE_WRITE,
