@@ -33,7 +33,7 @@ uses
   {$ENDIF}{$ENDIF}
   Interfaces, // this includes the LCL widgetset
   Forms, UYaffi,
-  LibEWFUnit, diskspecification, uProgress, textsearch;
+  LibEWFUnit, diskspecification, uProgress, textsearch, unit1;
 
 {$R *.res}
 

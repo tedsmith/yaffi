@@ -1401,7 +1401,7 @@ var
   objdiskDrive   : Variant;
   oEnumDiskDrive : IEnumvariant;
 
-  ReportedSectors, DefaultBlockSize, Size, TotalCylinders, TotalTracks: Int64;
+  ReportedSectors, DefaultBlockSize, Size, TotalCylinders, TotalTracks : Int64;
 
   Partitions, SectorsPerTrack,
     WinDiskSignature, TotalHeads, TracksPerCylinder : integer;
@@ -1446,11 +1446,12 @@ begin
       // "\\.\PHYSICALDRIVE" = 17 chars, and up to '25' disks allocated so a further
       // 2 chars for that, so 19 chars ibn total.
       SelectedDisk := Trim(Copy(TreeView1.Selected.Text, 0, 19));
-      // First, determine if it a MBR or GPT partitioned disk. Call GPTMBR unit...
+
+      // Determine if it a MBR or GPT partitioned disk. Call GPTMBR  and uGPT units...
       MBRorGPT := MBR_or_GPT(SelectedDisk);
       if Pos('GPT', MBRorGPT) > 0 then
         begin
-          GPTData := QueryGPT(SelectedDisk, 512); // TODO : Change to do a sector size lookup here
+          GPTData := QueryGPT(SelectedDisk);
         end;
 
       // Now ensure the disk string is suitable for WMI and and so on
@@ -1512,9 +1513,14 @@ begin
           slDiskSpecs.Add('Tracks per Cylinder: ' + IntToStr(TracksPerCylinder));
           slDiskSpecs.Add('Default Block Size: ' + IntToStr(DefaultBlockSize));
           slDiskSpecs.Add('= = = = = = = = = = = = = = = = = = =');
-          slDiskSpecs.Add('GPT Partition Data (if found) : ');
-          slDiskSpecs.Add('  ');
-          slDiskSpecs.Add(GPTData);
+          // Only add GPT related data if GPT partitioning was detected earlier
+          if Pos('GPT', MBRorGPT) > 0 then
+          begin
+            slDiskSpecs.Add('GPT Partition Data (if found) : ');
+            slDiskSpecs.Add('  ');
+            slDiskSpecs.Add(GPTData);
+          end;
+
           result := 1;
 
           frmTechSpecs.Memo1.Lines.AddText(slDiskSpecs.Text);
