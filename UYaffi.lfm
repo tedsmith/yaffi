@@ -165,6 +165,7 @@ object frmYaffi: TfrmYaffi
       EditLabel.Width = 544
       EditLabel.Caption = 'Image Name and Path'
       EditLabel.ParentColor = False
+      ReadOnly = True
       TabOrder = 2
       Text = '...'
     end
@@ -322,6 +323,7 @@ object frmYaffi: TfrmYaffi
     object ComboCompression: TComboBox
       Left = 568
       Height = 21
+      Hint = 'Select what compression to use.'#13#10'''Low (fast)'' is usually the best trade'#13#10'between speed and size'
       Top = 379
       Width = 120
       ItemHeight = 13
@@ -331,13 +333,15 @@ object frmYaffi: TfrmYaffi
         'None'
       )
       OnSelect = ComboCompressionSelect
+      ParentShowHint = False
+      ShowHint = True
       TabOrder = 12
-      Text = 'Compression..'
+      Text = 'Low (fast) Comprsn'
     end
     object cbVerify: TCheckBox
       Left = 568
       Height = 17
-      Hint = 'Tick to have the image verified after writing. '#13#10'Arguably fairly pointless when imaging to'#13#10'disk; it''s a process that dates back to a time '#13#10'when we wrote images to tape. But people '#13#10'still seem to yawn on about it.'
+      Hint = 'Verify image file after creation. '#13#10'Arguably fairly pointless given that every data '#13#10'chunk that is read is hashed, then written to '#13#10'the image file and then read and hashed again. '#13#10'So the very act of successfully imaging to the '#13#10'end should be enough to be sure that it''s OK. '#13#10'But the act of verification is a process that '#13#10'dates back to a time when we wrote images '#13#10'to tape, which was a bit hit and miss. '#13#10'Current (as in since about 2005) disk technologies '#13#10'mean it''s no longer necessary, really. '#13#10'But people still seem to yawn on about it and '#13#10'so by not doing it yourself, you might be'#13#10'seen as a renegade by the yawning brigade!'
       Top = 288
       Width = 53
       Alignment = taLeftJustify

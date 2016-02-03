@@ -50,9 +50,9 @@ uses
 
   {$ifdef Windows}
     Process, Windows, ActiveX, ComObj, Variants,
-    win32proc, // for the OS name detection : http://free-pascal-lazarus.989080.n3.nabble.com/Lazarus-WindowsVersion-td4032307.html
+    win32proc, GPTMBR, uGPT, // for the OS name detection : http://free-pascal-lazarus.989080.n3.nabble.com/Lazarus-WindowsVersion-td4032307.html
   {$endif}
-    LibEWFUnit, diskspecification, GPTMBR, uGPT, uProgress, Classes, SysUtils, FileUtil,
+    LibEWFUnit, diskspecification, uProgress, Classes, SysUtils, FileUtil,
     Forms, Controls, Graphics, LazUTF8, strutils,
     Dialogs, StdCtrls, ComCtrls, ExtCtrls, Menus, sha1Customised,
     md5Customised, textsearch;
@@ -1347,7 +1347,7 @@ None          : result 0
 }
 begin
 result := -1;
- if ComboCompression.Text = 'Low (Fast)' then
+ if (ComboCompression.Text = 'Low (Fast)') or (ComboCompression.Text = 'Low (fast) Comprsn') then
    begin
     result := 1;
    end
@@ -1968,6 +1968,11 @@ const
   LIBEWF_FORMAT_ENCASE6       = $06;
   LIBEWF_MEDIA_FLAG_PHYSICAL  = $02;
   LIBEWF_VOLUME_TYPE_LOGICAL  = $01;
+  LIBEWF_COMPRESSION_DEFAULT  = -1;
+  LIBEWF_COMPRESSION_NONE     = 0;
+  LIBEWF_COMPRESSION_FAST     = 1;
+  LIBEWF_COMPRESSION_BEST     = 2;
+  LIBEWF_PACK_FLAG_USE_EMPTY_BLOCK_COMPRESSION = $02;
 
 var
   // 64kB Buffers sometimes seem to cause read errors in final few sectors. Not sure why?
@@ -2014,14 +2019,24 @@ begin
    // TODO : there seems to be little\no difference between 1 and 2 levels.
    // TODO : also experiment with the flags for empty-block and pattern compression
    CompressionChoice := frmYaffi.InitialiseCompressionChoice(nil);
-   if CompressionChoice <> -1 then
+   if CompressionChoice = -1 then
    begin
-     fLibEWF.libewf_SetCompressionValues(CompressionChoice,0);
+     fLibEWF.libewf_HandleSetCompressionValues(LIBEWF_COMPRESSION_DEFAULT,0);
    end
    else
+   if CompressionChoice = 0 then
    begin
-     // Just set to a sensible option if the user didn't remember to set it at all
-     fLibEWF.libewf_SetCompressionValues(1,0);
+     fLibEWF.libewf_HandleSetCompressionValues(LIBEWF_COMPRESSION_NONE,0);
+   end
+   else
+    if CompressionChoice = 1 then
+   begin
+     fLibEWF.libewf_HandleSetCompressionValues(LIBEWF_COMPRESSION_FAST,LIBEWF_PACK_FLAG_USE_EMPTY_BLOCK_COMPRESSION);
+   end
+   else
+    if CompressionChoice = 2 then
+   begin
+     fLibEWF.libewf_HandleSetCompressionValues(LIBEWF_COMPRESSION_BEST,0);
    end;
 
    {$ifdef Windows}
@@ -2032,7 +2047,6 @@ begin
    end
    else
    begin
-     // TODO : Check this actually works with a logical drive letter!
      fLibEWF.libewf_handle_set_media_flags(LIBEWF_VOLUME_TYPE_LOGICAL)
    end;
    {$else ifdef UNIX}
@@ -2447,6 +2461,8 @@ begin
             result := strMD5Hash + ' ' + strSHA1Hash
           else result := 'Multiple hash verification failed';
         end;  // End of HashChoice 3
+        // Release the EWF File Handle now that it is verified
+        fLibEWFVerificationInstance.libewf_close();
      end // End of E01 Open statement
      else ShowMessage('Unable to open E01 image file for verification');
 end;
