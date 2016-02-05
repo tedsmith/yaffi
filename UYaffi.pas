@@ -98,7 +98,8 @@ type
     memGeneralCaseNotes: TMemo;
     menShowDiskManager: TMenuItem;
     menShowDiskTechData: TMenuItem;
-    MenuItem1: TMenuItem;
+    memImageDisk: TMenuItem;
+    menHashDisk: TMenuItem;
     PopupMenu1: TPopupMenu;
     SaveImageDialog: TSaveDialog;
     toggleSearchMode: TToggleBox;
@@ -120,6 +121,7 @@ type
     procedure ledtExhibitRefEnter(Sender: TObject);
     procedure memGeneralCaseNotesEnter(Sender: TObject);
     procedure memNotesEnter(Sender: TObject);
+    procedure menHashDiskClick(Sender: TObject);
     procedure menShowDiskManagerClick(Sender: TObject);
     procedure TreeView1SelectionChanged(Sender: TObject);
     function InitialiseHashChoice(Sender : TObject) : Integer;
@@ -177,6 +179,7 @@ var
   function VerifyDDImage(fsImageName : TFileStream; ImageFileSize : Int64) : string;
   function ImageDiskE01(hDiskHandle : THandle; SegmentSize : Int64; DiskSize : Int64; HashChoice : Integer) : Int64;
   function VerifyE01Image(strImageName : widestring) : string;
+  function HashDisk(hDiskHandle : THandle; DiskSize : Int64; HashChoice : Integer) : Int64;
   function FormatByteSize(const bytes: QWord): string;
   function ExtractNumbers(s: string): string;
   function DoCaseSensitiveTextSearchOfBuffer  (Buffer : array of byte; TotalBytesRead : Int64; BytesRead : Integer) : Integer;
@@ -1001,7 +1004,7 @@ begin
           FileClose(hSelectedDisk);
 
       finally
-        ComboImageType.Text      := 'Choose Image Type';
+        ComboImageType.Text      := 'E01';
         ComboImageType.Enabled   := true;
         comboHashChoice.Enabled  := true;
         ComboSegmentSize.Enabled := true;
@@ -1235,6 +1238,11 @@ begin
           {$endif}
           // Auto append DD or E01 extension
           frmYaffi.ComboImageTypeSelect(nil);
+
+          // If user has chosen "Image this disk" from the popup menu,
+          // call the "Start Imaging" onclick event to auto start the imaging.
+          // Whatever options are selected in the drop down menus will be used
+          if Sender = memImageDisk then btnStartImagingClick(Sender);
         end
       else ledtImageName.Caption := '...';
   end;
@@ -1566,6 +1574,319 @@ begin
   DiskInfoProcessUDISKS.Free;
 end;
 
+// menHashDiskClick - OnClick event for right clicking a disk in the treeview and choosing "Hash this disk"
+// Makes a call to HashDisk after collecting all data about the disk first
+procedure TfrmYaffi.menHashDiskClick(Sender: TObject);
+const
+  // These values are needed for For FSCTL_ALLOW_EXTENDED_DASD_IO to work properly
+  // on logical volumes. They are sourced from
+  // https://github.com/magicmonty/delphi-code-coverage/blob/master/3rdParty/JCL/jcl-2.3.1.4197/source/windows/JclWin32.pas
+  FILE_DEVICE_FILE_SYSTEM = $00000009;
+  FILE_ANY_ACCESS = 0;
+  METHOD_NEITHER = 3;
+  FSCTL_ALLOW_EXTENDED_DASD_IO = ((FILE_DEVICE_FILE_SYSTEM shl 16)
+                                   or (FILE_ANY_ACCESS shl 14)
+                                   or (32 shl 2) or METHOD_NEITHER);
+
+  var
+    SourceDevice                            : widestring;
+    hSelectedDisk                           : THandle;
+    ExactDiskSize, SectorCount, HashResult  : Int64;
+    ExactSectorSize                         : integer;
+    slHashLog                               : TStringList;
+    BytesReturned                           : DWORD;
+    VerificationHash                        : string;
+    ImageVerified                           : boolean;
+    StartedAt, EndedAt, TimeTakenToHash     : TDateTime;
+
+  begin
+    BytesReturned   := 0;
+    ExactDiskSize   := 0;
+    ExactSectorSize := 0;
+    SectorCount     := 0;
+    HashResult      := 0;
+    HashChoice      := -1;
+    StartedAt       := 0;
+    EndedAt         := 0;
+    TimeTakenToHash := 0;
+    SourceDevice    := ledtSelectedItem.Text;
+    ComboImageType.Enabled   := false;
+    comboHashChoice.Enabled  := false;
+    ComboSegmentSize.Enabled := false;
+
+    // Determine what hash algorithm to use. MD5 = 1, SHA-1 = 2, MD5 & SHA-1 = 3, Use Non = 4. -1 is false
+    HashChoice := frmYaffi.InitialiseHashChoice(nil);
+    if HashChoice = -1 then abort;
+
+    // Create handle to source disk. Abort if fails
+    {$ifdef Windows}
+    hSelectedDisk := CreateFileW(PWideChar(SourceDevice),
+                                 FILE_READ_DATA,
+                                 FILE_SHARE_READ AND FILE_SHARE_WRITE,
+                                 nil,
+                                 OPEN_EXISTING,
+                                 FILE_FLAG_SEQUENTIAL_SCAN,
+                                 0);
+    // Check if handle is valid before doing anything else
+    if hSelectedDisk = INVALID_HANDLE_VALUE then
+    begin
+      RaiseLastOSError;
+    end
+    {$else ifdef UNIX}
+    hSelectedDisk := FileOpen(SourceDevice, fmOpenRead);
+    // Check if handle is valid before doing anything else
+    if hSelectedDisk = -1 then
+    begin
+      RaiseLastOSError;
+    end
+    {$endif}
+    else
+      begin
+        // If chosen device is logical volume, initiate FSCTL_ALLOW_EXTENDED_DASD_IO
+        // to ensure all sectors acquired, even those protected by the OS normally.
+        // https://msdn.microsoft.com/en-us/library/windows/desktop/aa363147%28v=vs.85%29.aspx
+        // https://msdn.microsoft.com/en-us/library/windows/desktop/aa364556%28v=vs.85%29.aspx
+        {$ifdef Windows}
+        if Pos('?', SourceDevice) > 0 then
+          begin
+            if not DeviceIOControl(hSelectedDisk, FSCTL_ALLOW_EXTENDED_DASD_IO, nil, 0,
+                 nil, 0, BytesReturned, nil) then
+                   raise Exception.Create('Unable to initiate FSCTL_ALLOW_EXTENDED_DASD_IO.');
+          end;
+         {$endif}
+        // Source disk handle is OK. So attempt imaging of it
+
+        // First, compute the exact disk size of the disk or volume
+        {$ifdef Windows}
+        ExactDiskSize   := GetDiskLengthInBytes(hSelectedDisk);
+        {$endif}
+        {$ifdef UNIX}
+        ExactDiskSize   := GetByteCountLinux(SourceDevice);
+        {$endif}
+
+        // Now query the sector size.
+        // 512 bytes is common with MBR but with GPT disks, 1024 or 4096 is likely
+        {$ifdef Windows}
+        ExactSectorSize := GetSectorSizeInBytes(hSelectedDisk);
+        {$endif}
+        {$ifdef Unix}
+        ExactSectorSize := GetBlockSizeLinux(SourceDevice);
+        {$endif}
+
+        // Now we can assign a sector count based on sector size and disk size
+        SectorCount   := ExactDiskSize DIV ExactSectorSize;
+
+        frmProgress.lblTotalBytesSource.Caption := ' bytes hashed of ' + IntToStr(ExactDiskSize);
+
+        // Now hash the chosen device, passing the exact size and
+        // hash selection and Image name.
+        StartedAt := Now;
+
+        // Start the disk hashing...
+        HashResult := HashDisk(hSelectedDisk, ExactDiskSize, HashChoice);
+
+        If HashResult = ExactDiskSize then
+          begin
+          frmProgress.lblStatus.Caption := 'Disk hashed OK. ' + IntToStr(ExactDiskSize)+' bytes read.';
+          EndedAt := Now;
+          TimeTakenToHash := EndedAt - StartedAt;
+          end
+        else ShowMessage('Disk hashing failed\aborted. Only ' + IntToStr(HashResult) + ' bytes read of the reported ' + IntToStr(ExactDiskSize));
+
+        // Release existing handle to disk
+        try
+          if (hSelectedDisk > 0) then
+            FileClose(hSelectedDisk);
+
+        finally
+          ComboImageType.Text      := 'E01';
+          ComboImageType.Enabled   := true;
+          comboHashChoice.Enabled  := true;
+          ComboSegmentSize.Enabled := true;
+          ComboCompression.Enabled := true;
+        end;
+
+         // Log the actions
+        try
+          slHashLog := TStringList.Create;
+          slHashLog.Add('Disk hashed using: '          + frmYaffi.Caption);
+          {$ifdef WIndows}
+          slHashLog.Add('Using operating system: '    + GetOSName);
+          {$endif}
+          {$ifdef Unix}
+          slHashLog.Add('Using operating system: '    + GetOSNameLinux);
+          {$endif}
+          slHashLog.Add('Device ID: '                 + SourceDevice);
+          slHashLog.Add('Chosen Hash Algorithm: '     + comboHashChoice.Text);
+          slHashLog.Add('=======================');
+          slHashLog.Add('Hashing Started At: '        + FormatDateTime('dd/mm/yy HH:MM:SS', StartedAt));
+          slHashLog.Add('Hashing Ended At:   '        + FormatDateTime('dd/mm/yy HH:MM:SS', EndedAt));
+          slHashLog.Add('Time Taken to hash: '       + FormatDateTime('HHH:MM:SS', TimeTakenToHash));
+          slHashLog.Add('Hash(es) of disk : ' + 'MD5: ' + ledtComputedHashA.Text + ' SHA-1: ' + ledtComputedHashB.Text);
+          slHashLog.Add('=======================');
+        finally
+          // Save the logfile using the image name as its foundation
+          slHashLog.SaveToFile('HashLog.txt');
+          slHashLog.free;
+        end;
+    end;
+    Application.ProcessMessages;
+  end;
+
+// Hash the selected disk. Returns the number of bytes successfully hashed
+function HashDisk(hDiskHandle : THandle; DiskSize : Int64; HashChoice : Integer) : Int64;
+var
+  // Buffer size has to be divisible by the disk size.
+  Buffer                   : array [0..65535] of Byte;   // 8191 (8Kb) 32767 (32Kb) or 1048576 (1Mb) or 262144 (240Kb) or 131072 (120Kb buffer) or 65536 (64Kb buffer)
+  // Hash digests for disk reading
+  MD5ctxDisk               : TMD5Context;
+  SHA1ctxDisk              : TSHA1Context;
+  MD5Digest                : TMD5Digest;
+  SHA1Digest               : TSHA1Digest;
+  BytesRead                : integer;
+  TotalBytesRead           : Int64;
+
+begin
+  BytesRead           := 0;
+  TotalBytesRead      := 0;
+  frmProgress.ProgressBar1.Position := 0;
+  frmProgress.lblTotalBytesSource.Caption := ' bytes read of ' + IntToStr(DiskSize);
+  frmProgress.lblStatus.Caption := ' Hashing disk...please wait';
+
+  frmProgress.Show;
+
+  try
+    // Initialise the hash digests in accordance with the users chosen algorithm
+    if HashChoice = 1 then
+      begin
+      MD5Init(MD5ctxDisk);
+      end
+      else if HashChoice = 2 then
+        begin
+        SHA1Init(SHA1ctxDisk);
+        end
+          else if HashChoice = 3 then
+            begin
+              MD5Init(MD5ctxDisk);
+              SHA1Init(SHA1ctxDisk);
+            end
+            else if HashChoice = 4 then
+              begin
+               // No hashing initiliased
+              end;
+    // Now to seek to start of device
+    FileSeek(hDiskHandle, 0, 0);
+      repeat
+        // Read device in buffered segments. Hash the disk and image portions as we go
+        if (DiskSize - TotalBytesRead) < SizeOf(Buffer) then
+          begin
+            // If amount left to read is less than buffer size
+            BytesRead    := FileRead(hDiskHandle, Buffer, (DiskSize - TotalBytesRead));
+            if BytesRead = -1 then
+            begin
+              RaiseLastOSError;
+              exit;
+            end
+              else inc(TotalBytesRead, BytesRead);
+          end
+          else
+            begin
+              // But if buffer is full, just read fully
+              BytesRead    := FileRead(hDiskHandle, Buffer, SizeOf(Buffer));
+            end;
+            if BytesRead = -1 then
+              begin
+                RaiseLastOSError;
+                exit;
+              end
+                else inc(TotalBytesRead, BytesRead);
+
+        frmProgress.lblTotalBytesRead.Caption:= IntToStr(TotalBytesRead);
+        frmProgress.ProgressBar1.Position := Trunc((TotalBytesRead/DiskSize)*100);
+        frmProgress.lblPercent.Caption := ' (' + IntToStr(frmProgress.ProgressBar1.Position) + '%)';
+
+        // Hash the bytes read and\or written using the algorithm required
+        // If the user selected no hashing, break the loop immediately; faster
+        if HashChoice = 4 then
+          begin
+           // No hashing initiliased
+          end
+          else if HashChoice = 1 then
+            begin
+              MD5Update(MD5ctxDisk, Buffer, BytesRead);
+            end
+              else if HashChoice = 2 then
+                begin
+                  SHA1Update(SHA1ctxDisk, Buffer, BytesRead);
+                end
+                  else if HashChoice = 3 then
+                    begin
+                      MD5Update(MD5ctxDisk, Buffer, BytesRead);
+                      SHA1Update(SHA1ctxDisk, Buffer, BytesRead);
+                    end;
+      Application.ProcessMessages;
+      until (TotalBytesRead = DiskSize) or (frmYaffi.Stop = true);
+  finally
+    // Compute the final hashes of disk and image
+    if HashChoice = 1 then
+      begin
+      MD5Final(MD5ctxDisk, MD5Digest);
+        begin
+          // MD5 Disk hash
+          frmYaffi.ledtComputedHashA.Clear;
+          frmYAffi.ledtComputedHashA.Visible := true;
+          frmYAffi.ledtComputedHashA.Enabled := true;
+          frmYaffi.ledtComputedHashA.Text    := Uppercase(MD5Print(MD5Digest));
+          frmYAffi.ledtComputedHashB.Visible := false;
+        end;
+      end
+        else if HashChoice = 2 then
+          begin
+            // SHA-1 hash only
+            SHA1Final(SHA1ctxDisk, SHA1Digest);
+            begin
+              // SHA1 Disk Hash
+              frmYaffi.ledtComputedHashA.Visible := false;
+              frmYaffi.ledtComputedHashA.Clear;
+              frmYaffi.ledtComputedHashB.Clear;
+              frmYAffi.ledtComputedHashB.Enabled := true;
+              frmYAffi.ledtComputedHashB.Visible := true;
+              frmYaffi.ledtComputedHashB.Text    := Uppercase(SHA1Print(SHA1Digest));
+            end;
+          end
+            else if HashChoice = 3 then
+              begin
+                // MD5 and SHA-1 together
+                MD5Final(MD5ctxDisk, MD5Digest);
+                SHA1Final(SHA1ctxDisk, SHA1Digest);
+                // Disk hash
+                frmYaffi.ledtComputedHashA.Clear;
+                frmYAffi.ledtComputedHashA.Visible := true;
+                frmYAffi.ledtComputedHashA.Enabled := true;
+                frmYaffi.ledtComputedHashA.Text    := Uppercase(MD5Print(MD5Digest));
+
+                frmYaffi.ledtComputedHashB.Clear;
+                frmYaffi.ledtComputedHashB.Visible := true;
+                frmYaffi.ledtComputedHashB.Enabled := true;
+                frmYaffi.ledtComputedHashB.Text    := Uppercase(SHA1Print(SHA1Digest));
+              end
+              else if HashChoice = 4 then
+                begin
+                 frmYaffi.ledtComputedHashA.Text    := Uppercase('No hash computed');
+                 frmYaffi.ledtComputedHashB.Text    := Uppercase('No hash computed');
+                 frmYAffi.ledtComputedHashA.Enabled := true;
+                 frmYAffi.ledtComputedHashA.Visible := true;
+                 frmYAffi.ledtComputedHashB.Enabled := true;
+                 frmYAffi.ledtComputedHashB.Visible := true;
+                 frmProgress.lblStatus.Caption      := 'No verification conducted';
+                 frmYaffi.ledtImageHashA.Enabled    := false;
+                 frmYaffi.ledtImageHashA.Visible    := false;
+                 frmYaffi.ledtImageHashB.Enabled    := false;
+                 frmYaffi.ledtImageHashB.Visible    := false;
+                end;
+      end;
+  result := TotalBytesRead;
+end;
 
 // DD images the disk and returns the number of bytes successfully imaged
 function ImageDiskDD(hDiskHandle : THandle; DiskSize : Int64; HashChoice : Integer; fsImageName : TFileStream) : Int64;

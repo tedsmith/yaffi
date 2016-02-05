@@ -880,7 +880,11 @@ object frmYaffi: TfrmYaffi
       Caption = 'Show Disk Technical Data'
       OnClick = GetDiskTechnicalSpecs
     end
-    object MenuItem1: TMenuItem
+    object menHashDisk: TMenuItem
+      Caption = 'Hash this Disk...'
+      OnClick = menHashDiskClick
+    end
+    object memImageDisk: TMenuItem
       Caption = 'Image this disk...'
       OnClick = btnChooseImageNameClick
     end
