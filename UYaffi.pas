@@ -947,7 +947,10 @@ begin
               end
               else ShowMessage('E01 Verification Failed.');
              end
-          else ShowMessage('Imaging failed\aborted. ' + IntToStr(ImageResult) + ' bytes captured of the reported ' + IntToStr(ExactDiskSize));
+          else
+          begin
+          ShowMessage('Imaging failed\aborted. ' + IntToStr(ImageResult) + ' bytes captured of the reported ' + IntToStr(ExactDiskSize));
+          end;
         end
 
       // DD IMAGE
@@ -956,14 +959,6 @@ begin
           StartedAt := Now;
           // Create a filestream for the output image file
           fsImageName := TFileStream.Create(Trim(ledtImageName.Text), fmCreate);
-
-          // Avoid overwriting an existing image if the user just presses start again
-          // after already pressing it once
-          if FileExists(fsImageName.FileName) then
-          begin
-            ShowMessage(fsImageName.FileName + ' already exists. Delete it first.');
-            Abort;
-          end;
 
           // Image hSelectedDisk to fsImageName, returning the number of bytes read
           ImageResult := ImageDiskDD(hSelectedDisk, ExactDiskSize, HashChoice, fsImageName);
