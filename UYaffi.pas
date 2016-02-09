@@ -937,16 +937,15 @@ begin
                 if (Length(VerificationHash) = 32) or   // MD5
                    (Length(VerificationHash) = 40) or   // SHA-1
                    (Length(VerificationHash) = 73) then // Both hashes with a space char
-                  begin
-                    ImageVerified := true;
-                    VerificationEndedAt := Now;
-                    TimeTakenToVerify   := VerificationEndedAt - VerificationStartedAt;
-                    frmProgress.lblStatus.Caption := 'Image re-read OK. Verifies. See log file';
-                    frmProgress.lblResult.Caption := 'Imaged and verified OK. Total time: ' + FormatDateTime('HHH:MM:SS', (TimeTakenToImage + TimeTakenToVerify));
-                  end;
-              end
-              else ShowMessage('E01 Verification Failed.');
-             end
+                begin
+                  ImageVerified := true;
+                  VerificationEndedAt := Now;
+                  TimeTakenToVerify   := VerificationEndedAt - VerificationStartedAt;
+                  frmProgress.lblStatus.Caption := 'Image re-read OK. Verifies. See log file';
+                  frmProgress.lblResult.Caption := 'Imaged and verified OK. Total time: ' + FormatDateTime('HHH:MM:SS', (TimeTakenToImage + TimeTakenToVerify));
+                end;
+              end;
+            end
           else
           begin
           ShowMessage('Imaging failed\aborted. ' + IntToStr(ImageResult) + ' bytes captured of the reported ' + IntToStr(ExactDiskSize));
@@ -2621,9 +2620,14 @@ begin
 
           // Regardless of whether libEWF succeeds or fails, it will be closed here in the FINALLY
           fLibEWF.libewf_close;
+          result := TotalBytesRead;
         end;
-    end;
-  result := TotalBytesRead;
+    end
+  else
+  begin
+    ShowMessage('E01 image could not be created.');
+    result := -1;
+  end;
 end;
 
 // Computes the hashes of the created E01 image and compares against the computed hash
