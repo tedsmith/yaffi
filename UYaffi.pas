@@ -1400,8 +1400,14 @@ var
   FSWbemLocator  : Variant;
   objWMIService  : Variant;
   colDiskDrivesWin32DiskDrive  : Variant;
-  objdiskDrive   : Variant;
-  oEnumDiskDrive : IEnumvariant;
+  objdiskDrive   : OLEVariant;
+
+  // Changed from variant to OLE Variant for FPC 3.0.
+    nrValue       : LongWord;                  // Added to replace nil pointer for FPC 3.0
+    nr            : LongWord absolute nrValue; // FPC 3.0 requires IEnumvariant.next to supply a longword variable for # returned values
+    oEnumDiskDrive : IEnumvariant;
+    oEnumPartition : IEnumvariant;
+    oEnumLogical   : IEnumvariant;
 
   ReportedSectors, DefaultBlockSize, Size, TotalCylinders, TotalTracks : Int64;
 
@@ -1468,7 +1474,7 @@ begin
       oEnumDiskDrive  := IUnknown(colDiskDrivesWin32DiskDrive._NewEnum) as IEnumVariant;
 
       // Parse the Win32_Diskdrive WMI.
-      while oEnumDiskDrive.Next(1, objdiskDrive, nil) = 0 do
+      while oEnumDiskDrive.Next(1, objdiskDrive, nr) = 0 do
       begin
         // Using VarIsNull ensures null values are just not parsed rather than errors being generated.
         if not VarIsNull(objdiskDrive.TotalSectors)      then ReportedSectors := objdiskDrive.TotalSectors;
@@ -2336,22 +2342,22 @@ begin
    CompressionChoice := frmYaffi.InitialiseCompressionChoice(nil);
    if CompressionChoice = -1 then
    begin
-     fLibEWF.libewf_HandleSetCompressionValues(LIBEWF_COMPRESSION_DEFAULT,0);
+     fLibEWF.libewf_SetCompressionValues(LIBEWF_COMPRESSION_DEFAULT,0);
    end
    else
    if CompressionChoice = 0 then
    begin
-     fLibEWF.libewf_HandleSetCompressionValues(LIBEWF_COMPRESSION_NONE,0);
+     fLibEWF.libewf_SetCompressionValues(LIBEWF_COMPRESSION_NONE,0);
    end
    else
     if CompressionChoice = 1 then
    begin
-     fLibEWF.libewf_HandleSetCompressionValues(LIBEWF_COMPRESSION_FAST,LIBEWF_PACK_FLAG_USE_EMPTY_BLOCK_COMPRESSION);
+     fLibEWF.libewf_SetCompressionValues(LIBEWF_COMPRESSION_FAST,LIBEWF_PACK_FLAG_USE_EMPTY_BLOCK_COMPRESSION);
    end
    else
     if CompressionChoice = 2 then
    begin
-     fLibEWF.libewf_HandleSetCompressionValues(LIBEWF_COMPRESSION_BEST,0);
+     fLibEWF.libewf_SetCompressionValues(LIBEWF_COMPRESSION_BEST,0);
    end;
 
    {$ifdef Windows}
@@ -2880,14 +2886,21 @@ var
   colDiskDrivesWin32DiskDrive  : Variant;
   colLogicalDisks: Variant;
   colPartitions  : Variant;
-  objdiskDrive   : Variant;
-  objPartition   : Variant;
-  objLogicalDisk : Variant;
+
   oEnumDiskDrive : IEnumvariant;
   oEnumPartition : IEnumvariant;
   oEnumLogical   : IEnumvariant;
+
+  // http://forum.lazarus.freepascal.org/index.php?topic=24490.0
+  objLogicalDisk : OLEVariant;
+  objdiskDrive   : OLEVariant;
+  objPartition   : OLEVariant;
+  // Changed from variant to OLE Variant for FPC 3.0.
+  nrValue       : LongWord;                  // Added to replace nil pointer for FPC 3.0
+  nr            : LongWord absolute nrValue; // FPC 3.0 requires IEnumvariant.next to supply a longword variable for # returned values
+
   Val1, Val2, Val3, Val4,
-    DeviceID, s : widestring;
+  DeviceID, s : widestring;
   DriveLetter, strDiskSize, strFreeSpace, strVolumeName    : string;
   DriveLetterID  : Byte;
   intDriveSize, intFreeSpace : Int64;
@@ -2914,7 +2927,7 @@ begin;
 
   oEnumDiskDrive  := IUnknown(colDiskDrivesWin32DiskDrive._NewEnum) as IEnumVariant;
 
-  while oEnumDiskDrive.Next(1, objdiskDrive, nil) = 0 do
+  while oEnumDiskDrive.Next(1, objdiskDrive, nr) = 0 do
    begin
       Val1 := Format('%s',[string(objdiskDrive.DeviceID)]) + ' (';
       Val2 := FormatByteSize(objdiskDrive.Size)            + ') ';
@@ -2932,7 +2945,7 @@ begin;
       colPartitions   := objWMIService.ExecQuery(s, 'WQL');
       oEnumPartition  := IUnknown(colPartitions._NewEnum) as IEnumVariant;
 
-      while oEnumPartition.Next(1, objPartition, nil) = 0 do
+      while oEnumPartition.Next(1, objPartition, nr) = 0 do
       begin
        if not VarIsNull(objPartition.DeviceID) then
        begin
@@ -2947,7 +2960,7 @@ begin;
         colLogicalDisks := objWMIService.ExecQuery(s);
         oEnumLogical  := IUnknown(colLogicalDisks._NewEnum) as IEnumVariant;
 
-        while oEnumLogical.Next(1, objLogicalDisk, nil) = 0 do
+        while oEnumLogical.Next(1, objLogicalDisk, nr) = 0 do
           begin
             Val3 := Format('Drive %s',[string(objLogicalDisk.DeviceID)]);
              if Length(Val3) > 0 then
