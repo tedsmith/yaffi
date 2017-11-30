@@ -13,6 +13,7 @@ type
   { TfrmProgress }
 
   TfrmProgress = class(TForm)
+    btnCloseProgressWindow: TButton;
     GroupBox1: TGroupBox;
     lblPercent: TLabel;
     lblResult: TLabel;
@@ -20,7 +21,9 @@ type
     lblTotalBytesSource: TLabel;
     lblTotalBytesRead: TLabel;
     ProgressBar1: TProgressBar;
+    procedure btnCloseProgressWindowClick(Sender: TObject);
     procedure FormCloseQuery(Sender: TObject; var CanClose: boolean);
+    procedure FormCreate(Sender: TObject);
   private
     { private declarations }
   public
@@ -43,6 +46,16 @@ procedure TfrmProgress.FormCloseQuery(Sender: TObject; var CanClose: boolean);
 begin
   lblStatus.Caption:= 'Aborting...';
   frmYaffi.Stop:= true;
+end;
+
+procedure TfrmProgress.FormCreate(Sender: TObject);
+begin
+  btnCloseProgressWindow.Enabled:=false;
+end;
+
+procedure TfrmProgress.btnCloseProgressWindowClick(Sender: TObject);
+begin
+  frmProgress.Visible := false;
 end;
 
 end.

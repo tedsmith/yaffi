@@ -1,0 +1,15 @@
+* Nov 17
+
+Added the HashLib4Pascal library for better MD5 and SHA-1 hashing, along with the option of adding other algorithms soon. 
+
+Added APFS Apple GUID to that such disks can be detected via the technical specification review
+
+Added the ability to "Wipe Disk" via right click menu, but embedded in a sub-menu called Dragons Layer!! Wiping is for logical volumes only (Drive E,: F: etc) not physical disks 
+
+Improved and updated the README.md and Acknowledgements file, and added this Release Notes file
+
+* 2015 
+
+Initial release of YAFFI made available
+
+

@@ -1,0 +1,5 @@
+{"version":1,"strings":[
+{"hash":180671502,"name":"hlpnullable.scannotassignpointertonullable","sourcebytes":[67,97,110,110,111,116,32,97,115,115,105,103,110,32,110,111,110,45,110,117,108,108,32,112,111,105,110,116,101,114,32,116,111,32,110,117,108,108,97,98,108,101,32,116,121,112,101,46],"value":"Cannot assign non-null pointer to nullable type."},
+{"hash":234272446,"name":"hlpnullable.sunsupportedtype","sourcebytes":[85,110,115,117,112,112,111,114,116,101,100,32,84,121,112,101,58,32,79,110,108,121,32,115,117,112,112,111,114,116,115,32,73,110,116,101,103,101,114,115,44,32,73,110,116,54,52,44,32,70,108,111,97,116,115,32,97,110,100,32,83,116,114,105,110,103,115,46],"value":"Unsupported Type: Only supports Integers, Int64, Floats and Strings."},
+{"hash":117502990,"name":"hlpnullable.sgetnullvalue","sourcebytes":[65,116,116,101,109,112,116,101,100,32,116,111,32,103,101,116,32,97,32,110,117,108,108,32,118,97,108,117,101,46],"value":"Attempted to get a null value."}
+]}
